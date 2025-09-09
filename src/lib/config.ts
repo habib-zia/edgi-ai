@@ -1,7 +1,7 @@
 // Backend API Configuration
 export const API_CONFIG = {
   // Express Backend URL
-  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://192.168.1.96:4000',
+  BACKEND_URL: 'https://backend-pi-ten-23.vercel.app',
   
   // https://backend-pi-ten-23.vercel.app
   // http://localhost:4000
