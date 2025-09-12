@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, AlertCircle } from 'lucide-react'
+import { Check, AlertCircle, RefreshCw } from 'lucide-react'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { setVideoLoading, setVideoError, createVideoRequest, clearVideoError, VideoRequest } from '@/store/slices/videoSlice'
@@ -15,6 +15,7 @@ import Image from 'next/image'
 import { IoMdArrowDropdown } from "react-icons/io";
 import { useSearchParams } from 'next/navigation'
 import { Avatar } from '@/lib/api-service'
+import { usePhotoAvatarNotificationContext } from '@/components/providers/PhotoAvatarNotificationProvider'
 
 
 // Zod validation schema
@@ -138,6 +139,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const dispatch = useDispatch<AppDispatch>()
   const { isLoading, error } = useSelector((state: RootState) => state.video)
   const searchParams = useSearchParams()
+  const { latestNotification } = usePhotoAvatarNotificationContext()
 
   const [showSuccessToast] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
@@ -168,42 +170,70 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [searchParams])
 
+  // Fetch avatars function - extracted to be reusable
+  const fetchAvatars = useCallback(async () => {
+    try {
+      setAvatarsLoading(true)
+      setAvatarsError(null)
+      const response = await apiService.getAvatars()
+      
+      if (response.success) {
+        // Handle both response structures: direct response or nested under data
+        const avatarData = (response as any).data || response;
+        
+        setAvatars({
+          custom: (avatarData as any).custom || [],
+          default: (avatarData as any).default || []
+        })
+        
+        // Explicitly clear any previous errors
+        setAvatarsError(null)
+      } else {
+        setAvatarsError(response.message || 'Failed to fetch avatars')
+      }
+    } catch (error: any) {
+      // If API endpoint doesn't exist (404), show a more user-friendly message
+      if (error.message?.includes('Not Found') || error.message?.includes('404')) {
+        setAvatarsError('Avatar API not yet implemented. Using fallback options.')
+      } else {
+        setAvatarsError(error.message || 'Failed to load avatars')
+      }
+    } finally {
+      setAvatarsLoading(false)
+    }
+  }, [])
+
   // Fetch avatars when component mounts or when user authentication status changes
   useEffect(() => {
-    const fetchAvatars = async () => {
-      try {
-        setAvatarsLoading(true)
-        setAvatarsError(null)
-        const response = await apiService.getAvatars()
-        
-        if (response.success) {
-          // Handle both response structures: direct response or nested under data
-          const avatarData = (response as any).data || response;
-          
-          setAvatars({
-            custom: (avatarData as any).custom || [],
-            default: (avatarData as any).default || []
-          })
-          
-          // Explicitly clear any previous errors
-          setAvatarsError(null)
-        } else {
-          setAvatarsError(response.message || 'Failed to fetch avatars')
-        }
-      } catch (error: any) {
-        // If API endpoint doesn't exist (404), show a more user-friendly message
-        if (error.message?.includes('Not Found') || error.message?.includes('404')) {
-          setAvatarsError('Avatar API not yet implemented. Using fallback options.')
-        } else {
-          setAvatarsError(error.message || 'Failed to load avatars')
-        }
-      } finally {
-        setAvatarsLoading(false)
+    fetchAvatars()
+  }, [fetchAvatars])
+
+  // Auto-refresh avatars when WebSocket notification shows avatar is ready
+  useEffect(() => {
+    if (latestNotification) {
+      console.log('🔔 Latest notification received:', latestNotification)
+      
+      // Check if this is an avatar completion notification
+      const isAvatarComplete = (latestNotification.step === 'complete' || latestNotification.step === 'ready') && 
+                              latestNotification.status === 'success' &&
+                              (latestNotification.data?.message?.toLowerCase().includes('avatar') || 
+                               latestNotification.data?.message?.toLowerCase().includes('ready'))
+      
+      if (isAvatarComplete) {
+        console.log('🔄 Avatar ready notification detected, refreshing avatar list...')
+        console.log('📋 Notification details:', latestNotification)
+        // Small delay to ensure backend has updated the avatar status
+        setTimeout(() => {
+          fetchAvatars()
+        }, 1000)
       }
     }
+  }, [latestNotification, fetchAvatars])
 
-    fetchAvatars()
-  }, [])
+  // Helper function to check if avatar is pending
+  const isAvatarPending = (avatar: Avatar) => {
+    return avatar.status === 'pending' || avatar.status === 'processing' || avatar.status === 'creating'
+  }
 
   // ...existing code...
 
@@ -391,6 +421,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           <div>
             {field === 'avatar' ? (
               <div className="absolute avatar-dropdown-shadow z-50 lg:w-[506px] w-full mt-1 bg-white rounded-[12px] shadow-lg !overflow-hidden">
+                {/* Avatar Dropdown Header with Refresh Button */}
+                <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800">Select Avatar</h3>
+                  <button
+                    onClick={fetchAvatars}
+                    disabled={avatarsLoading}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-[#5046E5] hover:bg-gray-50 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Refresh avatars"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${avatarsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
                 <div className="py-4 px-6 overflow-y-auto max-h-[500px]">
                   {avatarsLoading ? (
                     <div className="flex justify-center items-center py-8">
@@ -402,11 +445,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                       <p className="text-red-500 mb-2">Failed to load avatars</p>
                       <p className="text-sm text-[#5F5F5F]">{avatarsError}</p>
                       <button 
-                        onClick={() => {
-                          setAvatarsError(null)
-                          // Trigger refetch by calling the useEffect again
-                          window.location.reload()
-                        }}
+                        onClick={fetchAvatars}
                         className="mt-3 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors"
                       >
                         Retry
@@ -423,21 +462,42 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                               <button
                                 key={avatar._id}
                                 type="button"
-                                onClick={() => handleDropdownSelect(field, avatar.avatar_id)}
-                                className={`flex flex-col items-center max-w-[80px] rounded-lg hover:bg-gray-50 transition-colors duration-200 relative`}
+                                onClick={() => !isAvatarPending(avatar) && handleDropdownSelect(field, avatar.avatar_id)}
+                                disabled={isAvatarPending(avatar)}
+                                className={`flex flex-col items-center max-w-[80px] rounded-lg hover:bg-gray-50 transition-colors duration-200 relative ${
+                                  isAvatarPending(avatar) ? 'opacity-60 cursor-not-allowed' : ''
+                                }`}
                               >
-                                <Image 
-                                  src={avatar.preview_image_url || avatar.imageUrl || '/images/avatars/avatargirl.png'} 
-                                  alt={avatar.avatar_name || avatar.name || 'Avatar'} 
-                                  width={80} 
-                                  height={80}
-                                  className="rounded-lg object-cover w-[80px] h-[80px]"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = '/images/avatars/avatargirl.png';
-                                  }}
-                                />
-                                <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">{avatar.avatar_id}</span>
+                                <div className="relative">
+                                  <Image 
+                                    src={avatar.preview_image_url || avatar.imageUrl || '/images/avatars/avatargirl.png'} 
+                                    alt={avatar.avatar_name || avatar.name || 'Avatar'} 
+                                    width={80} 
+                                    height={80}
+                                    className={`rounded-lg object-cover w-[80px] h-[80px] ${
+                                      isAvatarPending(avatar) ? 'opacity-50' : ''
+                                    }`}
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = '/images/avatars/avatargirl.png';
+                                    }}
+                                  />
+                                  {/* Loading overlay for pending avatars */}
+                                  {isAvatarPending(avatar) && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
+                                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">
+                                  {avatar.avatar_id}
+                                  {isAvatarPending(avatar) && (
+                                    <>
+                                    <span className="block text-xs text-orange-500 mt-1">Processing...</span>
+                                    <span className="block text-[9px] text-orange-500 mt-1 break-words text-wrap">it normally take 2 minutes to complete</span>
+                                    </>
+                                  )}
+                                </span>
                                 {currentValue === avatar.avatar_id && (
                                   <Check className="w-4 h-4 absolute -right-3 -top-3 text-[#5046E5] mt-1" />
                                 )}
