@@ -35,13 +35,19 @@ export default function ContactForm() {
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true)
     setSubmitError(null)
+    
     try
     {
-      const response = await apiService.sendContactMessage({
-        name: data.fullName,
+      const messageData = {
+        fullName: data.fullName,
+        position: data.position,
         email: data.email,
-        message: data.question
-      })
+        phone: data.phone,
+        subject: `Contact from ${data.fullName} - ${data.position}`,
+        question: data.question
+      }
+      
+      const response = await apiService.sendContactMessage(messageData)
 
       if (response.success)
       {

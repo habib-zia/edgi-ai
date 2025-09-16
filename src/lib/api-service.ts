@@ -267,11 +267,11 @@ class ApiService {
     };
 
     try {
-   
       const response = await fetch(url, config);
       
       if (!response.ok) {
         const errorText = await response.text();
+        
         try {
           const errorData = JSON.parse(errorText);
           this.showNotification(errorData.message || 'An error occurred', 'error');
@@ -529,9 +529,12 @@ class ApiService {
 
   // Contact Form
   async sendContactMessage(messageData: {
-    name: string;
+    fullName: string;
+    position?: string;
     email: string;
-    message: string;
+    phone?: string;
+    subject: string;
+    question: string;
   }): Promise<ApiResponse> {
     return this.request(API_CONFIG.ENDPOINTS.CONTACT, {
       method: 'POST',
