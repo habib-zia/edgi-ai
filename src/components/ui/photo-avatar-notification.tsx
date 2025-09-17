@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, AlertCircle, Clock, X } from 'lucide-react'
+import { CheckCircle, X } from 'lucide-react'
 import { PhotoAvatarUpdate } from '@/hooks/usePhotoAvatarNotifications'
 
 interface PhotoAvatarNotificationProps {
@@ -24,7 +24,12 @@ export default function PhotoAvatarNotification({
 
   // Show notification when we have updates
   useEffect(() => {
+    console.log('🔔 PhotoAvatarNotification useEffect triggered:', {
+      notificationsLength: notifications.length,
+      notifications
+    })
     if (notifications.length > 0) {
+      console.log('🔔 Setting notification visible')
       setIsVisible(true)
       const latest = notifications[notifications.length - 1]
       setCurrentStep(latest.step)
@@ -47,7 +52,7 @@ export default function PhotoAvatarNotification({
         
         const timer = setTimeout(() => {
           onClose()
-        }, 60000) // 1 minute = 60000ms
+        }, 30000) // 3 seconds = 30000ms
         
         // Update countdown every second
         const countdownInterval = setInterval(() => {
@@ -82,52 +87,47 @@ export default function PhotoAvatarNotification({
     return stepMap[step] || 0
   }
 
-  const getStepIcon = (step: string, status: string) => {
-    if (status === 'error') {
-      return <AlertCircle className="w-5 h-5 text-red-500" />
-    }
-    if (status === 'success' || step === 'ready') {
-      return <CheckCircle className="w-5 h-5 text-green-500" />
-    }
-    return <Clock className="w-5 h-5 text-blue-500" />
-  }
-
-  // Removed hardcoded messages - now using backend messages directly
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success':
-        return 'border-green-200 bg-green-50'
+        return 'border-green-200/60 bg-green-50/70 backdrop-blur-sm'
       case 'error':
-        return 'border-red-200 bg-red-50'
+        return 'border-red-200/60 bg-red-50/70 backdrop-blur-sm'
       default:
-        return 'border-blue-200 bg-blue-50'
+        return 'border-blue-200/60 bg-blue-50/70 backdrop-blur-sm'
     }
   }
 
   const latestNotification = notifications[notifications.length - 1]
+  
+  console.log('🔔 PhotoAvatarNotification render:', {
+    notificationsCount: notifications.length,
+    latestNotification,
+    isVisible,
+    isConnected
+  })
 
-  if (!isVisible || !latestNotification) return null
+  if (!isVisible || !latestNotification) {
+    console.log('🔔 PhotoAvatarNotification not visible or no notification')
+    return null
+  }
 
   return (
     <div className={`fixed top-4 right-4 z-[60] max-w-sm w-full ${className}`}>
       <div className={`border rounded-lg shadow-lg p-4 transition-all duration-300 ${getStatusColor(latestNotification.status)}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             {getStepIcon(latestNotification.step, latestNotification.status)}
             <h4 className="font-semibold text-gray-800">
               {latestNotification.status === 'error' ? 'Avatar Creation Failed' : (latestNotification.data?.message || 'Creating Avatar')}
             </h4>
-          </div>
+          </div> */}
           {/* Show close button only when ready step is complete or there's an error */}
           {(latestNotification.step === 'ready' || latestNotification.status === 'error') && onClose && (
             <div className="flex items-center gap-2">
-              {timeRemaining !== null && (
-                <span className="text-xs text-gray-500">
-                  Auto-close in {timeRemaining}s
-                </span>
-              )}
+          
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -140,13 +140,11 @@ export default function PhotoAvatarNotification({
           
         </div>
 
-        {/* Connection Status */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-xs text-gray-600">
-            {isConnected ? 'Connected' : 'Disconnected'}
+        {timeRemaining !== null && (
+          <span className="text-xs text-gray-500">
+            Auto-close in {timeRemaining}s
           </span>
-        </div>
+        )}
 
         {/* Progress Bar */}
         {latestNotification.status === 'progress' && (
@@ -231,8 +229,8 @@ export default function PhotoAvatarNotification({
         )}
         {/* if notification will error the hide this notification */}
         {latestNotification.status !== 'error' && (
-            <p className="text-xs text-gray-600">
-            It will take 2–3 minutes to create your avatar. You&apos;ll find it in the avatar dropdown once it&apos;s ready.
+          <p className="text-xs text-gray-600 mt-2">
+            Your avatar will be ready in 2–3 minutes and appear in the dropdown.
           </p>
         )}
       </div>

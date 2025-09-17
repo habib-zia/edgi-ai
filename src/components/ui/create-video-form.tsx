@@ -714,7 +714,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                                     {isAvatarPending(avatar) && (
                                       <>
                                         <span className="block text-xs text-orange-500 mt-1">Processing...</span>
-                                        <span className="block text-[9px] text-orange-500 mt-1 break-words text-wrap">it normally take 2 minutes to complete</span>
                                       </>
                                     )}
                                   </span>

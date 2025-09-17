@@ -65,6 +65,7 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
 
     // Get backend URL from config
     const backendUrl = getApiUrl('').replace('/api', '') // Remove /api from the URL
+    console.log('🔌 WebSocket connecting to:', backendUrl)
     
     // Connect to WebSocket server
     const newSocket = io(backendUrl, {
@@ -97,14 +98,20 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
     // Listen for photo avatar updates
     newSocket.on('photo-avatar-update', (update: PhotoAvatarUpdate) => {
       console.log('📸 Photo avatar update received:', update)
+      console.log('📸 Current notifications before update:', notifications)
       setNotifications(prev => {
         // Avoid duplicate notifications
         const exists = prev.some(notif => 
           notif.timestamp === update.timestamp && 
           notif.step === update.step
         )
-        if (exists) return prev
-        return [...prev, update]
+        if (exists) {
+          console.log('📸 Duplicate notification ignored')
+          return prev
+        }
+        const newNotifications = [...prev, update]
+        console.log('📸 New notifications after update:', newNotifications)
+        return newNotifications
       })
     })
 
