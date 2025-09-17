@@ -162,7 +162,7 @@ export default function BillingHistoryModal({ isOpen, onClose }: BillingHistoryM
                         <div className="space-y-4">
                             {billingHistory.map((transaction) => (
                                 <div key={transaction.id} className="bg-[#EEEEEE] rounded-[8px] p-4">
-                                    <div className="flex items-center justify-between mb-3">
+                                    <div className="flex md:flex-row flex-col gap-y-4 items-center justify-between mb-3">
                                         <div className="flex items-center gap-3">
                                             <div className="bg-[#5046E5] rounded-full p-2">
                                                 <Receipt className="h-4 w-4 text-white" />

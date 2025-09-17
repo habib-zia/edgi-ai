@@ -178,9 +178,9 @@ export default function SubscriptionDetailsSection({ className = '' }: Subscript
     return (
         <div className={`${className}`}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex md:flex-row flex-col gap-y-4 items-center justify-between mb-8">
                 <h2 className="text-[32px] font-semibold text-[#282828] text-center flex-1">Subscription Details</h2>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(subscription.status)}`}>
+                <span className={`px-3 py-1 rounded-full text-sm ml-auto font-medium ${getStatusColor(subscription.status)}`}>
                     {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
                 </span>
             </div>

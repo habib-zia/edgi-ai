@@ -33,6 +33,15 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
     return url
   }
 
+  // Effect to restore image preview when component mounts with existing photo files
+  useEffect(() => {
+    if (avatarData.photoFiles.length > 0 && !imagePreviewUrl) {
+      // Create preview URL for existing photo file
+      const file = avatarData.photoFiles[0]
+      createPreviewUrl(file)
+    }
+  }, [avatarData.photoFiles, imagePreviewUrl])
+
   // Cleanup effect to prevent memory leaks
   useEffect(() => {
     return () => {
@@ -153,6 +162,7 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
           className="hidden"
         />
       </div>
+
 
       {/* Uploaded Photo */}
       {avatarData.photoFiles.length > 0 && (

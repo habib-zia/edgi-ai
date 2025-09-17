@@ -7,8 +7,8 @@ export const API_CONFIG = {
   // http://localhost:4000
   // http://192.168.1.72:4000
   // http://192.168.3.30:4000
-
   // http://13.60.180.94:4000
+  // https://backend.edgeairealty.com
   
   // API Endpoints
   ENDPOINTS: {

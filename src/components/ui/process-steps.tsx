@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { AvatarCreationModal } from './avatar-creation';
+import { redirect } from "next/navigation";
 // import Image from "next/image";
 
 interface Step {
@@ -45,11 +46,11 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
   const { user } = useSelector((state: RootState) => state.user);
 
   // Show toast function
-  const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToastMessage = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToastMessage(message);
     setToastType(type);
     setShowToast(true);
@@ -66,7 +67,17 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
       setIsAvatarModalOpen(true);
     } else {
       // User is not logged in, show toast message
-      showToastMessage('Please log in to create a custom avatar', 'error');
+      showToastMessage('Please log in to create a custom avatar', 'info');
+    }
+  };
+
+  const handleDefaultAvatarClick = () => {
+    if (user?.id) {
+      // User is logged in, redirect to default avatar page
+      redirect('/create-video/new');
+    } else {
+      // User is not logged in, show toast message
+      showToastMessage('Please log in to create a default avatar', 'info');
     }
   };
 
@@ -174,12 +185,12 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
           >
             Custom Avatar
           </button>
-          <Link 
-            href="/create-video/new"
-            className="inline-flex md:w-fit w-full items-center gap-3 border-2 border-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent bg-[#5046E5] py-[7.4px] rounded-full text-[20px] font-semibold transition-all duration-300 group md:max-w-[186px] max-w-full text-center justify-center px-4"
+          <button 
+            onClick={handleDefaultAvatarClick}
+            className="inline-flex md:w-fit w-full items-center gap-3 bg-transparent border-2 border-[#5046E5] text-[#5046E5] hover:bg-[#5046E5] hover:text-white py-[7.4px] rounded-full text-[20px] font-semibold transition-colors duration-300 group md:max-w-[192px] max-w-full text-center justify-center px-4 cursor-pointer"
           >
             Default Avatar
-          </Link>
+          </button>
         </div>
       </div>
 

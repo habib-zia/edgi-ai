@@ -405,7 +405,7 @@ export const PaymentMethods: React.FC<PaymentMethodsProps> = ({ authToken }) => 
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex md:flex-row flex-col justify-between gap-y-7 items-center mb-8">
         <div>
           <h2 className="text-2xl font-semibold text-[#282828] mb-2">Payment Methods</h2>
           <p className="text-[#5F5F5F]">Manage your saved payment methods and billing information</p>
