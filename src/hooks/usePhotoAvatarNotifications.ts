@@ -144,7 +144,7 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
       console.log('🧹 Cleaning up WebSocket connection')
       newSocket.close()
     }
-  }, [userId])
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get latest notification
   const latestNotification = notifications.length > 0 ? notifications[notifications.length - 1] : null
@@ -152,7 +152,7 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
 
   // Check if avatar is currently being processed
   const isProcessing = notifications.some(notif => 
-    notif.status === 'progress' && notif.step !== 'complete'
+    notif.status === 'progress' && notif.step !== 'ready'
   )
 
   // Check if video is currently being processed (only for success/error, no progress tracking)

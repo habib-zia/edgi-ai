@@ -106,6 +106,23 @@ export interface CreatePhotoAvatarResponse {
   message: string;
 }
 
+// Topic Types
+export interface Topic {
+  _id: string;
+  topic: string;
+  description: string;
+  keypoints: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+export interface TopicsResponse {
+  success: boolean;
+  message: string;
+  data: Topic[];
+}
+
 
 // Payment Types
 export interface PaymentIntentRequest {
@@ -469,6 +486,52 @@ class ApiService {
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get avatars';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  // Topic Methods
+  async getAllTopics(): Promise<ApiResponse<TopicsResponse>> {
+    try {
+      const response = await this.request<TopicsResponse>(API_CONFIG.ENDPOINTS.TOPIC.GET_ALL, {
+        method: 'GET',
+      }, true);
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get topics';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async getRealEstateTopics(): Promise<ApiResponse<TopicsResponse>> {
+    try {
+      const response = await this.request<TopicsResponse>(`${API_CONFIG.ENDPOINTS.TOPIC.GET_BY_TYPE}/real_estate`, {
+        method: 'GET',
+      }, true);
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get real estate topics';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async getTopicById(id: string): Promise<ApiResponse<TopicsResponse>> {
+    try {
+      if (!id) {
+        const errorMessage = 'ID parameter is required';
+        this.showNotification(errorMessage, 'error');
+        return { success: false, message: errorMessage, error: errorMessage };
+      }
+
+      const response = await this.request<TopicsResponse>(`${API_CONFIG.ENDPOINTS.TOPIC.GET_BY_ID}/${id}`, {
+        method: 'GET',
+      }, true);
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get topic by ID';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }

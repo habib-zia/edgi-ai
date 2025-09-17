@@ -8,6 +8,7 @@ import { RootState } from '@/store'
 import { useRouter } from 'next/navigation'
 import { apiService } from '@/lib/api-service'
 import { API_CONFIG } from '@/lib/config'
+import { useAvatarStorage } from '@/hooks/useAvatarStorage'
 
 interface CreateVideoModalProps {
   isOpen: boolean
@@ -29,6 +30,20 @@ interface CreateVideoModalProps {
 
 type ModalStep = 'form' | 'loading' | 'complete'
 
+interface VideoGenerationData {
+  hook: string
+  body: string
+  conclusion: string
+  company_name: string
+  social_handles: string
+  license: string
+  email: string
+  title: string
+  avatar_title: string
+  avatar_body: string
+  avatar_conclusion: string
+}
+
 export default function CreateVideoModal({ isOpen, onClose, startAtComplete = false, videoData, webhookResponse }: CreateVideoModalProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<ModalStep>(startAtComplete ? 'complete' : 'form')
@@ -49,10 +64,13 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   })
   const [isDownloading, setIsDownloading] = useState(false)
   const [countdown, setCountdown] = useState(10)
+  const [avatarError, setAvatarError] = useState<string>('')
+
+  // Custom hook for avatar storage
+  const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
 
   // Get video topic and user info from Redux store
   const videoTopic = useSelector((state: RootState) => state.video.videoTopic)
-  const user = useSelector((state: RootState) => state.user.user)
 
   // Update form data when webhookResponse changes
   useEffect(() => {
@@ -149,56 +167,61 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     return !newErrors.prompt && !newErrors.description && !newErrors.conclusion
   }
 
-  const handleVideoDownload = async (videoUrl: string) => {
-    try
-    {
-      // Call the download API to process the video using apiService
-      const downloadResult = await apiService.downloadVideoFromUrl(
-        videoUrl,
-        user?.id || '',
-        videoTopic || 'Generated Video'
-      );
-
-      if (!downloadResult.success)
-      {
-        throw new Error(downloadResult.message || 'Failed to download and store video');
-      }
-    } catch (error)
-    {
-      throw error;
-    }
-  }
 
   const handleCreateVideo = async () => {
-    if (!validateForm())
-    {
+    // Clear previous avatar errors
+    setAvatarError('')
+
+    if (!validateForm()) {
       return
     }
 
-    setCurrentStep('loading')
+    try {
+      // Get and validate avatar IDs from localStorage
+      const avatarIds = getAvatarIds()
+      if (!avatarIds) {
+        setAvatarError('Avatar selection not found. Please go back and select avatars.')
+        return
+      }
 
-    try
-    {
-      // Prepare data for video generation API
-      const videoGenerationData = {
+      // Validate that all required avatars are selected
+      validateAvatarSelection(avatarIds)
+
+      setCurrentStep('loading')
+      // avatar: webhookResponse?.avatar || '',
+
+      // Prepare data for video generation API with proper typing
+      const videoGenerationData: VideoGenerationData = {
         hook: formData.prompt,
         body: formData.description,
         conclusion: formData.conclusion,
         company_name: webhookResponse?.company_name || '',
         social_handles: webhookResponse?.social_handles || '',
         license: webhookResponse?.license || '',
-        avatar: webhookResponse?.avatar || '',
         email: webhookResponse?.email || '',
-        title: videoTopic || 'Custom Video', // Use video topic from slice as title
+        title: videoTopic || 'Custom Video',
+        avatar_title: avatarIds.avatar_title,
+        avatar_body: avatarIds.avatar_body,
+        avatar_conclusion: avatarIds.avatar_conclusion
       }
 
+      console.log('videoGenerationData', videoGenerationData)
+
       // Call the video generation API using apiService
-      const result = await apiService.generateVideo(videoGenerationData);
+      await apiService.generateVideo(videoGenerationData)
 
-      // Just stay in loading state - modal will auto-close after 20 seconds
+      // Just stay in loading state - modal will auto-close after countdown
 
-    } catch (error: any)
-    {
+    } catch (error: any) {
+      console.error('Video creation failed:', error)
+      
+      // Set appropriate error message
+      if (error.message.includes('Missing avatar selection')) {
+        setAvatarError(error.message)
+      } else {
+        setAvatarError('Failed to create video. Please try again.')
+      }
+      
       setCurrentStep('form') // Go back to form on error
     }
   }
@@ -272,14 +295,6 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       // Reset loading state
       setIsDownloading(false)
     }
-  }
-
-
-
-  const getYouTubeEmbedUrl = (url: string | undefined) => {
-    if (!url) return ''
-    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1]
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0` : url
   }
 
   if (!isOpen) return null
@@ -376,6 +391,19 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                   )}
                 </div>
               </div>
+
+              {/* Avatar Error Display */}
+              {avatarError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <div>
+                      <h3 className="text-red-800 font-semibold">Avatar Selection Error</h3>
+                      <p className="text-red-700 text-sm">{avatarError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={handleCreateVideo}

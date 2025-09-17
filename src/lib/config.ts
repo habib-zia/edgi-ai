@@ -1,7 +1,7 @@
 // Backend API Configuration
 export const API_CONFIG = {
   // Express Backend URL
-  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://13.60.180.94:4000',
+  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000',
   
   // https://backend-pi-ten-23.vercel.app
   // http://localhost:4000
@@ -40,6 +40,13 @@ export const API_CONFIG = {
       DOWNLOAD_PROXY: '/api/video/download-proxy',
       GENERATE: '/api/video/generate-video',
       CREATE_VIDEO: '/api/video/create',
+    },
+    
+    // Topic endpoints
+    TOPIC: {
+      GET_ALL: '/api/video/topics',
+      GET_BY_TYPE: '/api/video/topics', // Will append /:topic
+      GET_BY_ID: '/api/video/topics', // Will append /:id
     },
     
     // Avatar endpoints

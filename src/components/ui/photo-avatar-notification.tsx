@@ -20,6 +20,7 @@ export default function PhotoAvatarNotification({
   const [isVisible, setIsVisible] = useState(false)
   const [currentStep, setCurrentStep] = useState<string>('')
   const [progress, setProgress] = useState(0)
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
   // Show notification when we have updates
   useEffect(() => {
@@ -34,13 +35,49 @@ export default function PhotoAvatarNotification({
     }
   }, [notifications])
 
+  // Auto-close notification after 1 minute when ready step is complete or there's an error
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const latest = notifications[notifications.length - 1]
+      const shouldShowCloseButton = latest.step === 'ready' || latest.status === 'error'
+      
+      if (shouldShowCloseButton && onClose) {
+        // Start countdown
+        setTimeRemaining(60)
+        
+        const timer = setTimeout(() => {
+          onClose()
+        }, 60000) // 1 minute = 60000ms
+        
+        // Update countdown every second
+        const countdownInterval = setInterval(() => {
+          setTimeRemaining(prev => {
+            if (prev === null || prev <= 1) {
+              clearInterval(countdownInterval)
+              return null
+            }
+            return prev - 1
+          })
+        }, 1000)
+        
+        return () => {
+          clearTimeout(timer)
+          clearInterval(countdownInterval)
+        }
+      } else {
+        setTimeRemaining(null)
+      }
+    }
+  }, [notifications, onClose])
+
   const getStepProgress = (step: string): number => {
     const stepMap: Record<string, number> = {
       'upload': 20,
       'group-creation': 40,
       'training': 60,
       'saving': 80,
-      'complete': 100
+      'complete': 90,
+      'ready': 100
     }
     return stepMap[step] || 0
   }
@@ -49,22 +86,13 @@ export default function PhotoAvatarNotification({
     if (status === 'error') {
       return <AlertCircle className="w-5 h-5 text-red-500" />
     }
-    if (status === 'success' || step === 'complete') {
+    if (status === 'success' || step === 'ready') {
       return <CheckCircle className="w-5 h-5 text-green-500" />
     }
     return <Clock className="w-5 h-5 text-blue-500" />
   }
 
-  const getStepMessage = (step: string): string => {
-    const messages: Record<string, string> = {
-      'upload': 'Uploading your photo...',
-      'group-creation': 'Creating avatar group...',
-      'training': 'Training your avatar...',
-      'saving': 'Saving your avatar...',
-      'complete': 'Avatar ready!'
-    }
-    return messages[step] || 'Processing...'
-  }
+  // Removed hardcoded messages - now using backend messages directly
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,17 +117,27 @@ export default function PhotoAvatarNotification({
           <div className="flex items-center gap-2">
             {getStepIcon(latestNotification.step, latestNotification.status)}
             <h4 className="font-semibold text-gray-800">
-              {latestNotification.status === 'error' ? 'Avatar Creation Failed' : 'Creating Avatar'}
+              {latestNotification.status === 'error' ? 'Avatar Creation Failed' : (latestNotification.data?.message || 'Creating Avatar')}
             </h4>
           </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          {/* Show close button only when ready step is complete or there's an error */}
+          {(latestNotification.step === 'ready' || latestNotification.status === 'error') && onClose && (
+            <div className="flex items-center gap-2">
+              {timeRemaining !== null && (
+                <span className="text-xs text-gray-500">
+                  Auto-close in {timeRemaining}s
+                </span>
+              )}
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           )}
+
+          
         </div>
 
         {/* Connection Status */}
@@ -114,7 +152,7 @@ export default function PhotoAvatarNotification({
         {latestNotification.status === 'progress' && (
           <div className="mb-3">
             <div className="flex justify-between text-xs text-gray-600 mb-1">
-              <span>{getStepMessage(latestNotification.step)}</span>
+              <span>{latestNotification.data?.message || 'Processing...'}</span>
               <span>{progress}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -128,7 +166,7 @@ export default function PhotoAvatarNotification({
 
         {/* Step Indicators */}
         <div className="flex justify-between mb-3">
-          {['upload', 'group-creation', 'training', 'saving', 'complete'].map((step, index) => {
+          {['upload', 'group-creation', 'training', 'saving', 'complete', 'ready'].map((step, index) => {
             const isActive = step === currentStep
             const isCompleted = getStepProgress(step) <= progress
             const isError = latestNotification.status === 'error' && step === currentStep
@@ -136,7 +174,7 @@ export default function PhotoAvatarNotification({
             return (
               <div
                 key={step}
-                className={`flex flex-col items-center ${index < 4 ? 'flex-1' : ''}`}
+                className={`flex flex-col items-center pl-3 ${index < 4 ? 'flex-1' : ''}`}
               >
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
@@ -175,7 +213,7 @@ export default function PhotoAvatarNotification({
 
         {/* Message */}
         <div className="text-sm text-gray-700">
-          {latestNotification.data?.message || getStepMessage(latestNotification.step)}
+          {latestNotification.data?.message || 'Processing...'}
         </div>
 
         {/* Error Details */}
@@ -186,10 +224,16 @@ export default function PhotoAvatarNotification({
         )}
 
         {/* Success Message */}
-        {latestNotification.status === 'success' && (
+        {latestNotification.status === 'success' && latestNotification.data?.message && (
           <div className="mt-2 p-2 bg-green-100 border border-green-200 rounded text-xs text-green-700">
-            🎉 Your avatar is ready to use!
+            🎉 {latestNotification.data.message}
           </div>
+        )}
+        {/* if notification will error the hide this notification */}
+        {latestNotification.status !== 'error' && (
+            <p className="text-xs text-gray-600">
+            It will take 2–3 minutes to create your avatar. You&apos;ll find it in the avatar dropdown once it&apos;s ready.
+          </p>
         )}
       </div>
     </div>

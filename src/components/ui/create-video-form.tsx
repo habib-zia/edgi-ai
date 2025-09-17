@@ -14,8 +14,11 @@ import Image from 'next/image'
 // ...existing code...
 import { IoMdArrowDropdown } from "react-icons/io";
 import { useSearchParams } from 'next/navigation'
-import { Avatar } from '@/lib/api-service'
+import { Avatar, Topic } from '@/lib/api-service'
 import { usePhotoAvatarNotificationContext } from '@/components/providers/PhotoAvatarNotificationProvider'
+import { useAvatarStorage, type SelectedAvatars } from '@/hooks/useAvatarStorage'
+import { useSubscription } from '@/hooks/useSubscription'
+import UsageLimitToast from './usage-limit-toast'
 
 
 // Zod validation schema
@@ -40,8 +43,7 @@ const createVideoSchema = z.object({
     .min(2, 'Social handles must be at least 2 characters')
     .max(200, 'Social handles must be less than 200 characters'),
   videoTopic: z.string()
-    .min(2, 'Video topic must be at least 2 characters')
-    .max(200, 'Video topic must be less than 200 characters'),
+    .min(1, 'Please select a video topic'),
   topicKeyPoints: z.string()
     .min(2, 'Topic key points must be at least 2 characters')
     .max(500, 'Topic key points must be less than 500 characters'),
@@ -140,6 +142,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const { isLoading, error } = useSelector((state: RootState) => state.video)
   const searchParams = useSearchParams()
   const { latestNotification } = usePhotoAvatarNotificationContext()
+  const { saveSelectedAvatars } = useAvatarStorage()
+  const { checkVideoUsageLimit } = useSubscription()
 
   const [showSuccessToast] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
@@ -159,6 +163,14 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [avatars, setAvatars] = useState<{ custom: Avatar[], default: Avatar[] }>({ custom: [], default: [] })
   const [avatarsLoading, setAvatarsLoading] = useState(false)
   const [avatarsError, setAvatarsError] = useState<string | null>(null)
+  
+  // Real estate topics state
+  const [topics, setTopics] = useState<Topic[]>([])
+  const [topicsLoading, setTopicsLoading] = useState(false)
+  const [topicsError, setTopicsError] = useState<string | null>(null)
+  
+  // Ensure topics is always an array to prevent .find() errors
+  const safeTopics = Array.isArray(topics) ? topics : []
 
   // Drag and drop state
   const [selectedAvatars, setSelectedAvatars] = useState<{
@@ -171,6 +183,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     conclusion: null
   })
   const [draggedAvatar, setDraggedAvatar] = useState<Avatar | null>(null)
+  
+  // Usage limit toast state
+  const [showUsageToast, setShowUsageToast] = useState(false)
+  const [usageToastMessage, setUsageToastMessage] = useState('')
 
 
   // Check if user came from Default Avatar button
@@ -181,6 +197,42 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setIsFromDefaultAvatar(true)
     }
   }, [searchParams])
+
+  // Fetch real estate topics function
+  const fetchTopics = useCallback(async () => {
+    try {
+      setTopicsLoading(true)
+      setTopicsError(null)
+      const response = await apiService.getRealEstateTopics()
+      
+      console.log('Topics API Response:', response) // Debug log
+      
+      if (response.success) {
+        // The topics array is directly at response.data
+        const topicsData = (response as any).data || []
+        console.log('Topics Data:', topicsData) // Debug log
+        
+        if (Array.isArray(topicsData)) {
+          console.log('Setting topics:', topicsData) // Debug log
+          setTopics(topicsData)
+          setTopicsError(null)
+        } else {
+          console.error('Topics data is not an array:', topicsData)
+          setTopicsError('Invalid topics data format')
+          setTopics([])
+        }
+      } else {
+        setTopicsError(response.message || 'Failed to fetch topics')
+        setTopics([])
+      }
+    } catch (error: any) {
+      console.error('Topics fetch error:', error)
+      setTopicsError(error.message || 'Failed to load topics')
+      setTopics([])
+    } finally {
+      setTopicsLoading(false)
+    }
+  }, [])
 
   // Fetch avatars function - extracted to be reusable
   const fetchAvatars = useCallback(async () => {
@@ -222,10 +274,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [])
 
-  // Fetch avatars when component mounts or when user authentication status changes
+  // Fetch avatars and real estate topics when component mounts
   useEffect(() => {
     fetchAvatars()
-  }, [fetchAvatars])
+    fetchTopics()
+  }, [fetchAvatars, fetchTopics])
 
   // Auto-refresh avatars when WebSocket notification shows avatar is ready
   useEffect(() => {
@@ -349,7 +402,53 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   })
 
   const onSubmit = async (data: CreateVideoFormData) => {
-    // ...existing code...
+    // Check if all three avatars are selected
+    if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
+      dispatch(setVideoError('Please select avatars for Title, Body, and Conclusion before submitting'))
+      return
+    }
+
+    // Check video usage limit before proceeding
+    try {
+      const usageCheck = await checkVideoUsageLimit()
+      
+      if (!usageCheck.canCreateVideo) {
+        setUsageToastMessage(usageCheck.message || 'Video limit reached')
+        setShowUsageToast(true)
+        return
+      }
+    } catch (error) {
+      console.error('Failed to check video usage:', error)
+      dispatch(setVideoError('Unable to verify subscription status. Please try again.'))
+      return
+    }
+
+    // Save selected avatars using custom hook
+    try {
+      const avatarsToSave: SelectedAvatars = {
+        title: {
+          avatar_id: selectedAvatars.title.avatar_id,
+          avatar_name: selectedAvatars.title.avatar_name || selectedAvatars.title.name || '',
+          preview_image_url: selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || ''
+        },
+        body: {
+          avatar_id: selectedAvatars.body.avatar_id,
+          avatar_name: selectedAvatars.body.avatar_name || selectedAvatars.body.name || '',
+          preview_image_url: selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || ''
+        },
+        conclusion: {
+          avatar_id: selectedAvatars.conclusion.avatar_id,
+          avatar_name: selectedAvatars.conclusion.avatar_name || selectedAvatars.conclusion.name || '',
+          preview_image_url: selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || ''
+        }
+      }
+      
+      saveSelectedAvatars(avatarsToSave)
+    } catch (error) {
+      console.error('Failed to save avatars:', error)
+      dispatch(setVideoError('Failed to save avatar selection. Please try again.'))
+      return
+    }
 
     dispatch(setVideoLoading(true))
     try
@@ -435,6 +534,16 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
       // Then set the new value
       setValue('avatar', value)
+    } else if (field === 'videoTopic')
+    {
+      // Handle topic selection - set both videoTopic and auto-fill topicKeyPoints
+      setValue('videoTopic', value)
+      
+      // Find the selected topic and auto-fill keypoints
+      const selectedTopic = safeTopics.find(topic => topic._id === value)
+      if (selectedTopic) {
+        setValue('topicKeyPoints', selectedTopic.keypoints)
+      }
     } else
     {
       setValue(field, value)
@@ -679,7 +788,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, 'title')}
-                        className="relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer"
+                        className={`relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer`}
                       >
                         {selectedAvatars.title ? (
                           <div className="flex items-center w-full">
@@ -724,7 +833,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, 'body')}
-                        className="relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer"
+                        className={`relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer`}
                       >
                         {selectedAvatars.body ? (
                           <div className="flex items-center w-full">
@@ -769,7 +878,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, 'conclusion')}
-                        className="relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer"
+                        className={`relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer`}
                       >
                         {selectedAvatars.conclusion ? (
                           <div className="flex items-center w-full">
@@ -831,6 +940,102 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
               </div>
             )}
 
+          </div>
+        )}
+
+        {hasError && (
+          <p id={`${field}-error`} className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+            <AlertCircle className="w-4 h-4" />
+            {hasError.message}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  const renderTopicDropdown = (
+    field: keyof CreateVideoFormData,
+    placeholder: string
+  ) => {
+    const currentValue = watch(field)
+    const selectedTopic = safeTopics.find(topic => topic._id === currentValue)
+    const isOpen = openDropdown === field
+    const hasError = errors[field]
+    
+    // Debug logging
+    console.log('Dropdown render - safeTopics:', safeTopics)
+    console.log('Dropdown render - topicsLoading:', topicsLoading)
+    console.log('Dropdown render - topicsError:', topicsError)
+
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => handleDropdownToggle(field)}
+          onBlur={() => {
+            setTimeout(() => {
+              const currentValue = watch(field)
+              if ((!currentValue || currentValue.trim() === '') && openDropdown === field)
+              {
+                setValue(field, '', { shouldValidate: true })
+              }
+            }, 100)
+          }}
+          className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${hasError ? 'ring-2 ring-red-500' : ''
+            } ${selectedTopic ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
+          aria-describedby={hasError ? `${field}-error` : undefined}
+        >
+          <span className="truncate">
+            {selectedTopic ? selectedTopic.description : placeholder}
+          </span>
+          <IoMdArrowDropdown
+            className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
+            {topicsLoading ? (
+              <div className="px-4 py-3 text-center text-gray-500">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#5046E5] mx-auto mb-2"></div>
+                Loading topics...
+              </div>
+            ) : topicsError ? (
+              <div className="px-4 py-3 text-center text-red-500">
+                <p className="text-sm">{topicsError}</p>
+                <button
+                  onClick={fetchTopics}
+                  className="mt-2 px-3 py-1 text-xs bg-[#5046E5] text-white rounded hover:bg-[#4338CA] transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : safeTopics.length === 0 ? (
+              <div className="px-4 py-3 text-center text-gray-500">
+                No topics available
+              </div>
+            ) : (
+              safeTopics.map((topic) => (
+                <button
+                  key={topic._id}
+                  type="button"
+                  onClick={() => handleDropdownSelect(field, topic._id)}
+                  className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 flex items-start justify-between text-[#282828] cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-800 mb-1">
+                      {topic.description}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Key Points: {topic.keypoints}
+                    </div>
+                  </div>
+                  {currentValue === topic._id && (
+                    <Check className="w-4 h-4 text-[#5046E5] mt-1 flex-shrink-0" />
+                  )}
+                </button>
+              ))
+            )}
           </div>
         )}
 
@@ -1008,22 +1213,40 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Video Topic <span className="text-red-500">*</span>
             </label>
-            {renderInput('videoTopic', 'e.g. Market trends, new listing', 'text')}
+            {renderTopicDropdown('videoTopic', 'Select a topic')}
           </div>
 
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Topic Key Points <span className="text-red-500">*</span>
             </label>
-            {renderInput('topicKeyPoints', 'Low rates, great location, etc.', 'text')}
+            {renderInput('topicKeyPoints', 'Key points will auto-fill when topic is selected', 'text')}
           </div>
         </div>
+
+        {/* Avatar Selection Status */}
+        {/* {(!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+              <div>
+                <h3 className="text-yellow-800 font-semibold">Avatar Selection Required</h3>
+                <p className="text-yellow-700 text-sm">
+                  Please select avatars for: 
+                  {!selectedAvatars.title && <span className="font-semibold"> Title</span>}
+                  {!selectedAvatars.body && <span className="font-semibold"> Body</span>}
+                  {!selectedAvatars.conclusion && <span className="font-semibold"> Conclusion</span>}
+                </p>
+              </div>
+            </div>
+          </div>
+        )} */}
 
         {/* Submit Button */}
         <div className="flex justify-center pt-4">
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion}
             className="w-full max-w-full px-8 py-[12.4px] bg-[#5046E5] text-white rounded-full font-semibold text-lg hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#5046E5]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
           >
             {isLoading ? (
@@ -1069,6 +1292,16 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         webhookResponse={webhookResponse}
       />
 
+      {/* Usage Limit Toast */}
+      <UsageLimitToast
+        isVisible={showUsageToast}
+        message={usageToastMessage}
+        onClose={() => setShowUsageToast(false)}
+        onUpgrade={() => {
+          // Handle upgrade action
+          console.log('User wants to upgrade subscription')
+        }}
+      />
 
     </div>
   )
