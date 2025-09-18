@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import CreateVideoModal from './create-video-modal'
 import { IoMdArrowDropdown } from "react-icons/io";
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, AppDispatch } from '@/store';
 import { apiService } from '@/lib/api-service';
+import { VideoRequest, removeVideoFromHistory, updateVideoStatus } from '@/store/slices/videoSlice';
+import { usePhotoAvatarNotificationContext } from '@/components/providers/PhotoAvatarNotificationProvider';
 
 type SortOrder = 'newest' | 'oldest'
 
@@ -30,6 +32,7 @@ interface PreviousVideosGalleryProps {
 }
 
 export default function PreviousVideosGallery({ className }: PreviousVideosGalleryProps) {
+  const dispatch = useDispatch<AppDispatch>()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedVideoForCreation, setSelectedVideoForCreation] = useState<string>('')
   const [selectedVideoData, setSelectedVideoData] = useState<{ title: string; youtubeUrl: string; thumbnail: string } | null>(null)
@@ -41,18 +44,20 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [videos, setVideos] = useState<VideoCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState({
-    totalCount: 0,
-    readyCount: 0,
-    processingCount: 0,
-    failedCount: 0
-  })
 
-  // Get access token from Redux store
+  // Processing card state
+  const [processingVideo, setProcessingVideo] = useState<VideoRequest | null>(null)
+  const [timeRemaining, setTimeRemaining] = useState<number>(0)
+
+  // Get access token and video state from Redux store
   const accessToken = useSelector((state: RootState) => state.user.accessToken)
+  const { currentVideo } = useSelector((state: RootState) => state.video)
+  
+  // Get video notifications from notification context
+  const { latestVideoNotification } = usePhotoAvatarNotificationContext()
 
   // Fetch videos from API
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async () => {
     if (!accessToken)
     {
       setError('Authentication required')
@@ -70,12 +75,6 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       if (result.success && result.data)
       {
         setVideos(result.data.videos)
-        setStats({
-          totalCount: result.data.totalCount,
-          readyCount: result.data.readyCount,
-          processingCount: result.data.processingCount,
-          failedCount: result.data.failedCount
-        })
       } else
       {
         throw new Error(result.message || 'Failed to fetch videos')
@@ -88,12 +87,94 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     {
       setLoading(false)
     }
-  }
+  }, [accessToken])
 
   // Fetch videos on component mount and when access token changes
   useEffect(() => {
     fetchVideos()
-  }, [accessToken])
+  }, [fetchVideos])
+
+  // Handle processing video from Redux store
+  useEffect(() => {
+    if (currentVideo && (currentVideo.status === 'pending' || currentVideo.status === 'processing')) {
+      setProcessingVideo(currentVideo)
+      // Set 15 minutes countdown (900 seconds)
+      setTimeRemaining(900)
+    } else {
+      setProcessingVideo(null)
+      setTimeRemaining(0)
+    }
+  }, [currentVideo])
+
+  // Countdown timer for processing video
+  useEffect(() => {
+    if (processingVideo && timeRemaining > 0) {
+      const timer = setTimeout(() => {
+        setTimeRemaining(prev => prev - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    } else if (processingVideo && timeRemaining === 0) {
+      // Time's up - remove processing video
+      setProcessingVideo(null)
+      if (currentVideo) {
+        dispatch(removeVideoFromHistory(currentVideo.requestId))
+      }
+    }
+  }, [processingVideo, timeRemaining, currentVideo, dispatch])
+
+
+  // Calculate progress percentage (0-100)
+  const getProgressPercentage = useCallback((seconds: number): number => {
+    const totalSeconds = 900 // 15 minutes
+    return Math.max(0, Math.min(100, ((totalSeconds - seconds) / totalSeconds) * 100))
+  }, [])
+
+  // Handle video completion from socket or API updates
+  useEffect(() => {
+    if (currentVideo && (currentVideo.status === 'completed' || currentVideo.status === 'failed')) {
+      // Video is done processing - remove from processing state and refresh the gallery
+      setProcessingVideo(null)
+      setTimeRemaining(0)
+      
+      // Refresh the video gallery to show the new video
+      fetchVideos()
+    }
+  }, [currentVideo, fetchVideos])
+
+  // Handle video completion from socket notifications
+  useEffect(() => {
+    // Check if we have a processing video and a new video notification
+    if (!processingVideo || !currentVideo || !latestVideoNotification) {
+      return
+    }
+
+    console.log('🎥 Latest video notification received in gallery:', latestVideoNotification)
+    
+    // Check if this is a video completion notification
+    if (latestVideoNotification.step === 'complete' && 
+        latestVideoNotification.status === 'success' && 
+        latestVideoNotification.data?.message?.includes('Video downloaded and uploaded successfully')) {
+      
+      console.log('✅ Video completion detected, updating status...')
+      
+      // Update the video status in Redux
+      dispatch(updateVideoStatus({
+        requestId: currentVideo.requestId,
+        status: 'completed',
+        videoUrl: latestVideoNotification.data?.videoId, // Use videoId as the URL identifier
+        webhookResponse: latestVideoNotification
+      }))
+      
+      // Remove processing state
+      setProcessingVideo(null)
+      setTimeRemaining(0)
+      
+      // Refresh the gallery to show the new video
+      setTimeout(() => {
+        fetchVideos()
+      }, 1000) // Small delay to ensure backend has processed the video
+    }
+  }, [latestVideoNotification, processingVideo, currentVideo, dispatch, fetchVideos])
 
   const handleViewVideo = (video: VideoCard) => {
     if (video.status !== 'ready')
@@ -119,8 +200,32 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Filter and sort videos based on search query and sort order
   const filteredAndSortedVideos = useMemo(() => {
+    // Start with regular videos
+    const allVideos = [...videos]
+
+    // Add processing video if it exists and matches search query
+    if (processingVideo) {
+      const processingVideoCard: VideoCard = {
+        id: `processing-${processingVideo.requestId}`,
+        videoId: processingVideo.requestId,
+        title: processingVideo.videoTopic || 'Processing Video...',
+        status: 'processing',
+        createdAt: processingVideo.timestamp,
+        updatedAt: processingVideo.timestamp,
+        downloadUrl: null,
+        metadata: {
+          duration: 0,
+          size: 0,
+          format: 'processing'
+        }
+      }
+
+      // Add processing video at the beginning (newest position)
+      allVideos.unshift(processingVideoCard)
+    }
+
     // Filter by search query
-    const filtered = videos.filter(video =>
+    const filtered = allVideos.filter(video =>
       video.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
@@ -137,26 +242,13 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         return dateA - dateB // Oldest first
       }
     })
-  }, [videos, searchQuery, sortOrder])
+  }, [videos, processingVideo, searchQuery, sortOrder])
 
   const handleSortChange = (newSortOrder: SortOrder) => {
     setSortOrder(newSortOrder)
     setIsSortDropdownOpen(false)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status)
-    {
-      case 'ready':
-        return 'text-green-600'
-      case 'processing':
-        return 'text-yellow-600'
-      case 'failed':
-        return 'text-red-600'
-      default:
-        return 'text-gray-600'
-    }
-  }
 
   const getStatusText = (status: string) => {
     switch (status)
@@ -172,20 +264,6 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     }
   }
 
-  const formatDate = (dateString: string) => {
-    try
-    {
-      const date = new Date(dateString)
-      if (isNaN(date.getTime()))
-      {
-        return 'Invalid Date'
-      }
-      return date.toLocaleDateString()
-    } catch
-    {
-      return 'Invalid Date'
-    }
-  }
 
   if (loading)
   {
@@ -331,6 +409,26 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                   >
                     Your browser does not support the video tag.
                   </video>
+                ) : video.id.startsWith('processing-') ? (
+                  /* Processing Video Card */
+                  <div className="w-full h-[200px] bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center rounded-[6px] border-2 border-blue-200">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5] mx-auto mb-3"></div>
+                      <div className="text-blue-600 text-sm font-medium mb-3">Processing Video...</div>
+                      
+                      {/* Progress Bar */}
+                      <div className="w-32 h-2 bg-blue-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[#5046E5] rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${getProgressPercentage(timeRemaining)}%` }}
+                        />
+                      </div>
+                      
+                      <div className="text-blue-400 text-xs mt-2">
+                        {Math.round(getProgressPercentage(timeRemaining))}% complete
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="w-full h-[200px] bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center rounded-[6px]">
                     <div className="text-center">
@@ -361,12 +459,20 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                 <button
                   onClick={() => handleViewVideo(video)}
                   disabled={video.status !== 'ready'}
-                  className={`w-full py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${video.status === 'ready'
-                    ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
+                  className={`w-full py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${
+                    video.id.startsWith('processing-') 
+                      ? 'bg-blue-100 text-blue-600 cursor-not-allowed border-2 border-blue-200'
+                      : video.status === 'ready'
+                      ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
                     }`}
                 >
-                  {video.status === 'ready' ? 'View Video' : getStatusText(video.status)}
+                  {video.id.startsWith('processing-') 
+                    ? 'Processing...'
+                    : video.status === 'ready' 
+                    ? 'View Video' 
+                    : getStatusText(video.status)
+                  }
                 </button>
               </div>
             </div>
