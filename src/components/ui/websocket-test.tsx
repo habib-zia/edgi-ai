@@ -47,7 +47,7 @@ export default function WebSocketTest() {
         {latestVideoNotification && (
           <div className="mt-2 p-2 bg-blue-100 rounded text-xs">
             <div className="font-medium">Latest Video:</div>
-            <div>Video ID: {latestVideoNotification.videoId}</div>
+            <div>Video ID: {latestVideoNotification.data?.title}</div>
             <div>Status: {latestVideoNotification.status}</div>
             <div>Message: {latestVideoNotification.data?.message}</div>
           </div>

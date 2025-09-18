@@ -6,8 +6,9 @@ import { IoMdArrowDropdown } from "react-icons/io";
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
 import { apiService } from '@/lib/api-service';
-import { VideoRequest, removeVideoFromHistory, updateVideoStatus } from '@/store/slices/videoSlice';
+import { VideoRequest, updateVideoStatus } from '@/store/slices/videoSlice';
 import { usePhotoAvatarNotificationContext } from '@/components/providers/PhotoAvatarNotificationProvider';
+import Link from 'next/link';
 
 type SortOrder = 'newest' | 'oldest'
 
@@ -48,6 +49,8 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   // Processing card state
   const [processingVideo, setProcessingVideo] = useState<VideoRequest | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
+  const [progressStatus, setProgressStatus] = useState<'processing' | 'completed' | 'error'>('processing')
+  const [socketResponse, setSocketResponse] = useState<any>(null)
 
   // Get access token and video state from Redux store
   const accessToken = useSelector((state: RootState) => state.user.accessToken)
@@ -55,6 +58,70 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   
   // Get video notifications from notification context
   const { latestVideoNotification } = usePhotoAvatarNotificationContext()
+
+  // localStorage functions
+  const saveProgressToStorage = (video: VideoRequest, timeRemaining: number, status: 'processing' | 'completed' | 'error') => {
+    const progressData = {
+      video,
+      timeRemaining,
+      status,
+      timestamp: Date.now()
+    }
+    localStorage.setItem('videoProgress', JSON.stringify(progressData))
+  }
+
+  const loadProgressFromStorage = () => {
+    try {
+      const stored = localStorage.getItem('videoProgress')
+      if (stored) {
+        const progressData = JSON.parse(stored)
+        // Check if progress is not older than 20 minutes (1200 seconds)
+        if (Date.now() - progressData.timestamp < 20 * 60 * 1000) {
+          return progressData
+        } else {
+          // Clear old progress
+          localStorage.removeItem('videoProgress')
+        }
+      }
+    } catch (error) {
+      console.error('Error loading progress from storage:', error)
+      localStorage.removeItem('videoProgress')
+    }
+    return null
+  }
+
+  const clearProgressFromStorage = () => {
+    localStorage.removeItem('videoProgress')
+  }
+
+  // Check if video generation was started via localStorage key
+  const checkVideoGenerationStarted = () => {
+    try {
+      const stored = localStorage.getItem('videoGenerationStarted')
+      if (stored) {
+        const data = JSON.parse(stored)
+        // Check if the key is not older than 20 minutes
+        if (Date.now() - data.timestamp < 20 * 60 * 1000) {
+          return data
+        } else {
+          // Clear old key
+          localStorage.removeItem('videoGenerationStarted')
+        }
+      }
+    } catch (error) {
+      console.error('Error checking video generation key:', error)
+      localStorage.removeItem('videoGenerationStarted')
+    }
+    return null
+  }
+
+  // Clear localStorage immediately if no current video (component initialization)
+  if (!currentVideo) {
+    clearProgressFromStorage()
+    // Also clear the video generation started key if no current video
+    localStorage.removeItem('videoGenerationStarted')
+    console.log('🧹 Component init: Cleared all localStorage keys - no current video')
+  }
 
   // Fetch videos from API
   const fetchVideos = useCallback(async () => {
@@ -89,6 +156,62 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     }
   }, [accessToken])
 
+  // Clear videoGenerationStarted key on every component mount (safety net)
+  useEffect(() => {
+    // Always clear the key on component mount as a safety net
+    // It will be set again if a new video generation actually starts
+    localStorage.removeItem('videoGenerationStarted')
+    clearProgressFromStorage()
+    
+    // Also clear any processing state to prevent skeleton from showing
+    setProcessingVideo(null)
+    setTimeRemaining(0)
+    setProgressStatus('processing')
+    
+    console.log('🧹 Safety net: Cleared all localStorage keys and state on component mount')
+  }, []) // Run only on mount
+
+  // Clear localStorage immediately on component mount if no current video
+  useEffect(() => {
+    if (!currentVideo) {
+      clearProgressFromStorage()
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Component mount: Cleared all localStorage keys - no current video')
+    }
+  }, [currentVideo]) // Include currentVideo dependency
+
+  // Load progress from localStorage on component mount
+  useEffect(() => {
+    // First, clear localStorage if no current video
+    if (!currentVideo) {
+      clearProgressFromStorage()
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Cleared all localStorage keys - no current video on mount')
+      return
+    }
+
+    const storedProgress = loadProgressFromStorage()
+    if (storedProgress) {
+      // Only load from localStorage if:
+      // 1. We have a current video that is actually processing
+      // 2. The stored progress matches the current video
+      // 3. Status is 'processing' (not error or completed)
+      if (currentVideo && 
+          (currentVideo.status === 'pending' || currentVideo.status === 'processing') &&
+          storedProgress.status === 'processing' &&
+          storedProgress.video.requestId === currentVideo.requestId) {
+        setProcessingVideo(storedProgress.video)
+        setTimeRemaining(storedProgress.timeRemaining)
+        setProgressStatus(storedProgress.status)
+        console.log('📦 Loaded progress from localStorage:', storedProgress)
+      } else {
+        // Clear localStorage if conditions don't match
+        console.log('🧹 Clearing localStorage - conditions not met for loading')
+        clearProgressFromStorage()
+      }
+    }
+  }, [currentVideo]) // Include currentVideo dependency
+
   // Fetch videos on component mount and when access token changes
   useEffect(() => {
     fetchVideos()
@@ -96,38 +219,119 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Handle processing video from Redux store
   useEffect(() => {
+    // Check if video generation was started via localStorage key
+    const generationStarted = checkVideoGenerationStarted()
+    
     if (currentVideo && (currentVideo.status === 'pending' || currentVideo.status === 'processing')) {
       setProcessingVideo(currentVideo)
-      // Set 15 minutes countdown (900 seconds)
-      setTimeRemaining(900)
+      setTimeRemaining(900) // 15 minutes
+      setProgressStatus('processing')
+      saveProgressToStorage(currentVideo, 900, 'processing')
+      console.log('🎬 Video processing started:', currentVideo)
+    } else if (generationStarted && !currentVideo) {
+      // Only show skeleton if generation was started very recently (within 10 seconds)
+      // This prevents showing skeleton when navigating back to the page after an error
+      const timeSinceGeneration = Date.now() - generationStarted.timestamp
+      if (timeSinceGeneration < 10000) { // 10 seconds - much shorter window
+        // Show skeleton if generation was started but no current video yet
+        // Create a temporary video object for the skeleton
+        const tempVideo: VideoRequest = {
+          requestId: `temp-${Date.now()}`,
+          prompt: '',
+          avatar: '',
+          name: '',
+          position: '',
+          companyName: '',
+          license: '',
+          tailoredFit: '',
+          socialHandles: '',
+          videoTopic: generationStarted.videoTitle,
+          topicKeyPoints: '',
+          city: '',
+          preferredTone: '',
+          callToAction: '',
+          email: '',
+          timestamp: new Date().toISOString(),
+          status: 'processing',
+          webhookResponse: undefined,
+          videoUrl: undefined
+        }
+        setProcessingVideo(tempVideo)
+        setTimeRemaining(900) // 15 minutes
+        setProgressStatus('processing')
+        saveProgressToStorage(tempVideo, 900, 'processing')
+        console.log('🎬 Showing skeleton - video generation started but no current video yet')
+      } else {
+        // Clear old generation key if it's been too long
+        localStorage.removeItem('videoGenerationStarted')
+        console.log('🧹 Cleared old videoGenerationStarted key - too old')
+        setProcessingVideo(null)
+        setTimeRemaining(0)
+        setProgressStatus('processing')
+        clearProgressFromStorage()
+      }
     } else {
       setProcessingVideo(null)
       setTimeRemaining(0)
+      setProgressStatus('completed')
+      // Clear localStorage when no current video and no generation started
+      clearProgressFromStorage()
+      // Also clear the videoGenerationStarted key to prevent skeleton from showing
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Cleared localStorage - no current video processing')
     }
   }, [currentVideo])
-
-  // Countdown timer for processing video
-  useEffect(() => {
-    if (processingVideo && timeRemaining > 0) {
-      const timer = setTimeout(() => {
-        setTimeRemaining(prev => prev - 1)
-      }, 1000)
-      return () => clearTimeout(timer)
-    } else if (processingVideo && timeRemaining === 0) {
-      // Time's up - remove processing video
-      setProcessingVideo(null)
-      if (currentVideo) {
-        dispatch(removeVideoFromHistory(currentVideo.requestId))
-      }
-    }
-  }, [processingVideo, timeRemaining, currentVideo, dispatch])
-
 
   // Calculate progress percentage (0-100)
   const getProgressPercentage = useCallback((seconds: number): number => {
     const totalSeconds = 900 // 15 minutes
-    return Math.max(0, Math.min(100, ((totalSeconds - seconds) / totalSeconds) * 100))
-  }, [])
+    const percentage = Math.max(0, Math.min(100, ((totalSeconds - seconds) / totalSeconds) * 100))
+    
+    // If we have a socket response and status is completed, show 100%
+    if (socketResponse && progressStatus === 'completed') {
+      return 100
+    }
+    
+    // If we have an error, show current progress
+    if (progressStatus === 'error') {
+      return percentage
+    }
+    
+    // If progress reaches 99% and no socket response, cap at 99%
+    if (percentage >= 99 && !socketResponse && progressStatus === 'processing') {
+      return 99
+    }
+    
+    return percentage
+  }, [socketResponse, progressStatus])
+
+  // Countdown timer for processing video
+  useEffect(() => {
+    if (processingVideo && timeRemaining > 0 && progressStatus === 'processing') {
+      const timer = setTimeout(() => {
+        const newTimeRemaining = timeRemaining - 1
+        setTimeRemaining(newTimeRemaining)
+        
+        // Only save progress to localStorage if status is 'processing' (not error)
+        if (progressStatus === 'processing') {
+          saveProgressToStorage(processingVideo, newTimeRemaining, progressStatus)
+        }
+        
+        // If progress reaches 99% and no socket response, stop at 99%
+        const progressPercentage = getProgressPercentage(newTimeRemaining)
+        if (progressPercentage >= 99 && !socketResponse) {
+          console.log('⏸️ Progress reached 99%, waiting for socket response...')
+          return // Don't continue countdown
+        }
+      }, 1000)
+      return () => clearTimeout(timer)
+    } else if (processingVideo && timeRemaining === 0 && progressStatus === 'processing') {
+      // Timeout reached without socket response
+      setProgressStatus('error')
+      setSocketResponse({ error: 'Processing timeout' })
+      clearProgressFromStorage()
+    }
+  }, [processingVideo, timeRemaining, progressStatus, socketResponse, getProgressPercentage])
 
   // Handle video completion from socket or API updates
   useEffect(() => {
@@ -143,38 +347,165 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Handle video completion from socket notifications
   useEffect(() => {
+    // Debug: Log all notifications
+    if (latestVideoNotification) {
+      console.log('🔔 Latest video notification received in gallery:', latestVideoNotification)
+      console.log('📊 Notification type:', latestVideoNotification.type)
+      console.log('📊 Notification status:', latestVideoNotification.status)
+      console.log('📊 Processing video exists:', !!processingVideo)
+      console.log('📊 Current video exists:', !!currentVideo)
+    }
+
     // Check if we have a processing video and a new video notification
     if (!processingVideo || !currentVideo || !latestVideoNotification) {
       return
     }
-
-    console.log('🎥 Latest video notification received in gallery:', latestVideoNotification)
     
-    // Check if this is a video completion notification
-    if (latestVideoNotification.step === 'complete' && 
-        latestVideoNotification.status === 'success' && 
-        latestVideoNotification.data?.message?.includes('Video downloaded and uploaded successfully')) {
+        // Handle success response
+        if (latestVideoNotification.step === 'complete' && 
+            latestVideoNotification.status === 'success' && 
+            latestVideoNotification.data?.message?.includes('Video downloaded and uploaded successfully')) {
+          
+          console.log('✅ Video completion detected, updating status...')
+          setSocketResponse(latestVideoNotification)
+          setProgressStatus('completed')
+          
+          // Clear the video generation started key
+          localStorage.removeItem('videoGenerationStarted')
+          console.log('🧹 Cleared videoGenerationStarted key on success')
       
-      console.log('✅ Video completion detected, updating status...')
+      // If progress is less than 100%, quickly complete it
+      const currentProgress = getProgressPercentage(timeRemaining)
+      if (currentProgress < 100) {
+        // Quickly animate to 100%
+        setTimeRemaining(0)
+        setTimeout(() => {
+          // Update the video status in Redux
+          dispatch(updateVideoStatus({
+            requestId: currentVideo.requestId,
+            status: 'completed',
+            videoUrl: latestVideoNotification.data?.videoId,
+            webhookResponse: latestVideoNotification
+          }))
+        
+          // Remove processing state
+          setProcessingVideo(null)
+          setTimeRemaining(0)
+          setProgressStatus('completed')
+          setSocketResponse(null)
+          clearProgressFromStorage()
+        
+          // Refresh the gallery to show the new video
+          setTimeout(() => {
+            fetchVideos()
+          }, 1000)
+        }, 500) // Quick completion animation
+      } else {
+        // Already at 100%, complete immediately
+        dispatch(updateVideoStatus({
+          requestId: currentVideo.requestId,
+          status: 'completed',
+          videoUrl: latestVideoNotification.data?.videoId,
+          webhookResponse: latestVideoNotification
+        }))
       
-      // Update the video status in Redux
-      dispatch(updateVideoStatus({
-        requestId: currentVideo.requestId,
-        status: 'completed',
-        videoUrl: latestVideoNotification.data?.videoId, // Use videoId as the URL identifier
-        webhookResponse: latestVideoNotification
-      }))
+        setProcessingVideo(null)
+        setTimeRemaining(0)
+        setProgressStatus('completed')
+        setSocketResponse(null)
+        clearProgressFromStorage()
       
-      // Remove processing state
+        setTimeout(() => {
+          fetchVideos()
+        }, 1000)
+      }
+    }
+    
+    // Handle error response
+    if (latestVideoNotification.status === 'error' || latestVideoNotification.type === 'error') {
+      console.log('❌ Video processing error detected:', latestVideoNotification)
+      setSocketResponse(latestVideoNotification)
+      setProgressStatus('error')
+      clearProgressFromStorage()
+      
+      // Clear the video generation started key
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Cleared videoGenerationStarted key on error')
+      
+    }
+  }, [latestVideoNotification, processingVideo, currentVideo, dispatch, fetchVideos, timeRemaining, getProgressPercentage])
+
+  // Handle error notifications even without processing video
+  useEffect(() => {
+    if (latestVideoNotification && (latestVideoNotification.status === 'error' || latestVideoNotification.type === 'error')) {
+      console.log('❌ Error notification received (standalone):', latestVideoNotification)
+      
+      // If we have a processing video, update its status
+      if (processingVideo) {
+        setSocketResponse(latestVideoNotification)
+        setProgressStatus('error')
+        clearProgressFromStorage()
+      }
+      
+      // Clear the video generation started key on any error
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Cleared videoGenerationStarted key on standalone error')
+      
+      // Also clear any processing state to prevent skeleton from showing
       setProcessingVideo(null)
       setTimeRemaining(0)
+      setProgressStatus('completed')
       
-      // Refresh the gallery to show the new video
-      setTimeout(() => {
-        fetchVideos()
-      }, 1000) // Small delay to ensure backend has processed the video
     }
-  }, [latestVideoNotification, processingVideo, currentVideo, dispatch, fetchVideos])
+  }, [latestVideoNotification, processingVideo])
+
+  // Handle completion animation when socket response is received
+  useEffect(() => {
+    if (socketResponse && progressStatus === 'completed') {
+      // Animate to 100% and then disappear
+      const currentProgress = getProgressPercentage(timeRemaining)
+      if (currentProgress < 100) {
+        // Quickly complete the progress bar
+        setTimeRemaining(0)
+        setTimeout(() => {
+          // Complete the process
+          setProcessingVideo(null)
+          setTimeRemaining(0)
+          setProgressStatus('completed')
+          setSocketResponse(null)
+          clearProgressFromStorage()
+          
+          // Clear the video generation started key
+          localStorage.removeItem('videoGenerationStarted')
+          console.log('🧹 Cleared videoGenerationStarted key on completion animation')
+          
+          // Refresh gallery
+          setTimeout(() => {
+            fetchVideos()
+          }, 1000)
+        }, 1000) // 1 second to show 100% completion
+      }
+    }
+  }, [socketResponse, progressStatus, timeRemaining, fetchVideos, getProgressPercentage])
+
+  // Clear localStorage when component unmounts
+  useEffect(() => {
+    return () => {
+      // Always clear localStorage on component unmount to prevent stale state
+      clearProgressFromStorage()
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Component unmount: Cleared all localStorage keys')
+    }
+  }, [])
+
+  // Clear localStorage immediately when error occurs
+  useEffect(() => {
+    if (progressStatus === 'error') {
+      clearProgressFromStorage()
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Cleared localStorage and videoGenerationStarted key due to error state')
+    }
+  }, [progressStatus])
 
   const handleViewVideo = (video: VideoCard) => {
     if (video.status !== 'ready')
@@ -325,7 +656,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         {/* Right side: Sort Dropdown, Refresh Button and Create Button */}
         <div className="flex gap-4 justify-end">
           {/* Refresh Button */}
-          {/* <button
+          <button
             onClick={fetchVideos}
             disabled={loading}
             className="px-4 py-[7.4px] bg-[#5046E5] text-white rounded-[39px] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] flex items-center gap-2 min-w-[120px] justify-center text-[20px] font-semibold hover:bg-[#4338CA] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -338,7 +669,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
               </svg>
             )}
             Refresh
-          </button> */}
+          </button>
 
           {/* Sort Dropdown */}
           <div className="relative">
@@ -410,23 +741,62 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                     Your browser does not support the video tag.
                   </video>
                 ) : video.id.startsWith('processing-') ? (
-                  /* Processing Video Card */
-                  <div className="w-full h-[200px] bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center rounded-[6px] border-2 border-blue-200">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5] mx-auto mb-3"></div>
-                      <div className="text-blue-600 text-sm font-medium mb-3">Processing Video...</div>
+                  /* Professional Processing Video Card with Advanced Skeleton */
+                  <div className="w-full h-[200px] bg-gradient-to-br from-slate-50 to-gray-100 rounded-[6px] relative overflow-hidden border border-gray-200/50">
+                    {/* Animated Background Pattern */}
+                    <div className="absolute inset-0 opacity-30">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent animate-pulse"></div>
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-purple-500/5 to-transparent"></div>
+                    </div>
+                    
+                    {/* Main Content Container */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
                       
-                      {/* Progress Bar */}
-                      <div className="w-32 h-2 bg-blue-200 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-[#5046E5] rounded-full transition-all duration-1000 ease-out"
-                          style={{ width: `${getProgressPercentage(timeRemaining)}%` }}
-                        />
+                      {/* Processing Text with Typing Animation */}
+                      <div className="text-center mb-4">
+                        {progressStatus === 'error' ? (
+                          /* Error State */
+                          <div>
+                            <div className="text-sm font-semibold text-red-600 mb-2">
+                              Processing Failed
+                            </div>
+                            <div className="text-xs text-red-500 max-w-48 mx-auto">
+                              {socketResponse?.message || socketResponse?.data?.message || 'Video creation failed. Please try again or contact support if the issue persists.'}
+                            </div>
+                            <Link href="/create-video/new" className="text-xs text-blue-500">Try Again</Link>
+                          </div>
+                        ) : progressStatus === 'completed' ? (
+                          /* Completed State */
+                          <div>
+                            <div className="text-sm font-semibold text-green-600 mb-2">
+                              Video Completed!
+                            </div>
+                            <div className="text-xs text-green-500">
+                              Your video is ready to view.
+                            </div>
+                          </div>
+                        ) : (
+                          /* Processing State */
+                          <div>
+                            <div className="text-sm font-semibold text-gray-700 mb-2">
+                              <span className="inline-block animate-pulse">Processing</span>
+                              <span className="inline-block animate-bounce ml-1">.</span>
+                              <span className="inline-block animate-bounce ml-0.5" style={{ animationDelay: '0.1s' }}>.</span>
+                              <span className="inline-block animate-bounce ml-0.5" style={{ animationDelay: '0.2s' }}>.</span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              It usually takes 10–15 minutes to generate a video.
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="text-blue-400 text-xs mt-2">
-                        {Math.round(getProgressPercentage(timeRemaining))}% complete
-                      </div>
+                      {/* Spinner - Hide on error */}
+                      {progressStatus !== 'error' && (
+                        <div className="flex justify-center items-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5]"></div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -451,29 +821,39 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
               {/* Content */}
               <div className="p-4">
                 {/* Video Title */}
+                {video.id.startsWith('processing-') ? (
+                  /* Professional Skeleton Title */
+                  <div className="my-3">
+                    <div className="w-3/4 h-5 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg animate-pulse mb-2 shadow-sm"></div>
+                    <div className="w-1/2 h-5 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg animate-pulse shadow-sm"></div>
+                  </div>
+                ) : (
+                  /* Regular Title */
                 <h3 className="text-[18px] font-medium text-[#171717] my-3 line-clamp-2">
                   {video.title}
                 </h3>
+                )}
 
-                {/* View Video Button */}
+                {/* View Video Button or Skeleton */}
+                {video.id.startsWith('processing-') ? (
+                  /* Professional Skeleton Button */
+                  <div className="w-full py-[3px] px-4 rounded-full">
+                    <div className="w-full h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full animate-pulse shadow-sm border border-gray-200/50"></div>
+                  </div>
+                ) : (
+                  /* Regular Button */
                 <button
                   onClick={() => handleViewVideo(video)}
                   disabled={video.status !== 'ready'}
-                  className={`w-full py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${
-                    video.id.startsWith('processing-') 
-                      ? 'bg-blue-100 text-blue-600 cursor-not-allowed border-2 border-blue-200'
-                      : video.status === 'ready'
-                      ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
+                    className={`w-full py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${
+                      video.status === 'ready'
+                    ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
                     }`}
                 >
-                  {video.id.startsWith('processing-') 
-                    ? 'Processing...'
-                    : video.status === 'ready' 
-                    ? 'View Video' 
-                    : getStatusText(video.status)
-                  }
+                  {video.status === 'ready' ? 'View Video' : getStatusText(video.status)}
                 </button>
+                )}
               </div>
             </div>
           ))

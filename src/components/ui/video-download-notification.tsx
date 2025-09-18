@@ -6,14 +6,12 @@ import { VideoDownloadUpdate } from '@/hooks/usePhotoAvatarNotifications'
 
 interface VideoDownloadNotificationProps {
   notifications: VideoDownloadUpdate[]
-  isConnected: boolean
   onClose?: () => void
   className?: string
 }
 
 export default function VideoDownloadNotification({ 
   notifications, 
-  isConnected, 
   onClose,
   className = '' 
 }: VideoDownloadNotificationProps) {
@@ -81,21 +79,23 @@ export default function VideoDownloadNotification({
         </div>
 
         {/* Connection Status */}
-        <div className="flex items-center gap-2 mb-3">
+        {/* <div className="flex items-center gap-2 mb-3">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
           <span className="text-xs text-gray-600">
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
-        </div>
+        </div> */}
 
         {/* Video ID */}
+        {latestNotification.data?.message && (
         <div className="text-xs text-gray-600 mb-2">
-          Video ID: {latestNotification.videoId}
-        </div>
+            Video Title: {latestNotification.data?.title}
+          </div>
+        )}
 
         {/* Message */}
         <div className="text-sm text-gray-700 mb-3">
-          {latestNotification.data?.message || (latestNotification.status === 'success' ? 'Your video is ready!' : 'Video creation failed')}
+          {(latestNotification as any).message || latestNotification.data?.message}
         </div>
 
         {/* Action Buttons */}

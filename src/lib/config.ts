@@ -37,9 +37,9 @@ export const API_CONFIG = {
       DOWNLOAD: '/api/video/download',
       STATUS: '/api/video/status',
       DELETE: '/api/video/delete',
-      DOWNLOAD_PROXY: '/api/video/download-proxy',
+      // DOWNLOAD_PROXY: '/api/video/download-proxy',
       GENERATE: '/api/video/generate-video',
-      CREATE_VIDEO: '/api/video/create',
+      // CREATE_VIDEO: '/api/video/create',
     },
     
     // Topic endpoints

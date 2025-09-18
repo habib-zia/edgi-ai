@@ -15,12 +15,13 @@ export interface PhotoAvatarUpdate {
 }
 
 export interface VideoDownloadUpdate {
-  videoId: string
+  videoId?: string
   status: 'success' | 'error'
   data?: {
     message: string
     error?: string
     downloadUrl?: string
+    title?: string
   }
   timestamp: string
 }
@@ -138,7 +139,7 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
         // Avoid duplicate notifications
         const exists = prev.some(notif => 
           notif.timestamp === update.timestamp && 
-          notif.videoId === update.videoId
+          notif.data?.title === update.data?.title
         )
         if (exists) return prev
         return [...prev, update]

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useSelector } from 'react-redux'
@@ -57,11 +57,6 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     description: '',
     conclusion: ''
   })
-  const [touched, setTouched] = useState({
-    prompt: false,
-    description: false,
-    conclusion: false
-  })
   const [isDownloading, setIsDownloading] = useState(false)
   const [countdown, setCountdown] = useState(10)
   const [avatarError, setAvatarError] = useState<string>('')
@@ -84,6 +79,25 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       setFormData(newFormData)
     }
   }, [webhookResponse])
+
+  const handleClose = useCallback(() => {
+    setCurrentStep(startAtComplete ? 'complete' : 'form')
+    setFormData({
+      prompt: webhookResponse?.prompt || '',
+      description: webhookResponse?.description || '',
+      conclusion: webhookResponse?.conclusion || ''
+    })
+    setErrors({ prompt: '', description: '', conclusion: '' })
+    
+    // Clear localStorage keys when modal is closed to prevent stale state
+    localStorage.removeItem('videoGenerationStarted')
+    localStorage.removeItem('videoProgress')
+    console.log('🧹 Modal closed: Cleared all localStorage keys')
+    
+    onClose()
+    // Redirect to gallery page
+    router.push('/create-video')
+  }, [startAtComplete, webhookResponse, onClose, router])
 
   // Auto close modal with countdown when in loading state
   useEffect(() => {
@@ -118,7 +132,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         clearInterval(countdownTimer)
       }
     }
-  }, [currentStep])
+  }, [currentStep, handleClose])
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
@@ -136,12 +150,6 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }
   }
 
-  const handleInputBlur = (field: keyof typeof formData) => {
-    setTouched(prev => ({
-      ...prev,
-      [field]: true
-    }))
-  }
 
   const validateForm = () => {
     const newErrors = {
@@ -210,10 +218,21 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       // Call the video generation API using apiService
       await apiService.generateVideo(videoGenerationData)
 
+      // Store a key in localStorage to indicate video generation has started
+      localStorage.setItem('videoGenerationStarted', JSON.stringify({
+        timestamp: Date.now(),
+        videoTitle: videoTopic || 'Custom Video'
+      }))
+      console.log('🎬 Video generation API called - localStorage key set')
+
       // Just stay in loading state - modal will auto-close after countdown
 
     } catch (error: any) {
       console.error('Video creation failed:', error)
+      
+      // Clear localStorage key on error
+      localStorage.removeItem('videoGenerationStarted')
+      console.log('🧹 Cleared localStorage key due to API error')
       
       // Set appropriate error message
       if (error.message.includes('Missing avatar selection')) {
@@ -224,20 +243,6 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       
       setCurrentStep('form') // Go back to form on error
     }
-  }
-
-  const handleClose = () => {
-    setCurrentStep(startAtComplete ? 'complete' : 'form')
-    setFormData({
-      prompt: webhookResponse?.prompt || '',
-      description: webhookResponse?.description || '',
-      conclusion: webhookResponse?.conclusion || ''
-    })
-    setErrors({ prompt: '', description: '', conclusion: '' })
-    setTouched({ prompt: false, description: false, conclusion: false })
-    onClose()
-    // Redirect to gallery page
-    router.push('/create-video')
   }
 
   const handleDownload = async () => {
@@ -287,8 +292,9 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       window.URL.revokeObjectURL(blobUrl)
 
 
-    } catch (error)
+    } catch (err)
     {
+      console.error('Download failed:', err)
       alert('Download failed. Please try again.')
     } finally
     {
@@ -338,7 +344,6 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                   <textarea
                     value={formData.prompt}
                     onChange={(e) => handleInputChange('prompt', e.target.value)}
-                    onBlur={() => handleInputBlur('prompt')}
                     placeholder="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to"
                     className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.prompt ? 'ring-2 ring-red-500' : ''
                       }`}
@@ -358,7 +363,6 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                   <textarea
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
-                    onBlur={() => handleInputBlur('description')}
                     placeholder="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to"
                     className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.description ? 'ring-2 ring-red-500' : ''
                       }`}
@@ -378,7 +382,6 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                   <textarea
                     value={formData.conclusion}
                     onChange={(e) => handleInputChange('conclusion', e.target.value)}
-                    onBlur={() => handleInputBlur('conclusion')}
                     placeholder="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to"
                     className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.conclusion ? 'ring-2 ring-red-500' : ''
                       }`}
