@@ -261,7 +261,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { CheckCircle, X, AlertCircle, Clock } from 'lucide-react'
 
 // Mock interface for demonstration
@@ -292,7 +292,14 @@ export default function PhotoAvatarNotification({
   const [progress, setProgress] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
-  const steps = ['upload', 'group-creation', 'training', 'saving', 'complete', 'ready']
+  const steps = useMemo(() => ['upload', 'group-creation', 'training', 'saving', 'complete', 'ready'], [])
+
+  const getStepProgress = useCallback((step: string): number => {
+    const stepIndex = steps.indexOf(step)
+    if (stepIndex === -1) return 0
+    // Convert to percentage based on step position
+    return Math.round(((stepIndex + 1) / steps.length) * 100)
+  }, [steps])
 
   // Show notification when we have updates
   useEffect(() => {
@@ -310,13 +317,13 @@ export default function PhotoAvatarNotification({
       const stepProgress = getStepProgress(latest.step)
       setProgress(stepProgress)
     }
-  }, [notifications])
+  }, [notifications, getStepProgress])
 
   // Auto-close notification - different timeouts for success vs error
   useEffect(() => {
     if (notifications.length > 0) {
       const latest = notifications[notifications.length - 1]
-      const shouldShowCloseButton = latest.step === 'ready' || latest.step === 'complete' || latest.status === 'error'
+      const shouldShowCloseButton = latest.step === 'ready' || latest.status === 'error'
       
       if (shouldShowCloseButton && onClose) {
         // Different timeouts: 30s for success, 60s for errors (users need more time to read)
@@ -349,13 +356,6 @@ export default function PhotoAvatarNotification({
       }
     }
   }, [notifications, onClose])
-
-  const getStepProgress = (step: string): number => {
-    const stepIndex = steps.indexOf(step)
-    if (stepIndex === -1) return 0
-    // Convert to percentage based on step position
-    return Math.round(((stepIndex + 1) / steps.length) * 100)
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -395,9 +395,8 @@ export default function PhotoAvatarNotification({
   }
 
   const isProcessing = latestNotification.status === 'progress' && 
-    latestNotification.step !== 'ready' && 
-    latestNotification.step !== 'complete'
-  const isComplete = latestNotification.step === 'ready' || latestNotification.step === 'complete'
+    latestNotification.step !== 'ready'
+  const isComplete = latestNotification.step === 'ready'
   const hasError = latestNotification.status === 'error'
 
   return (
@@ -419,15 +418,24 @@ export default function PhotoAvatarNotification({
             </div>
             
             {/* Show processing message */}
-            {isProcessing && (
+            {/* {isProcessing && ( */}
+              {/* <p className="text-xs text-gray-600 ml-7">
+                Your avatar will be ready in 2–3 minutes and appear in the dropdown.
+              </p> */}
+            {/* )} */}
+            {errorNotification ? (
+              <p className="text-xs text-gray-600 ml-7">
+                {errorNotification.data?.message || errorNotification.data?.error || 'An unknown error occurred'}
+              </p>
+            ) : (
               <p className="text-xs text-gray-600 ml-7">
                 Your avatar will be ready in 2–3 minutes and appear in the dropdown.
               </p>
             )}
           </div>
           
-          {/* Show close button when appropriate */}
-          {(isComplete || hasError) && onClose && (
+          {/* Show close button when ready or error */}
+          {(latestNotification.step === 'ready' || hasError) && onClose && (
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors ml-2 flex-shrink-0"
@@ -437,8 +445,8 @@ export default function PhotoAvatarNotification({
           )}
         </div>
 
-        {/* Progress Bar - show for all progress states */}
-        {(isProcessing || latestNotification.status === 'progress') && (
+        {/* Progress Bar - show only when processing (not ready/complete) */}
+        {isProcessing && (
           <div className="mb-4">
             <div className="flex justify-between text-xs text-gray-600 mb-2">
               <span>{latestNotification.data?.message || 'Processing...'}</span>

@@ -283,6 +283,26 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     return isCustomAvatar && (avatar.status === 'pending' || avatar.status === 'processing' || avatar.status === 'creating')
   }
 
+  // Helper function to determine if avatar is custom or default
+  const getAvatarType = (avatar: Avatar): 'custom' | 'default' => {
+    return avatars.custom.some(customAvatar => customAvatar.avatar_id === avatar.avatar_id) ? 'custom' : 'default'
+  }
+
+  // Helper function to check if avatar type is allowed based on existing selections
+  const isAvatarTypeAllowed = (avatar: Avatar): boolean => {
+    const avatarType = getAvatarType(avatar)
+    const existingAvatars = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean) as Avatar[]
+    
+    // If no avatars selected yet, any type is allowed
+    if (existingAvatars.length === 0) {
+      return true
+    }
+    
+    // Check if all existing avatars are of the same type as the new avatar
+    const firstAvatarType = getAvatarType(existingAvatars[0])
+    return avatarType === firstAvatarType
+  }
+
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, avatar: Avatar) => {
     e.stopPropagation()
@@ -330,6 +350,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
     if (draggedAvatar)
     {
+      // Check if avatar type is allowed based on existing selections
+      if (!isAvatarTypeAllowed(draggedAvatar)) {
+        setDraggedAvatar(null)
+        return // Don't allow drop if avatar type doesn't match existing selections
+      }
+
       setSelectedAvatars(prev => ({
         ...prev,
         [dropZone]: draggedAvatar
@@ -395,6 +421,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       }
       trigger('avatar')
     } else {
+      // Check if avatar type is allowed based on existing selections
+      if (!isAvatarTypeAllowed(avatar)) {
+        return // Don't allow selection if avatar type doesn't match existing selections
+      }
+      
       // Check if we can add more avatars (max 3)
       const totalSelected = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
       
@@ -720,7 +751,17 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                             <div className="flex md:flex-row flex-col items-center justify-between md:mb-3 mb-5 px-3 py-2 bg-purple-100 rounded-lg gap-y-4">
                               <div className="flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4 text-purple-600 md:block hidden" />
-                                <span className="md:text-sm text-xs text-purple-700">Click to select up to 3 avatars for your video</span>
+                                <span className="md:text-sm text-xs text-purple-700">
+                                  Click to select up to 3 avatars for your video
+                                  {(() => {
+                                    const existingAvatars = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean) as Avatar[]
+                                    if (existingAvatars.length > 0) {
+                                      const avatarType = getAvatarType(existingAvatars[0])
+                                      return ` • All avatars must be ${avatarType}`
+                                    }
+                                    return ''
+                                  })()}
+                                </span>
                               </div>
                               {(() => {
                                 const totalSelected = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
@@ -740,23 +781,25 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                               {avatars.custom.map((avatar) => {
                                 const selectionNumber = getAvatarSelectionNumber(avatar)
                                 const isSelected = isAvatarSelected(avatar)
+                                const isTypeAllowed = isAvatarTypeAllowed(avatar)
+                                const isDisabled = isAvatarPending(avatar) || !isTypeAllowed
                                 
                                 return (
                                   <div
                                     key={avatar._id}
-                                    draggable={!isAvatarPending(avatar)}
-                                    onDragStart={(e) => !isAvatarPending(avatar) && handleDragStart(e, avatar)}
+                                    draggable={!isDisabled}
+                                    onDragStart={(e) => !isDisabled && handleDragStart(e, avatar)}
                                     onDragEnd={handleDragEnd}
                                     onClick={(e) => {
                                       e.preventDefault()
                                       handleAvatarClick(avatar)
                                     }}
-                                    className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative cursor-pointer ${
-                                      isAvatarPending(avatar) 
-                                        ? 'opacity-60 cursor-not-allowed' 
+                                    className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${
+                                      isDisabled
+                                        ? 'opacity-40 cursor-not-allowed' 
                                         : isSelected
-                                        ? ''
-                                        : 'hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
+                                        ? 'cursor-pointer'
+                                        : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
                                     }`}
                                   >
                                     <div className="relative">
@@ -815,21 +858,25 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                               {avatars.default.slice(0, 12).map((avatar) => {
                                 const selectionNumber = getAvatarSelectionNumber(avatar)
                                 const isSelected = isAvatarSelected(avatar)
+                                const isTypeAllowed = isAvatarTypeAllowed(avatar)
+                                const isDisabled = !isTypeAllowed
                                 
                                 return (
                                   <div
                                     key={avatar._id}
-                                    draggable={true}
-                                    onDragStart={(e) => handleDragStart(e, avatar)}
+                                    draggable={!isDisabled}
+                                    onDragStart={(e) => !isDisabled && handleDragStart(e, avatar)}
                                     onDragEnd={handleDragEnd}
                                     onClick={(e) => {
                                       e.preventDefault()
                                       handleAvatarClick(avatar)
                                     }}
-                                    className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative cursor-pointer ${
-                                      isSelected
-                                        ? ''
-                                        : 'hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
+                                    className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${
+                                      isDisabled
+                                        ? 'opacity-40 cursor-not-allowed' 
+                                        : isSelected
+                                        ? 'cursor-pointer'
+                                        : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
                                     }`}
                                   >
                                     <div className="relative">
