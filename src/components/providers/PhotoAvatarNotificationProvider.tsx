@@ -63,7 +63,7 @@ export function PhotoAvatarNotificationProvider({ children }: PhotoAvatarNotific
       />
       <VideoDownloadNotification
         notifications={videoNotifications}
-        isConnected={isConnected}
+        // isConnected={isConnected}
         onClose={clearVideoNotifications}
       />
     </PhotoAvatarNotificationContext.Provider>
