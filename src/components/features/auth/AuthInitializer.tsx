@@ -77,6 +77,12 @@ export default function AuthInitializer() {
               user: userData,
               accessToken: accessToken
             }))
+
+            // Check pending workflows immediately after auth initialization (fire and forget)
+            // Small delay to ensure token is stored
+            setTimeout(() => {
+              apiService.checkPendingWorkflows(userData.id)
+            }, 100)
           } else
           {
             // Check if it's a 401 error (user deleted or token invalid)

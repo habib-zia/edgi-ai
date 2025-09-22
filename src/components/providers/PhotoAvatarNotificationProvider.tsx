@@ -17,6 +17,7 @@ interface PhotoAvatarNotificationContextType {
   clearVideoNotifications: () => void
   latestNotification: any
   latestVideoNotification: any
+  socket: any
 }
 
 const PhotoAvatarNotificationContext = createContext<PhotoAvatarNotificationContextType | null>(null)
@@ -37,7 +38,8 @@ export function PhotoAvatarNotificationProvider({ children }: PhotoAvatarNotific
     clearNotifications,
     clearVideoNotifications,
     latestNotification,
-    latestVideoNotification
+    latestVideoNotification,
+    socket
   } = usePhotoAvatarNotifications(user?.id || null)
 
   const value = {
@@ -49,7 +51,8 @@ export function PhotoAvatarNotificationProvider({ children }: PhotoAvatarNotific
     clearNotifications,
     clearVideoNotifications,
     latestNotification,
-    latestVideoNotification
+    latestVideoNotification,
+    socket
   }
 
   return (

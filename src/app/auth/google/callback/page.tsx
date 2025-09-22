@@ -4,10 +4,13 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { validateAndHandleToken } from '@/lib/jwt-client';
 import { apiService } from '@/lib/api-service';
+import { useAppDispatch } from '@/store/hooks';
+import { setUser } from '@/store/slices/userSlice';
 
 function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dispatch = useAppDispatch();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
@@ -98,6 +101,31 @@ function GoogleCallbackContent() {
 
           // Store the access token
           localStorage.setItem('accessToken', accessToken);
+          
+          // Dispatch Redux action to set user data
+          dispatch(setUser({
+            user: {
+              id: data.data.user.id,
+              email: data.data.user.email,
+              firstName: data.data.user.firstName,
+              lastName: data.data.user.lastName,
+              phone: data.data.user.phone || '',
+              isEmailVerified: data.data.user.isEmailVerified,
+              googleId: data.data.user.googleId,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            },
+            accessToken: accessToken
+          }));
+          
+          // Check pending workflows immediately after Google login (fire and forget)
+          // Small delay to ensure token is stored
+          setTimeout(() => {
+            if (data.data?.user?.id) {
+              apiService.checkPendingWorkflows(data.data.user.id);
+            }
+          }, 100);
+          
           setStatus('success');
           setMessage('Google authentication successful! Redirecting...');
 
@@ -125,7 +153,7 @@ function GoogleCallbackContent() {
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, dispatch]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

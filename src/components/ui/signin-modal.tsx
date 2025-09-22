@@ -243,6 +243,14 @@ export default function SigninModal({ isOpen, onClose, onOpenSignup, onOpenForgo
           accessToken: accessToken
         }))
 
+        // Check pending workflows immediately after login (fire and forget)
+        // Small delay to ensure token is stored
+        setTimeout(() => {
+          if (data.data?.user?.id) {
+            apiService.checkPendingWorkflows(data.data.user.id)
+          }
+        }, 100)
+
         // Update rate limiting
         localStorage.setItem('lastSigninAttempt', now.toString());
         localStorage.setItem('signinAttemptCount', '0');
@@ -404,6 +412,14 @@ export default function SigninModal({ isOpen, onClose, onOpenSignup, onOpenForgo
           },
           accessToken: data.data.accessToken
         }))
+
+        // Check pending workflows immediately after Google signin (fire and forget)
+        // Small delay to ensure token is stored
+        setTimeout(() => {
+          if (data.data?.user?.id) {
+            apiService.checkPendingWorkflows(data.data.user.id)
+          }
+        }, 100)
 
         // Show success message
         const welcomeMessage = data.data.user

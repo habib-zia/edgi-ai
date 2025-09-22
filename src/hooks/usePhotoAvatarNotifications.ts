@@ -16,7 +16,7 @@ export interface PhotoAvatarUpdate {
 
 export interface VideoDownloadUpdate {
   videoId?: string
-  status: 'success' | 'error'
+  status: 'pending' | 'completed' | 'failed'
   data?: {
     message: string
     error?: string

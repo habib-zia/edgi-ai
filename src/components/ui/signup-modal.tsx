@@ -449,6 +449,14 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
           accessToken: accessToken
         }))
 
+        // Check pending workflows immediately after Google signup (fire and forget)
+        // Small delay to ensure token is stored
+        setTimeout(() => {
+          if (data.data?.user?.id) {
+            apiService.checkPendingWorkflows(data.data.user.id)
+          }
+        }, 100)
+
         // Clear saved form data from localStorage after successful registration
         localStorage.removeItem('signupFormData')
 

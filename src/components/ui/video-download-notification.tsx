@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, AlertCircle, X, Download, Play } from 'lucide-react'
+import { CheckCircle, AlertCircle, X, Download, Play, Minimize2 } from 'lucide-react'
 import { VideoDownloadUpdate } from '@/hooks/usePhotoAvatarNotifications'
 
 interface VideoDownloadNotificationProps {
@@ -16,27 +16,43 @@ export default function VideoDownloadNotification({
   className = '' 
 }: VideoDownloadNotificationProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
 
   // Show notification when we have updates
   useEffect(() => {
     if (notifications.length > 0) {
       setIsVisible(true)
+      setIsMinimized(false) // Reset minimized state when new notification arrives
     }
   }, [notifications])
 
+  const handleMinimize = () => {
+    setIsMinimized(true)
+  }
+
+  const handleMaximize = () => {
+    setIsMinimized(false)
+  }
+
   const getStatusIcon = (status: string) => {
-    if (status === 'error') {
+    if (status === 'failed') {
       return <AlertCircle className="w-5 h-5 text-red-500" />
     }
-    return <CheckCircle className="w-5 h-5 text-green-500" />
+    if (status === 'completed') {
+      return <CheckCircle className="w-5 h-5 text-green-500" />
+    }
+    // For pending status, show a loading spinner or processing icon
+    return <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success':
+      case 'completed':
         return 'border-green-200 bg-green-50'
-      case 'error':
+      case 'failed':
         return 'border-red-200 bg-red-50'
+      case 'pending':
+        return 'border-blue-200 bg-blue-50'
       default:
         return 'border-blue-200 bg-blue-50'
     }
@@ -44,10 +60,12 @@ export default function VideoDownloadNotification({
 
   const getStatusMessage = (status: string): string => {
     switch (status) {
-      case 'success':
+      case 'completed':
         return 'Video Ready!'
-      case 'error':
+      case 'failed':
         return 'Video Creation Failed'
+      case 'pending':
+        return 'Video Processing'
       default:
         return 'Video Status'
     }
@@ -57,8 +75,64 @@ export default function VideoDownloadNotification({
 
   if (!isVisible || !latestNotification) return null
 
+  // Minimized state - show FAB style button in bottom right
+  if (isMinimized) {
+    const getMinimizedStyle = (status: string) => {
+      switch (status) {
+        case 'completed':
+          return 'bg-gradient-to-br from-green-500 to-green-600'
+        case 'failed':
+          return 'bg-gradient-to-br from-red-500 to-red-600'
+        default:
+          return 'bg-gradient-to-br from-blue-500 to-blue-600'
+      }
+    }
+
+    const getMinimizedIcon = (status: string) => {
+      switch (status) {
+        case 'completed':
+          return (
+            <div className="relative">
+              <CheckCircle className="w-6 h-6 text-white" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full opacity-90" />
+            </div>
+          )
+        case 'failed':
+          return (
+            <div className="relative">
+              <AlertCircle className="w-6 h-6 text-white" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full opacity-90" />
+            </div>
+          )
+        default:
+          return (
+            <div className="relative">
+              {/* Main spinner */}
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {/* Outer ripple effect */}
+              <div className="absolute inset-0 w-6 h-6 border-2 border-white border-opacity-30 rounded-full animate-ping" />
+              {/* Status indicator dot */}
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full opacity-90" />
+            </div>
+          )
+      }
+    }
+
+    return (
+      <div className={`fixed bottom-4 right-4 z-[60] ${className}`}>
+        <button
+          onClick={handleMaximize}
+          className={`w-14 h-14 ${getMinimizedStyle(latestNotification.status)} rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center group`}
+          title="Click to expand notification"
+        >
+          {getMinimizedIcon(latestNotification.status)}
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className={`fixed top-20 right-4 z-[60] max-w-sm w-full ${className}`}>
+    <div className={`fixed top-4 right-4 sm:top-20 z-[60] max-w-sm w-full sm:max-w-sm md:max-w-md ${className}`}>
       <div className={`border rounded-lg shadow-lg p-4 transition-all duration-300 ${getStatusColor(latestNotification.status)}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
@@ -68,14 +142,26 @@ export default function VideoDownloadNotification({
               {getStatusMessage(latestNotification.status)}
             </h4>
           </div>
-          {onClose && (
+          <div className="flex items-center gap-2">
+            {/* Minimize button - always show */}
             <button
-              onClick={onClose}
+              onClick={handleMinimize}
               className="text-gray-400 hover:text-gray-600 transition-colors"
+              title="Minimize"
             >
-              <X className="w-4 h-4" />
+              <Minimize2 className="w-4 h-4" />
             </button>
-          )}
+            {/* Close button - only show for completed/failed */}
+            {onClose && (latestNotification.status === 'completed' || latestNotification.status === 'failed') && (
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Connection Status */}
@@ -99,7 +185,7 @@ export default function VideoDownloadNotification({
         </div>
 
         {/* Action Buttons */}
-        {latestNotification.status === 'success' && latestNotification.data?.downloadUrl && (
+        {latestNotification.status === 'completed' && latestNotification.data?.downloadUrl && (
           <div className="flex gap-2">
             <a
               href={latestNotification.data.downloadUrl}
@@ -122,14 +208,14 @@ export default function VideoDownloadNotification({
         )}
 
         {/* Error Details */}
-        {latestNotification.status === 'error' && latestNotification.data?.error && (
+        {latestNotification.status === 'failed' && latestNotification.data?.error && (
           <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-xs text-red-700">
             {latestNotification.data.error}
           </div>
         )}
 
         {/* Success Message */}
-        {latestNotification.status === 'success' && (
+        {latestNotification.status === 'completed' && (
           <div className="mt-2 p-2 bg-green-100 border border-green-200 rounded text-xs text-green-700">
             🎉 Your video is ready! You can now download or view it.
           </div>

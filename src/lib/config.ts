@@ -1,7 +1,7 @@
 // Backend API Configuration
 export const API_CONFIG = {
   // Express Backend URL
-  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
+  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://192.168.3.30:4000',
   
   // https://backend-pi-ten-23.vercel.app
   // http://localhost:4000
@@ -39,6 +39,7 @@ export const API_CONFIG = {
       DELETE: '/api/video/delete',
       // DOWNLOAD_PROXY: '/api/video/download-proxy',
       GENERATE: '/api/video/generate-video',
+      PENDING_WORKFLOWS: '/api/video/pending-workflows',
       // CREATE_VIDEO: '/api/video/create',
     },
     

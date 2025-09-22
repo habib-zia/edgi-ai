@@ -744,6 +744,26 @@ class ApiService {
       this.setGlobalLoading(false);
     }
   }
+
+  // Pending Workflows API - Fire and forget
+  async checkPendingWorkflows(userId: string): Promise<void> {
+    try {
+      const url = getApiUrl(`${API_CONFIG.ENDPOINTS.VIDEO.PENDING_WORKFLOWS}/${userId}`);
+      const headers = getAuthenticatedHeaders();
+      
+      // Fire and forget - don't wait for response
+      fetch(url, {
+        method: 'GET',
+        headers: headers,
+      }).catch((error) => {
+        // Silently handle errors since this is fire-and-forget
+        console.log('Pending workflows check failed:', error);
+      });
+    } catch (error) {
+      // Silently handle errors since this is fire-and-forget
+      console.log('Pending workflows check failed:', error);
+    }
+  }
 }
 
 // Export singleton instance
