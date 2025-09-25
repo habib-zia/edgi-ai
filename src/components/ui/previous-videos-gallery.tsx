@@ -50,8 +50,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false)
   const [processedVideoIds, setProcessedVideoIds] = useState<Set<string>>(new Set())
 
-  // Get access token from Redux store
+  // Get access token and user from Redux store
   const accessToken = useSelector((state: RootState) => state.user.accessToken)
+  const currentUser = useSelector((state: RootState) => state.user.user)
   
   // Get socket and notifications from notification context for direct listening
   const { socket, latestVideoNotification } = usePhotoAvatarNotificationContext()
@@ -94,21 +95,36 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     fetchVideos()
   }, [fetchVideos])
 
+  // Clear loading card state when user logs out
+  useEffect(() => {
+    if (!currentUser) {
+      console.log('🧹 User logged out - clearing loading card state')
+      setShowLoadingCard(false)
+      setLoadingCardData(null)
+      setIsVideoProcessing(false)
+      setHasStartedProcessing(false)
+      setProcessedVideoIds(new Set())
+    }
+  }, [currentUser])
+
 
   // Direct socket listener - independent of notification array
   useEffect(() => {
-    if (!socket) return
+    if (!socket || !currentUser) return
 
     const handleVideoUpdate = (update: any) => {
       console.log('🎥 video-download-update received:', update)
       
       const message = update.message || update.data?.message
       const videoId = update.videoId || update.data?.videoId || update.id
+      const status = update.status || update.type // Handle both status and type fields
+      
+      console.log('🎥 Parsed values:', { message, videoId, status, hasStartedProcessing })
       
       // FIRST: Check if we should hide loading card (completed or failed)
-      if (update.status === 'completed' || update.status === 'failed') {
+      if (status === 'completed' || status === 'failed') {
         if (hasStartedProcessing) {
-          console.log(`✅ Socket: Video ${update.status} - hiding loading card`)
+          console.log(`✅ Socket: Video ${status} - hiding loading card`)
           setIsVideoProcessing(false)
           setShowLoadingCard(false)
           setHasStartedProcessing(false)
@@ -120,7 +136,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
           }
           
           // Refresh gallery to show new video only on completion
-          if (update.status === 'completed') {
+          if (status === 'completed') {
             setTimeout(() => {
               fetchVideos()
             }, 1000)
@@ -129,22 +145,49 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         return // Exit early to prevent showing loading card for completed/failed videos
       }
       
-      // SECOND: Show loading card ONLY for pending/processing videos that haven't started yet
-      // AND haven't been processed before
-      if ((update.status === 'pending' || update.status === 'processing') &&
-          message?.includes('Your video creation is in progress') &&
-          !hasStartedProcessing &&
-          (!videoId || !processedVideoIds.has(videoId))) {
+      // SECOND: Show loading card for processing videos
+      // Check for processing status (including 'progress' type) and relevant message
+      const isProcessingStatus = status === 'pending' || status === 'processing' || status === 'progress'
+      const hasRelevantMessage = message?.includes('Your video creation is in progress') || 
+                                 message?.includes('video creation') ||
+                                 message?.includes('processing')
+      
+      console.log('🎥 Processing check:', { 
+        isProcessingStatus, 
+        hasRelevantMessage, 
+        hasStartedProcessing, 
+        videoIdProcessed: videoId && processedVideoIds.has(videoId),
+        message: message,
+        status: status
+      })
+      
+      // Use functional state updates to get current values
+      setHasStartedProcessing(currentHasStarted => {
+        console.log('🎥 Current hasStartedProcessing state:', currentHasStarted)
         
-        console.log('🎬 Socket: Starting video processing - showing loading card')
-        setIsVideoProcessing(true)
-        setShowLoadingCard(true)
-        setHasStartedProcessing(true)
-        setLoadingCardData({
-          title: 'Processing Video...',
-          message: message
-        })
-      }
+        if (isProcessingStatus &&
+            hasRelevantMessage &&
+            !currentHasStarted &&
+            (!videoId || !processedVideoIds.has(videoId))) {
+          
+          console.log('🎬 Socket: Starting video processing - showing loading card')
+          setIsVideoProcessing(true)
+          setShowLoadingCard(true)
+          setLoadingCardData({
+            title: 'Processing Video...',
+            message: message
+          })
+          return true // Set hasStartedProcessing to true
+        } else {
+          console.log('❌ Socket: Not showing loading card - conditions not met:', {
+            isProcessingStatus,
+            hasRelevantMessage,
+            currentHasStarted,
+            videoIdProcessed: videoId && processedVideoIds.has(videoId)
+          })
+          return currentHasStarted // Keep current state
+        }
+      })
     }
 
     // Listen ONLY to the actual socket event you have
@@ -159,73 +202,80 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       socket.off('video-download-update', handleVideoUpdate)
       socket.offAny()
     }
-  }, [socket, fetchVideos, hasStartedProcessing, processedVideoIds])
+  }, [socket, fetchVideos, processedVideoIds, currentUser]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fallback: Listen to notification context for initial trigger (but don't clear when notification is removed)
+  // Backup notification context listener - in case socket listener doesn't work
   useEffect(() => {
-    if (latestVideoNotification) {
-      console.log('🔔 Notification received for loading card:', latestVideoNotification)
-      console.log('🔔 Current loading states:', { isVideoProcessing, showLoadingCard, hasStartedProcessing })
-      console.log('🔔 Notification status:', latestVideoNotification.status)
-      console.log('🔔 Notification message:', latestVideoNotification.message)
-      console.log('🔔 Notification data:', latestVideoNotification.data)
+    if (latestVideoNotification && currentUser) {
+      console.log('🔔 Backup notification received for loading card:', latestVideoNotification)
       
       const message = latestVideoNotification.message || latestVideoNotification.data?.message
       const videoId = latestVideoNotification.videoId || latestVideoNotification.data?.videoId
-      console.log('🔔 Extracted message:', message)
-      console.log('🔔 Extracted videoId:', videoId)
+      const status = latestVideoNotification.status || latestVideoNotification.type
       
-      // FIRST: Check if we should hide loading card (completed or failed)
-      if (latestVideoNotification.status === 'completed' || latestVideoNotification.status === 'failed') {
-        if (hasStartedProcessing) {
-          console.log(`✅ Notification trigger: Video ${latestVideoNotification.status} - hiding loading card`)
-          setIsVideoProcessing(false)
-          setShowLoadingCard(false)
-          setHasStartedProcessing(false)
-          setLoadingCardData(null)
-          
-          // Track this video as processed to prevent duplicate loading cards
-          if (videoId) {
-            setProcessedVideoIds(prev => new Set([...prev, videoId]))
-          }
-          
-          // Refresh gallery to show new video only on completion
-          if (latestVideoNotification.status === 'completed') {
-            setTimeout(() => {
-              fetchVideos()
-            }, 1000)
-          }
-        }
-        return // Exit early to prevent showing loading card for completed/failed videos
-      }
+      console.log('🔔 Backup parsed values:', { message, videoId, status })
       
-      // SECOND: Show loading card ONLY for pending/processing videos that haven't started yet
-      // AND haven't been processed before
-      console.log('🔔 Status check:', (latestVideoNotification.status === 'pending' || latestVideoNotification.status === 'processing'))
-      console.log('🔔 Message check:', message?.includes('Your video creation is in progress'))
-      console.log('🔔 Has started processing check:', !hasStartedProcessing)
-      console.log('🔔 Video already processed check:', videoId && processedVideoIds.has(videoId))
-      
-      if ((latestVideoNotification.status === 'pending' || latestVideoNotification.status === 'processing') &&
-          message?.includes('Your video creation is in progress') &&
-          !hasStartedProcessing &&
-          (!videoId || !processedVideoIds.has(videoId))) {
+      // Use functional state updates to get current values
+      setHasStartedProcessing(currentHasStarted => {
+        console.log('🔔 Backup current hasStartedProcessing state:', currentHasStarted)
         
-        console.log('🎬 Notification trigger: Starting video processing - showing loading card')
-        console.log('🎬 Setting states: isVideoProcessing=true, showLoadingCard=true, hasStartedProcessing=true')
-        setIsVideoProcessing(true)
-        setShowLoadingCard(true)
-        setHasStartedProcessing(true)
-        setLoadingCardData({
-          title: 'Processing Video...',
-          message: message
+        // FIRST: Check if we should hide loading card (completed or failed)
+        if (status === 'completed' || status === 'failed') {
+          if (currentHasStarted) {
+            console.log(`✅ Backup: Video ${status} - hiding loading card`)
+            setIsVideoProcessing(false)
+            setShowLoadingCard(false)
+            setLoadingCardData(null)
+            
+            // Track this video as processed to prevent duplicate loading cards
+            if (videoId) {
+              setProcessedVideoIds(prev => new Set([...prev, videoId]))
+            }
+            
+            // Refresh gallery to show new video only on completion
+            if (status === 'completed') {
+              setTimeout(() => {
+                fetchVideos()
+              }, 1000)
+            }
+            return false // Reset hasStartedProcessing
+          }
+          return currentHasStarted // Keep current state
+        }
+        
+        // SECOND: Show loading card for processing videos
+        const isProcessingStatus = status === 'pending' || status === 'processing' || status === 'progress'
+        const hasRelevantMessage = message?.includes('Your video creation is in progress') || 
+                                   message?.includes('video creation') ||
+                                   message?.includes('processing')
+        
+        console.log('🔔 Backup processing check:', { 
+          isProcessingStatus, 
+          hasRelevantMessage, 
+          currentHasStarted, 
+          videoIdProcessed: videoId && processedVideoIds.has(videoId)
         })
-      }
-    } else {
-      // Don't log this anymore as it's expected when toast is closed
-      // console.log('🔔 No notification currently - latestVideoNotification is null/undefined')
+        
+        if (isProcessingStatus &&
+            hasRelevantMessage &&
+            !currentHasStarted &&
+            (!videoId || !processedVideoIds.has(videoId))) {
+          
+          console.log('🎬 Backup: Starting video processing - showing loading card')
+          setIsVideoProcessing(true)
+          setShowLoadingCard(true)
+          setLoadingCardData({
+            title: 'Processing Video...',
+            message: message
+          })
+          return true // Set hasStartedProcessing to true
+        } else {
+          console.log('❌ Backup: Not showing loading card - conditions not met')
+          return currentHasStarted // Keep current state
+        }
+      })
     }
-  }, [latestVideoNotification, fetchVideos, hasStartedProcessing, isVideoProcessing, showLoadingCard, processedVideoIds])
+  }, [latestVideoNotification, fetchVideos, processedVideoIds, currentUser])
 
   // Ensure loading card stays visible while processing, regardless of any other state changes
   useEffect(() => {

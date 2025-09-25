@@ -78,11 +78,32 @@ export default function AuthInitializer() {
               accessToken: accessToken
             }))
 
-            // Check pending workflows immediately after auth initialization (fire and forget)
-            // Small delay to ensure token is stored
-            setTimeout(() => {
+            // Check pending workflows after socket connection is established
+            const handleSocketConnected = () => {
+              console.log('🔌 Socket connected event received, checking pending workflows')
               apiService.checkPendingWorkflows(userData.id)
-            }, 100)
+                .catch(error => {
+                  console.error('Failed to check pending workflows after socket connection:', error);
+                  // Don't show error to user as this is background operation
+                });
+              // Remove the event listener after first use
+              window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
+            }
+
+            // Listen for socket connection event
+            window.addEventListener('socket-connected', handleSocketConnected as EventListener)
+            
+            // Fallback: Check pending workflows after a delay if socket doesn't connect
+            setTimeout(() => {
+              console.log('🔌 Fallback: Checking pending workflows after delay')
+              apiService.checkPendingWorkflows(userData.id)
+                .catch(error => {
+                  console.error('Failed to check pending workflows after fallback delay:', error);
+                  // Don't show error to user as this is background operation
+                });
+              // Remove the event listener if fallback is used
+              window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
+            }, 2000)
           } else
           {
             // Check if it's a 401 error (user deleted or token invalid)

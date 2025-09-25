@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { getApiUrl } from '@/lib/config'
 
@@ -44,6 +44,9 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
   const [notifications, setNotifications] = useState<PhotoAvatarUpdate[]>([])
   const [videoNotifications, setVideoNotifications] = useState<VideoDownloadUpdate[]>([])
   const [isConnected, setIsConnected] = useState(false)
+  
+  // Track processed events to prevent duplicates
+  const processedEvents = useRef(new Set<string>())
 
   const clearNotifications = useCallback(() => {
     setNotifications([])
@@ -55,12 +58,18 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
 
   useEffect(() => {
     if (!userId) {
-      // Clean up socket if no user
+      // Clean up socket and clear notifications if no user (logout scenario)
       if (socket) {
         socket.close()
         setSocket(null)
         setIsConnected(false)
       }
+      // Clear all notifications on logout
+      setNotifications([])
+      setVideoNotifications([])
+      // Clear processed events to prevent memory leaks
+      processedEvents.current.clear()
+      console.log('🧹 User logged out - cleared all notifications and socket connection')
       return
     }
 
@@ -84,6 +93,14 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
       // Join user-specific room
       newSocket.emit('join-room', userId)
       console.log(`🏠 Joined room for user: ${userId}`)
+      
+      // Emit a test event to verify connection
+      newSocket.emit('test-connection', { userId, timestamp: new Date().toISOString() })
+      
+      // Trigger a custom event to notify that socket is ready
+      window.dispatchEvent(new CustomEvent('socket-connected', { 
+        detail: { userId, timestamp: new Date().toISOString() } 
+      }))
     })
 
     newSocket.on('disconnect', (reason: any) => {
@@ -96,20 +113,50 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
       setIsConnected(false)
     })
 
+    // Listen for connection status changes
+    newSocket.on('reconnect', (attemptNumber: number) => {
+      console.log(`🔌 WebSocket reconnected after ${attemptNumber} attempts`)
+      setIsConnected(true)
+      // Rejoin room after reconnection
+      newSocket.emit('join-room', userId)
+      
+      // Trigger a custom event to notify that socket is ready after reconnection
+      window.dispatchEvent(new CustomEvent('socket-connected', { 
+        detail: { userId, timestamp: new Date().toISOString(), reconnected: true } 
+      }))
+    })
+
+    newSocket.on('reconnect_attempt', (attemptNumber: number) => {
+      console.log(`🔌 WebSocket reconnection attempt ${attemptNumber}`)
+    })
+
+    newSocket.on('reconnect_error', (error: any) => {
+      console.error('🔌 WebSocket reconnection error:', error)
+    })
+
+    newSocket.on('reconnect_failed', () => {
+      console.error('🔌 WebSocket reconnection failed')
+      setIsConnected(false)
+    })
+
     // Listen for photo avatar updates
     newSocket.on('photo-avatar-update', (update: PhotoAvatarUpdate) => {
       console.log('📸 Photo avatar update received:', update)
+      
+      // Create unique event key for deduplication
+      const eventKey = `photo-avatar-${update.step}-${update.timestamp}`
+      
+      // Check if event was already processed
+      if (processedEvents.current.has(eventKey)) {
+        console.log('📸 Duplicate photo avatar event ignored:', eventKey)
+        return
+      }
+      
+      // Mark event as processed
+      processedEvents.current.add(eventKey)
+      
       console.log('📸 Current notifications before update:', notifications)
       setNotifications(prev => {
-        // Avoid duplicate notifications
-        const exists = prev.some(notif => 
-          notif.timestamp === update.timestamp && 
-          notif.step === update.step
-        )
-        if (exists) {
-          console.log('📸 Duplicate notification ignored')
-          return prev
-        }
         const newNotifications = [...prev, update]
         console.log('📸 New notifications after update:', newNotifications)
         return newNotifications
@@ -119,6 +166,19 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
     // Listen for avatar completion
     newSocket.on('avatar-ready', (data: { avatarId: string; previewImageUrl?: string }) => {
       console.log('✅ Avatar ready:', data)
+      
+      const timestamp = new Date().toISOString()
+      const eventKey = `avatar-ready-${data.avatarId}-${timestamp}`
+      
+      // Check if event was already processed
+      if (processedEvents.current.has(eventKey)) {
+        console.log('📸 Duplicate avatar-ready event ignored:', eventKey)
+        return
+      }
+      
+      // Mark event as processed
+      processedEvents.current.add(eventKey)
+      
       const completionUpdate: PhotoAvatarUpdate = {
         step: 'complete',
         status: 'success',
@@ -127,7 +187,7 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
           avatarId: data.avatarId,
           previewImageUrl: data.previewImageUrl
         },
-        timestamp: new Date().toISOString()
+        timestamp: timestamp
       }
       setNotifications(prev => [...prev, completionUpdate])
     })
@@ -135,21 +195,33 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
     // Listen for video download updates
     newSocket.on('video-download-update', (update: VideoDownloadUpdate) => {
       console.log('🎥 Video download update received:', update)
+      
+      // Create unique event key for deduplication
+      const eventKey = `video-download-${update.videoId || 'unknown'}-${update.timestamp}`
+      
+      // Check if event was already processed
+      if (processedEvents.current.has(eventKey)) {
+        console.log('🎥 Duplicate video download event ignored:', eventKey)
+        return
+      }
+      
+      // Mark event as processed
+      processedEvents.current.add(eventKey)
+      
       setVideoNotifications(prev => {
-        // Avoid duplicate notifications
-        const exists = prev.some(notif => 
-          notif.timestamp === update.timestamp && 
-          notif.data?.title === update.data?.title
-        )
-        if (exists) return prev
         return [...prev, update]
       })
     })
 
     setSocket(newSocket)
 
+    // Store reference to processed events for cleanup
+    const currentProcessedEvents = processedEvents.current
+
     return () => {
       console.log('🧹 Cleaning up WebSocket connection')
+      // Clear processed events on cleanup to prevent memory leaks
+      currentProcessedEvents.clear()
       newSocket.close()
     }
   }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps

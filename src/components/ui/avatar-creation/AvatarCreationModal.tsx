@@ -3,14 +3,16 @@
 import { useState } from 'react'
 // import { X } from 'lucide-react' // Removed unused import
 import Step2ChooseType from './steps/Step2ChooseType'
-import Step4WebcamRecord from './steps/Step4WebcamRecord'
 import Step5QRCode from './steps/Step5QRCode'
 import Step6PhotoInstructions from './steps/Step6PhotoInstructions'
 import Step7PhotoUpload from './steps/Step7PhotoUpload'
 import Step8Details from './steps/Step8Details'
 import Step9AvatarReady from './steps/Step9AvatarReady'
 import Step1Intro from './steps/Step1Intro'
-import Step3VideoUpload from './steps/Step3VideoUpload'
+import VideoAvatarStep1 from './steps/videoAvatarStep1'
+import VideoAvatarStep2 from './steps/videoAvatarStep2'
+import VideoAvatarStep3 from './steps/videoAvatarStep3'
+import VideoAvatarStep4 from './steps/videoAvatarStep4'
 
 export type AvatarType = 'digital-twin' | 'photo-avatar'
 
@@ -111,15 +113,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 3:
         if (selectedAvatarType === 'digital-twin') {
-          return (
-            <Step3VideoUpload 
-              onNext={handleNext}
-              onBack={handleBack}
-              avatarData={avatarData}
-              setAvatarData={setAvatarData}
-              onSkipToDetails={handleSkipToDetails}
-            />
-          )
+          return <VideoAvatarStep1 onNext={handleNext} />
         } else {
           return (
             <Step6PhotoInstructions 
@@ -131,14 +125,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 4:
         if (selectedAvatarType === 'digital-twin') {
-          return (
-            <Step4WebcamRecord 
-              onNext={handleNext}
-              onBack={handleBack}
-              avatarData={avatarData}
-              setAvatarData={setAvatarData}
-            />
-          )
+          return <VideoAvatarStep2 onNext={handleNext} />
         } else {
           return (
             <Step7PhotoUpload 
@@ -152,14 +139,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 5:
         if (selectedAvatarType === 'digital-twin') {
-          return (
-            <Step5QRCode 
-              onNext={handleNext}
-              onBack={handleBack}
-              avatarData={avatarData}
-              setAvatarData={setAvatarData}
-            />
-          )
+          return <VideoAvatarStep3 onNext={handleNext} />
         } else {
           return (
             <Step8Details 
@@ -174,12 +154,11 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       case 6:
         if (selectedAvatarType === 'digital-twin') {
           return (
-            <Step8Details 
-              onBack={handleBack}
-              avatarData={avatarData}
-              setAvatarData={setAvatarData}
-              onSkipBackToUpload={handleSkipBackToUpload}
-              onClose={handleAvatarCreationSuccess}
+            <VideoAvatarStep4
+              onNext={handleNext}
+            // onBack={handleBack}
+            // avatarData={avatarData}
+            // setAvatarData={setAvatarData}
             />
           )
         } else {
@@ -196,7 +175,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       case 7:
         if (selectedAvatarType === 'digital-twin') {
           return (
-            <Step9AvatarReady 
+            <Step5QRCode 
               onNext={handleNext}
               onBack={handleBack}
               avatarData={avatarData}
@@ -205,17 +184,58 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
           )
         }
         break
+
+        case 8:
+        if (selectedAvatarType === 'digital-twin') {
+          return (
+            <Step8Details
+              onBack={handleBack}
+              avatarData={avatarData}
+              setAvatarData={setAvatarData}
+              onSkipBackToUpload={handleSkipBackToUpload}
+              onClose={handleAvatarCreationSuccess}
+            />
+          )
+        }
+        break
+
+      case 9:
+        if (selectedAvatarType === 'digital-twin') {
+          return <VideoAvatarStep4 onNext={handleAvatarCreationSuccess} />
+        }
+        break
       
       default:
         return <Step1Intro onNext={handleNext} />
     }
   }
 
+
+  // Dynamic modal sizing based on current step
+  const getModalDimensions = () => {
+    if (selectedAvatarType == 'digital-twin' && (currentStep == 3 || currentStep == 6)) {
+      return {
+        maxWidth: isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[900px]',
+        maxHeight: 'max-h-[500px]',
+        padding: ''
+      }
+    }
+    return {
+      maxWidth: isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[1100px]',
+      maxHeight: 'max-h-[840px]',
+      padding: 'p-3'
+    }
+  }
+
+  const modalDimensions = getModalDimensions()
+  console.log('modalDimensions', modalDimensions)
+
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3">
-      <div className={`bg-white rounded-[12px] md:px-8 px-4 md:pb-8 pb-4 md:pt-6 pt-4 ${isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[1100px]'} w-full max-h-[840px] h-full flex flex-col relative ${selectedAvatarType === 'digital-twin' ? 'avatar-dropdown-shadow' : ''}`}>
+    <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-50 ${modalDimensions.padding}`}>
+      <div className={`bg-white rounded-[12px] md:px-8 px-4 md:pb-8 pb-4 md:pt-6 pt-4 ${modalDimensions.maxWidth} w-full ${modalDimensions.maxHeight} h-full flex flex-col relative ${selectedAvatarType === 'digital-twin' ? 'avatar-dropdown-shadow' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">Create Avatar</h2>
@@ -225,7 +245,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
             aria-label="Close avatar creation modal"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>

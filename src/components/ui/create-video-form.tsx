@@ -14,7 +14,7 @@ import Image from 'next/image'
 // ...existing code...
 import { IoMdArrowDropdown } from "react-icons/io";
 import { useSearchParams } from 'next/navigation'
-import { Avatar, Topic } from '@/lib/api-service'
+import { Avatar, Trend } from '@/lib/api-service'
 import { usePhotoAvatarNotificationContext } from '@/components/providers/PhotoAvatarNotificationProvider'
 import { useAvatarStorage, type SelectedAvatars } from '@/hooks/useAvatarStorage'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -43,11 +43,11 @@ const createVideoSchema = z.object({
     .min(2, 'Social handles must be at least 2 characters')
     .max(200, 'Social handles must be less than 200 characters'),
   videoTopic: z.string()
-    .min(1, 'Video topic must be at least 2 character')
-    .max(100, 'Video topic must be less than 100 characters'),
+    .min(1, 'Please select a topic')
+    .max(100, 'Please select a topic'),
   topicKeyPoints: z.string()
-    .min(2, 'Topic key points must be at least 2 characters')
-    .max(500, 'Topic key points must be less than 500 characters'),
+    .min(2, 'Please select a topic to show key points')
+    .max(500, 'Please select a topic to show key points'),
   city: z.string()
     .min(2, 'City must be at least 2 characters')
     .max(50, 'City must be less than 50 characters')
@@ -112,6 +112,7 @@ interface CreateVideoFormProps {
 export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const dispatch = useDispatch<AppDispatch>()
   const { isLoading, error } = useSelector((state: RootState) => state.video)
+  const { user } = useSelector((state: RootState) => state.user)
   const searchParams = useSearchParams()
   const { latestNotification } = usePhotoAvatarNotificationContext()
   const { saveSelectedAvatars } = useAvatarStorage()
@@ -136,13 +137,13 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [avatarsLoading, setAvatarsLoading] = useState(false)
   const [avatarsError, setAvatarsError] = useState<string | null>(null)
   
-  // Real estate topics state
-  const [topics, setTopics] = useState<Topic[]>([])
-  const [topicsLoading, setTopicsLoading] = useState(false)
-  const [topicsError, setTopicsError] = useState<string | null>(null)
+  // Real estate trends state
+  const [trends, setTrends] = useState<Trend[]>([])
+  const [trendsLoading, setTrendsLoading] = useState(false)
+  const [trendsError, setTrendsError] = useState<string | null>(null)
   
-  // Ensure topics is always an array to prevent .find() errors
-  const safeTopics = Array.isArray(topics) ? topics : []
+  // Ensure trends is always an array to prevent .find() errors
+  const safeTrends = Array.isArray(trends) ? trends : []
 
   // Drag and drop state
   const [selectedAvatars, setSelectedAvatars] = useState<{
@@ -170,39 +171,39 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [searchParams])
 
-  // Fetch real estate topics function
-  const fetchTopics = useCallback(async () => {
+  // Fetch real estate trends function
+  const fetchTrends = useCallback(async () => {
     try {
-      setTopicsLoading(true)
-      setTopicsError(null)
-      const response = await apiService.getRealEstateTopics()
+      setTrendsLoading(true)
+      setTrendsError(null)
+      const response = await apiService.getRealEstateTrends()
       
-      console.log('Topics API Response:', response) // Debug log
+      console.log('Trends API Response:', response) // Debug log
       
-      if (response.success) {
-        // The topics array is directly at response.data
-        const topicsData = (response as any).data || []
-        console.log('Topics Data:', topicsData) // Debug log
+      if (response.success && response.data) {
+        // Extract trends array from response.data.trends
+        const trendsData = response.data.trends || []
+        console.log('Trends Data:', trendsData) // Debug log
         
-        if (Array.isArray(topicsData)) {
-          console.log('Setting topics:', topicsData) // Debug log
-          setTopics(topicsData)
-          setTopicsError(null)
+        if (Array.isArray(trendsData)) {
+          console.log('Setting trends:', trendsData) // Debug log
+          setTrends(trendsData)
+          setTrendsError(null)
         } else {
-          console.error('Topics data is not an array:', topicsData)
-          setTopicsError('Invalid topics data format')
-          setTopics([])
+          console.error('Trends data is not an array:', trendsData)
+          setTrendsError('Invalid trends data format')
+          setTrends([])
         }
       } else {
-        setTopicsError(response.message || 'Failed to fetch topics')
-        setTopics([])
+        setTrendsError(response.message || 'Failed to fetch trends')
+        setTrends([])
       }
     } catch (error: any) {
-      console.error('Topics fetch error:', error)
-      setTopicsError(error.message || 'Failed to load topics')
-      setTopics([])
+      console.error('Trends fetch error:', error)
+      setTrendsError(error.message || 'Failed to load trends')
+      setTrends([])
     } finally {
-      setTopicsLoading(false)
+      setTrendsLoading(false)
     }
   }, [])
 
@@ -246,11 +247,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [])
 
-  // Fetch avatars and real estate topics when component mounts
+  // Fetch avatars and real estate trends when component mounts
   useEffect(() => {
     fetchAvatars()
-    fetchTopics()
-  }, [fetchAvatars, fetchTopics])
+    fetchTrends()
+  }, [fetchAvatars, fetchTrends])
 
   // Auto-refresh avatars when WebSocket notification shows avatar is ready
   useEffect(() => {
@@ -475,6 +476,13 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     mode: 'onChange'
   })
 
+  // Set user's email when user data is available
+  useEffect(() => {
+    if (user?.email) {
+      setValue('email', user.email)
+    }
+  }, [user?.email, setValue])
+
   const onSubmit = async (data: CreateVideoFormData) => {
     // Check if all three avatars are selected
     if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
@@ -610,13 +618,13 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setValue('avatar', value)
     } else if (field === 'videoTopic')
     {
-      // Handle topic selection - set both videoTopic and auto-fill topicKeyPoints
+      // Handle trend selection - set both videoTopic and auto-fill topicKeyPoints
       setValue('videoTopic', value)
       
-      // Find the selected topic and auto-fill keypoints
-      const selectedTopic = safeTopics.find(topic => topic._id === value)
-      if (selectedTopic) {
-        setValue('topicKeyPoints', selectedTopic.keypoints)
+      // Find the selected trend and auto-fill keypoints
+      const selectedTrend = safeTrends.find(trend => trend.description === value)
+      if (selectedTrend) {
+        setValue('topicKeyPoints', selectedTrend.keypoints)
       }
     } else
     {
@@ -1099,19 +1107,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     )
   }
 
-  const renderTopicDropdown = (
+  const renderTrendsDropdown = (
     field: keyof CreateVideoFormData,
     placeholder: string
   ) => {
     const currentValue = watch(field)
-    const selectedTopic = safeTopics.find(topic => topic._id === currentValue)
+    const selectedTrend = safeTrends.find(trend => trend.description === currentValue)
     const isOpen = openDropdown === field
     const hasError = errors[field]
     
     // Debug logging
-    console.log('Dropdown render - safeTopics:', safeTopics)
-    console.log('Dropdown render - topicsLoading:', topicsLoading)
-    console.log('Dropdown render - topicsError:', topicsError)
+    console.log('Dropdown render - safeTrends:', safeTrends)
+    console.log('Dropdown render - trendsLoading:', trendsLoading)
+    console.log('Dropdown render - trendsError:', trendsError)
 
     return (
       <div className="relative">
@@ -1128,11 +1136,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             }, 100)
           }}
           className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${hasError ? 'ring-2 ring-red-500' : ''
-            } ${selectedTopic ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
+            } ${selectedTrend ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
           aria-describedby={hasError ? `${field}-error` : undefined}
         >
           <span className="truncate">
-            {selectedTopic ? selectedTopic.description : placeholder}
+            {selectedTrend ? selectedTrend.description : placeholder}
           </span>
           <IoMdArrowDropdown
             className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
@@ -1141,42 +1149,42 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
         {isOpen && (
           <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
-            {topicsLoading ? (
+            {trendsLoading ? (
               <div className="px-4 py-3 text-center text-gray-500">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#5046E5] mx-auto mb-2"></div>
-                Loading topics...
+                Loading trends...
               </div>
-            ) : topicsError ? (
+            ) : trendsError ? (
               <div className="px-4 py-3 text-center text-red-500">
-                <p className="text-sm">{topicsError}</p>
+                <p className="text-sm">{trendsError}</p>
                 <button
-                  onClick={fetchTopics}
+                  onClick={fetchTrends}
                   className="mt-2 px-3 py-1 text-xs bg-[#5046E5] text-white rounded hover:bg-[#4338CA] transition-colors"
                 >
                   Retry
                 </button>
               </div>
-            ) : safeTopics.length === 0 ? (
+            ) : safeTrends.length === 0 ? (
               <div className="px-4 py-3 text-center text-gray-500">
-                No topics available
+                No trends available
               </div>
             ) : (
-              safeTopics.map((topic) => (
+              safeTrends.map((trend, index) => (
                 <button
-                  key={topic._id}
+                  key={index}
                   type="button"
-                  onClick={() => handleDropdownSelect(field, topic._id)}
+                  onClick={() => handleDropdownSelect(field, trend.description)}
                   className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 flex items-start justify-between text-[#282828] cursor-pointer border-b border-gray-100 last:border-b-0"
                 >
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-800 mb-1">
-                      {topic.description}
+                      {trend.description}
                     </div>
                     <div className="text-xs text-gray-500">
-                      Key Points: {topic.keypoints}
+                      Key Points: {trend.keypoints}
                     </div>
                   </div>
-                  {currentValue === topic._id && (
+                  {currentValue === trend.description && (
                     <Check className="w-4 h-4 text-[#5046E5] mt-1 flex-shrink-0" />
                   )}
                 </button>
@@ -1202,12 +1210,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     autoComplete?: string
   ) => {
     const hasError = errors[field]
-    // const isDisabled = field === 'topicKeyPoints'
-    // ${
-    //   isDisabled 
-    //     ? 'bg-gray-100 text-gray-600 cursor-not-allowed' 
-    //     : 'bg-[#EEEEEE] hover:bg-[#F5F5F5]'
-    // } 
+    const isDisabled = field === 'topicKeyPoints' || field === 'email'
 
     return (
       <div className="relative">
@@ -1216,11 +1219,15 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           type={type}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          // disabled={isDisabled}
+          disabled={isDisabled}
           aria-describedby={hasError ? `${field}-error` : undefined}
           aria-invalid={hasError ? 'true' : 'false'}
           className={`w-full px-4 py-[10.5px] text-[18px] font-normal placeholder:text-[#11101066] border-0 rounded-[8px] text-gray-800 transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white bg-[#EEEEEE] hover:bg-[#F5F5F5]
-          ${hasError ? 'ring-2 ring-red-500' : ''}`}
+          ${hasError ? 'ring-2 ring-red-500' : ''}     ${
+      isDisabled 
+        ? 'bg-gray-100 text-gray-600 cursor-not-allowed' 
+        : 'bg-[#EEEEEE] hover:bg-[#F5F5F5]'
+    } `}
         />
         {hasError && (
           <p id={`${field}-error`} className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
@@ -1366,8 +1373,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Video Topic <span className="text-red-500">*</span>
             </label>
-            {renderInput('videoTopic', 'Select a topic', 'text')}
-            {/* {renderTopicDropdown('videoTopic', 'Select a topic')} */}
+            {renderTrendsDropdown('videoTopic', 'Select a trend')}
           </div>
 
           <div>

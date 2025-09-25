@@ -449,13 +449,35 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
           accessToken: accessToken
         }))
 
-        // Check pending workflows immediately after Google signup (fire and forget)
-        // Small delay to ensure token is stored
-        setTimeout(() => {
-          if (data.data?.user?.id) {
-            apiService.checkPendingWorkflows(data.data.user.id)
+        // Check pending workflows after socket connection is established
+        if (data.data?.user?.id) {
+          const userId = data.data.user.id
+          const handleSocketConnected = () => {
+            console.log('🔌 Socket connected event received after Google signup, checking pending workflows')
+            apiService.checkPendingWorkflows(userId)
+              .catch(error => {
+                console.error('Failed to check pending workflows after Google signup socket connection:', error);
+                // Don't show error to user as this is background operation
+              });
+            // Remove the event listener after first use
+            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
           }
-        }, 100)
+
+          // Listen for socket connection event
+          window.addEventListener('socket-connected', handleSocketConnected as EventListener)
+          
+          // Fallback: Check pending workflows after a delay if socket doesn't connect
+          setTimeout(() => {
+            console.log('🔌 Fallback: Checking pending workflows after Google signup delay')
+            apiService.checkPendingWorkflows(userId)
+              .catch(error => {
+                console.error('Failed to check pending workflows after Google signup fallback delay:', error);
+                // Don't show error to user as this is background operation
+              });
+            // Remove the event listener if fallback is used
+            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
+          }, 2000)
+        }
 
         // Clear saved form data from localStorage after successful registration
         localStorage.removeItem('signupFormData')

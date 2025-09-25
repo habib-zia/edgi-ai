@@ -1,4 +1,4 @@
-import { getApiUrl, getAuthHeaders, getAuthenticatedHeaders, API_CONFIG } from './config';
+import { getApiUrl, getAuthHeaders, getAuthenticatedHeaders, ensureTokenStored, API_CONFIG } from './config';
 // API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -106,21 +106,23 @@ export interface CreatePhotoAvatarResponse {
   message: string;
 }
 
-// Topic Types
-export interface Topic {
-  _id: string;
-  topic: string;
+// Trends Types
+export interface Trend {
   description: string;
   keypoints: string;
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
 }
 
-export interface TopicsResponse {
+export interface RealEstateTrendsData {
+  topic: string;
+  location: string;
+  trends: Trend[];
+  count: number;
+}
+
+export interface RealEstateTrendsResponse {
   success: boolean;
   message: string;
-  data: Topic[];
+  data: RealEstateTrendsData;
 }
 
 
@@ -491,47 +493,15 @@ class ApiService {
     }
   }
 
-  // Topic Methods
-  async getAllTopics(): Promise<ApiResponse<TopicsResponse>> {
+  // Trends Methods
+  async getRealEstateTrends(): Promise<ApiResponse<RealEstateTrendsData>> {
     try {
-      const response = await this.request<TopicsResponse>(API_CONFIG.ENDPOINTS.TOPIC.GET_ALL, {
+      const response = await this.request<RealEstateTrendsData>(API_CONFIG.ENDPOINTS.TRENDS.REAL_ESTATE, {
         method: 'GET',
       }, true);
       return response;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to get topics';
-      this.showNotification(errorMessage, 'error');
-      return { success: false, message: errorMessage, error: errorMessage };
-    }
-  }
-
-  async getRealEstateTopics(): Promise<ApiResponse<TopicsResponse>> {
-    try {
-      const response = await this.request<TopicsResponse>(`${API_CONFIG.ENDPOINTS.TOPIC.GET_BY_TYPE}/real_estate`, {
-        method: 'GET',
-      }, true);
-      return response;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to get real estate topics';
-      this.showNotification(errorMessage, 'error');
-      return { success: false, message: errorMessage, error: errorMessage };
-    }
-  }
-
-  async getTopicById(id: string): Promise<ApiResponse<TopicsResponse>> {
-    try {
-      if (!id) {
-        const errorMessage = 'ID parameter is required';
-        this.showNotification(errorMessage, 'error');
-        return { success: false, message: errorMessage, error: errorMessage };
-      }
-
-      const response = await this.request<TopicsResponse>(`${API_CONFIG.ENDPOINTS.TOPIC.GET_BY_ID}/${id}`, {
-        method: 'GET',
-      }, true);
-      return response;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to get topic by ID';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get real estate trends';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
@@ -745,23 +715,41 @@ class ApiService {
     }
   }
 
-  // Pending Workflows API - Fire and forget
+  // Pending Workflows API - Improved error handling with race condition prevention
   async checkPendingWorkflows(userId: string): Promise<void> {
     try {
+      // Ensure token is available before making request
+      if (!ensureTokenStored()) {
+        console.warn('Skipping pending workflows check - no token available');
+        return;
+      }
+      
       const url = getApiUrl(`${API_CONFIG.ENDPOINTS.VIDEO.PENDING_WORKFLOWS}/${userId}`);
       const headers = getAuthenticatedHeaders();
       
-      // Fire and forget - don't wait for response
-      fetch(url, {
+      // Use proper async/await with error handling
+      const response = await fetch(url, {
         method: 'GET',
         headers: headers,
-      }).catch((error) => {
-        // Silently handle errors since this is fire-and-forget
-        console.log('Pending workflows check failed:', error);
       });
+      
+      if (!response.ok) {
+        console.warn('Pending workflows check failed with status:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      if (data.success && data.data) {
+        console.log('✅ Pending workflows checked successfully');
+        console.log('🔌 Socket connection status will be checked by the notification provider');
+      } else {
+        console.warn('Pending workflows check returned unsuccessful response:', data.message);
+      }
     } catch (error) {
-      // Silently handle errors since this is fire-and-forget
-      console.log('Pending workflows check failed:', error);
+      // Log error but don't throw to maintain fire-and-forget behavior
+      console.error('Pending workflows check failed:', error);
+      // Optionally show a subtle notification to user (but not intrusive)
+      // this.showNotification('Unable to check video status. Please refresh if needed.', 'warning');
     }
   }
 }

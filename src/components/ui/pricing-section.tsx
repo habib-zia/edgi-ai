@@ -430,11 +430,11 @@ const PricingSection = () => {
           )}
 
           {/* Error handling (subtle) */}
-          {error && (
+          {/* {error && (
             <div className="mt-2 text-red-400 text-sm">
               Using cached pricing data
             </div>
-          )}
+          )} */}
         </div>
 
         {/* Top Row - Three Pricing Cards */}

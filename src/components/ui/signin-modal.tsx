@@ -243,13 +243,35 @@ export default function SigninModal({ isOpen, onClose, onOpenSignup, onOpenForgo
           accessToken: accessToken
         }))
 
-        // Check pending workflows immediately after login (fire and forget)
-        // Small delay to ensure token is stored
-        setTimeout(() => {
-          if (data.data?.user?.id) {
-            apiService.checkPendingWorkflows(data.data.user.id)
+        // Check pending workflows after socket connection is established
+        if (data.data?.user?.id) {
+          const userId = data.data.user.id
+          const handleSocketConnected = () => {
+            console.log('🔌 Socket connected event received after login, checking pending workflows')
+            apiService.checkPendingWorkflows(userId)
+              .catch(error => {
+                console.error('Failed to check pending workflows after login socket connection:', error);
+                // Don't show error to user as this is background operation
+              });
+            // Remove the event listener after first use
+            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
           }
-        }, 100)
+
+          // Listen for socket connection event
+          window.addEventListener('socket-connected', handleSocketConnected as EventListener)
+          
+          // Fallback: Check pending workflows after a delay if socket doesn't connect
+          setTimeout(() => {
+            console.log('🔌 Fallback: Checking pending workflows after login delay')
+            apiService.checkPendingWorkflows(userId)
+              .catch(error => {
+                console.error('Failed to check pending workflows after login fallback delay:', error);
+                // Don't show error to user as this is background operation
+              });
+            // Remove the event listener if fallback is used
+            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
+          }, 2000)
+        }
 
         // Update rate limiting
         localStorage.setItem('lastSigninAttempt', now.toString());
@@ -413,13 +435,35 @@ export default function SigninModal({ isOpen, onClose, onOpenSignup, onOpenForgo
           accessToken: data.data.accessToken
         }))
 
-        // Check pending workflows immediately after Google signin (fire and forget)
-        // Small delay to ensure token is stored
-        setTimeout(() => {
-          if (data.data?.user?.id) {
-            apiService.checkPendingWorkflows(data.data.user.id)
+        // Check pending workflows after socket connection is established
+        if (data.data?.user?.id) {
+          const userId = data.data.user.id
+          const handleSocketConnected = () => {
+            console.log('🔌 Socket connected event received after Google signin, checking pending workflows')
+            apiService.checkPendingWorkflows(userId)
+              .catch(error => {
+                console.error('Failed to check pending workflows after Google signin socket connection:', error);
+                // Don't show error to user as this is background operation
+              });
+            // Remove the event listener after first use
+            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
           }
-        }, 100)
+
+          // Listen for socket connection event
+          window.addEventListener('socket-connected', handleSocketConnected as EventListener)
+          
+          // Fallback: Check pending workflows after a delay if socket doesn't connect
+          setTimeout(() => {
+            console.log('🔌 Fallback: Checking pending workflows after Google signin delay')
+            apiService.checkPendingWorkflows(userId)
+              .catch(error => {
+                console.error('Failed to check pending workflows after Google signin fallback delay:', error);
+                // Don't show error to user as this is background operation
+              });
+            // Remove the event listener if fallback is used
+            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
+          }, 2000)
+        }
 
         // Show success message
         const welcomeMessage = data.data.user

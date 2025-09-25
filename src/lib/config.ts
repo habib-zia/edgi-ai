@@ -43,11 +43,9 @@ export const API_CONFIG = {
       // CREATE_VIDEO: '/api/video/create',
     },
     
-    // Topic endpoints
-    TOPIC: {
-      GET_ALL: '/api/video/topics',
-      GET_BY_TYPE: '/api/video/topics', // Will append /:topic
-      GET_BY_ID: '/api/video/topics', // Will append /:id
+    // Trends endpoints
+    TRENDS: {
+      REAL_ESTATE: '/api/trends/real-estate',
     },
     
     // Avatar endpoints
@@ -116,7 +114,19 @@ export const getAuthenticatedHeaders = (): Record<string, string> => {
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.warn('No access token found in localStorage');
   }
   
   return headers;
+};
+
+// Helper function to ensure token is properly stored before making authenticated requests
+export const ensureTokenStored = (): boolean => {
+  const token = localStorage.getItem(API_CONFIG.AUTH.TOKEN_KEY);
+  if (!token) {
+    console.warn('No access token available for authenticated request');
+    return false;
+  }
+  return true;
 };
