@@ -7,7 +7,7 @@ import AuthInitializer from '@/components/features/auth/AuthInitializer'
 import TokenValidator from '@/components/features/auth/TokenValidator'
 import { useAuthErrorHandler } from '@/hooks/useAuthErrorHandler'
 import ApiServiceProvider from './ApiServiceProvider'
-import { PhotoAvatarNotificationProvider } from './PhotoAvatarNotificationProvider'
+import { UnifiedSocketProvider } from './UnifiedSocketProvider'
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -30,11 +30,11 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
     <ErrorBoundary>
       <Provider store={store}>
         <ApiServiceProvider>
-          <PhotoAvatarNotificationProvider>
+          <UnifiedSocketProvider>
             <ClientProvidersContent>
               {children}
             </ClientProvidersContent>
-          </PhotoAvatarNotificationProvider>
+          </UnifiedSocketProvider>
         </ApiServiceProvider>
       </Provider>
     </ErrorBoundary>

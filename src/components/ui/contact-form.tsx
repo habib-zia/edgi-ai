@@ -12,7 +12,7 @@ const contactFormSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   position: z.string().min(2, 'Position must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits').regex(/^\d+$/, 'Phone number must contain only digits'),
+  phone: z.string().min(3, 'Phone number must be at least 3 digits').regex(/^\d+$/, 'Phone number must contain only digits'),
   question: z.string().min(10, 'Question must be at least 10 characters')
 })
 
@@ -159,7 +159,6 @@ export default function ContactForm() {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     placeholder="Phone Number"
-                    maxLength={17}
                     onKeyPress={(e) => {
                       // Allow only numbers and backspace
                       if (!/[0-9]/.test(e.key) && e.key !== 'Backspace')

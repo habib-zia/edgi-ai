@@ -15,10 +15,10 @@ import Image from 'next/image'
 import { IoMdArrowDropdown } from "react-icons/io";
 import { useSearchParams } from 'next/navigation'
 import { Avatar, Trend } from '@/lib/api-service'
-import { usePhotoAvatarNotificationContext } from '@/components/providers/PhotoAvatarNotificationProvider'
 import { useAvatarStorage, type SelectedAvatars } from '@/hooks/useAvatarStorage'
 import { useSubscription } from '@/hooks/useSubscription'
 import UsageLimitToast from './usage-limit-toast'
+import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
 
 
 // Zod validation schema
@@ -114,7 +114,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const { isLoading, error } = useSelector((state: RootState) => state.video)
   const { user } = useSelector((state: RootState) => state.user)
   const searchParams = useSearchParams()
-  const { latestNotification } = usePhotoAvatarNotificationContext()
+  const { latestAvatarUpdate } = useUnifiedSocketContext()
   const { saveSelectedAvatars } = useAvatarStorage()
   const { checkVideoUsageLimit } = useSubscription()
 
@@ -255,27 +255,27 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   // Auto-refresh avatars when WebSocket notification shows avatar is ready
   useEffect(() => {
-    if (latestNotification)
+    if (latestAvatarUpdate)
     {
-      console.log('🔔 Latest notification received:', latestNotification)
+      console.log('🔔 Latest avatar update received:', latestAvatarUpdate)
 
       // Check if this is an avatar completion notification
-      const isAvatarComplete = (latestNotification.step === 'complete' || latestNotification.step === 'ready') &&
-        latestNotification.status === 'success' &&
-        (latestNotification.data?.message?.toLowerCase().includes('avatar') ||
-          latestNotification.data?.message?.toLowerCase().includes('ready'))
+      const isAvatarComplete = (latestAvatarUpdate.step === 'complete' || latestAvatarUpdate.step === 'ready') &&
+        latestAvatarUpdate.status === 'success' &&
+        (latestAvatarUpdate.data?.message?.toLowerCase().includes('avatar') ||
+          latestAvatarUpdate.data?.message?.toLowerCase().includes('ready'))
 
       if (isAvatarComplete)
       {
         console.log('🔄 Avatar ready notification detected, refreshing avatar list...')
-        console.log('📋 Notification details:', latestNotification)
+        console.log('📋 Avatar update details:', latestAvatarUpdate)
         // Small delay to ensure backend has updated the avatar status
         setTimeout(() => {
           fetchAvatars()
         }, 1000)
       }
     }
-  }, [latestNotification, fetchAvatars])
+  }, [latestAvatarUpdate, fetchAvatars])
 
   // Helper function to check if avatar is pending
   const isAvatarPending = (avatar: Avatar) => {

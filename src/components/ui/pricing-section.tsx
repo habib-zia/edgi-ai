@@ -385,18 +385,6 @@ const PricingSection = () => {
     buttonText: 'Get Started'
   };
 
-  const handleSignupClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsSignupModalOpen(true);
-  };
-
-  const handleCloseSignupModal = () => {
-    setIsSignupModalOpen(false);
-  };
-
-  const handleOpenSigninModal = () => {
-    setIsSigninModalOpen(true);
-  };
 
   const handleCloseSigninModal = () => {
     setIsSigninModalOpen(false);
@@ -406,9 +394,6 @@ const PricingSection = () => {
     setisForgotPasswordModalOpen(true);
   };
 
-  const handleCloseForgotPasswordModal = () => {
-    setisForgotPasswordModalOpen(false);
-  };
 
   return (
     <section className="w-full py-20 bg-black relative overflow-hidden" style={{ backgroundImage: `url('/images/price-bg.png')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
@@ -423,11 +408,11 @@ const PricingSection = () => {
           </p>
 
           {/* Loading indicator (subtle) */}
-          {isLoading && (
+          {/* {isLoading && (
             <div className="mt-2 text-gray-400 text-sm">
               Loading latest pricing...
             </div>
-          )}
+          )} */}
 
           {/* Error handling (subtle) */}
           {/* {error && (

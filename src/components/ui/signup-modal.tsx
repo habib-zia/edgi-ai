@@ -137,7 +137,15 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
     let processedValue = value
 
     // Apply field-specific processing with enhanced security
-    processedValue = enhancedSanitizeInput(value)
+    if (field === 'phone') {
+      // For phone, only allow digits and spaces
+      processedValue = value.replace(/[^0-9\s]/g, '')
+    } else if (field === 'firstName' || field === 'lastName') {
+      // For names, allow any characters including spaces - no filtering
+      processedValue = value
+    } else {
+      processedValue = enhancedSanitizeInput(value)
+    }
 
     setFormData(prev => ({
       ...prev,
@@ -184,34 +192,31 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
           if (!value.trim())
           {
             newErrors.firstName = 'First Name is required'
-          } else if (value.length < 2)
-          {
-            newErrors.firstName = 'First Name must be at least 2 characters'
-          } else if (!/^[a-zA-Z\s]+$/.test(value))
-          {
-            newErrors.firstName = 'First Name can only contain letters and spaces'
           }
           break
         case 'lastName':
           if (!value.trim())
           {
             newErrors.lastName = 'Last Name is required'
-          } else if (value.length < 2)
-          {
-            newErrors.lastName = 'Last Name must be at least 2 characters'
-          } else if (!/^[a-zA-Z\s]+$/.test(value))
-          {
-            newErrors.lastName = 'Last Name can only contain letters and spaces'
           }
           break
         case 'email':
           if (!value.trim())
           {
             newErrors.email = 'Email is required'
+          } else if (!value.includes('@'))
+          {
+            newErrors.email = 'Email must contain @ symbol'
+          } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+          {
+            newErrors.email = 'Please enter a valid email address'
           }
           break
         case 'phone':
-          // Phone is optional and accepts any format
+          if (value.trim() && !/^[0-9]+$/.test(value.replace(/\s+/g, '')))
+          {
+            newErrors.phone = 'Phone number can only contain digits'
+          }
           break
         case 'password':
           if (!value.trim())
@@ -452,31 +457,9 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
         // Check pending workflows after socket connection is established
         if (data.data?.user?.id) {
           const userId = data.data.user.id
-          const handleSocketConnected = () => {
-            console.log('🔌 Socket connected event received after Google signup, checking pending workflows')
-            apiService.checkPendingWorkflows(userId)
-              .catch(error => {
-                console.error('Failed to check pending workflows after Google signup socket connection:', error);
-                // Don't show error to user as this is background operation
-              });
-            // Remove the event listener after first use
-            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
-          }
-
-          // Listen for socket connection event
-          window.addEventListener('socket-connected', handleSocketConnected as EventListener)
-          
-          // Fallback: Check pending workflows after a delay if socket doesn't connect
-          setTimeout(() => {
-            console.log('🔌 Fallback: Checking pending workflows after Google signup delay')
-            apiService.checkPendingWorkflows(userId)
-              .catch(error => {
-                console.error('Failed to check pending workflows after Google signup fallback delay:', error);
-                // Don't show error to user as this is background operation
-              });
-            // Remove the event listener if fallback is used
-            window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
-          }, 2000)
+          // The unified socket system will automatically check pending workflows
+          // No need for manual event listeners or fallbacks
+          console.log('🔌 Pending workflows will be checked automatically by unified socket system')
         }
 
         // Clear saved form data from localStorage after successful registration
@@ -797,39 +780,51 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
 
                 {/* Email */}
                 <div className="w-full">
-                  <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+                  <label htmlFor="email" className="block text-base font-normal text-[#5F5F5F] mb-1">
                     Email
                   </label>
                   <input
+                    id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     onBlur={handleInputBlur}
                     placeholder="Enter Email"
+                    aria-describedby={errors.email ? 'email-error' : undefined}
+                    aria-invalid={!!errors.email}
                     className={`w-full px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.email ? 'ring-2 ring-red-500' : ''
                       }`}
                   />
                   {errors.email && (
-                    <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                    <p id="email-error" className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.email}
+                    </p>
                   )}
                 </div>
 
                 {/* Phone */}
                 <div className="w-full">
-                  <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+                  <label htmlFor="phone" className="block text-base font-normal text-[#5F5F5F] mb-1">
                     Phone
                   </label>
                   <input
+                    id="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     onBlur={handleInputBlur}
-                    placeholder="Enter Phone"
+                    placeholder="Enter Phone Number"
+                    aria-describedby={errors.phone ? 'phone-error' : undefined}
+                    aria-invalid={!!errors.phone}
                     className={`w-full px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.phone ? 'ring-2 ring-red-500' : ''
                       }`}
                   />
                   {errors.phone && (
-                    <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                    <p id="phone-error" className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.phone}
+                    </p>
                   )}
                 </div>
 

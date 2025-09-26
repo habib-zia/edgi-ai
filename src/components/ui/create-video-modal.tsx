@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { apiService } from '@/lib/api-service'
 import { API_CONFIG } from '@/lib/config'
 import { useAvatarStorage } from '@/hooks/useAvatarStorage'
+import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
 
 interface CreateVideoModalProps {
   isOpen: boolean
@@ -64,6 +65,12 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   // Custom hook for avatar storage
   const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
 
+  // Get unified socket context for video processing updates
+  const { 
+    latestVideoUpdate, 
+    clearVideoUpdates 
+  } = useUnifiedSocketContext()
+
   // Get video topic and user info from Redux store
   const videoTopic = useSelector((state: RootState) => state.video.videoTopic)
 
@@ -80,6 +87,33 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }
   }, [webhookResponse])
 
+  // Listen for video processing updates from socket
+  useEffect(() => {
+    if (!latestVideoUpdate) return
+
+    const { status, message } = latestVideoUpdate
+    
+    console.log('🎥 Create Video Modal received update:', { status, message })
+    
+    if (status === 'processing' || status === 'pending') {
+      // Video is being processed - ensure we're in loading state
+      if (currentStep !== 'loading') {
+        setCurrentStep('loading')
+      }
+    } else if (status === 'completed') {
+      // Video is completed - move to complete state
+      setCurrentStep('complete')
+      // Clear video updates to prevent duplicate notifications
+      clearVideoUpdates()
+    } else if (status === 'failed') {
+      // Video failed - go back to form with error
+      setCurrentStep('form')
+      setAvatarError('Video generation failed. Please try again.')
+      // Clear video updates
+      clearVideoUpdates()
+    }
+  }, [latestVideoUpdate, currentStep, clearVideoUpdates])
+
   const handleClose = useCallback(() => {
     setCurrentStep(startAtComplete ? 'complete' : 'form')
     setFormData({
@@ -89,15 +123,16 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     })
     setErrors({ prompt: '', description: '', conclusion: '' })
     
-    // Clear localStorage keys when modal is closed to prevent stale state
+    // Clear video updates and localStorage keys when modal is closed
+    clearVideoUpdates()
     localStorage.removeItem('videoGenerationStarted')
     localStorage.removeItem('videoProgress')
-    console.log('🧹 Modal closed: Cleared all localStorage keys')
+    console.log('🧹 Modal closed: Cleared all localStorage keys and video updates')
     
     onClose()
     // Redirect to gallery page
     router.push('/create-video')
-  }, [startAtComplete, webhookResponse, onClose, router])
+  }, [startAtComplete, webhookResponse, onClose, router, clearVideoUpdates])
 
   // Auto close modal with countdown when in loading state
   useEffect(() => {
@@ -177,8 +212,9 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
 
 
   const handleCreateVideo = async () => {
-    // Clear previous avatar errors
+    // Clear previous avatar errors and video updates
     setAvatarError('')
+    clearVideoUpdates()
 
     if (!validateForm()) {
       return

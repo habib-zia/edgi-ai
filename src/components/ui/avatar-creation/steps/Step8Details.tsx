@@ -6,7 +6,7 @@ import { IoMdArrowDropdown } from "react-icons/io"
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { apiService } from '@/lib/api-service'
-import { usePhotoAvatarNotificationContext } from '@/components/providers/PhotoAvatarNotificationProvider'
+import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
 import Checkbox from '../../checkbox'
 
 interface AvatarData {
@@ -29,7 +29,7 @@ interface Step8DetailsProps {
 
 export default function Step8Details({ onBack, avatarData, setAvatarData, onSkipBackToUpload, onClose }: Step8DetailsProps) {
   const { user } = useSelector((state: RootState) => state.user)
-  const { isProcessing, clearNotifications } = usePhotoAvatarNotificationContext()
+  const { isAvatarProcessing, clearAvatarUpdates } = useUnifiedSocketContext()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [errors, setErrors] = useState<Partial<Record<keyof AvatarData | 'terms' | 'general', string>>>({})
@@ -183,13 +183,13 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
       }
 
       // Check if avatar is already being processed
-      if (isProcessing) {
+      if (isAvatarProcessing) {
         setErrors({ ...errors, general: 'Avatar creation is already in progress. Please wait for it to complete.' })
         return
       }
 
       setIsCreating(true)
-      clearNotifications() // Clear any previous notifications
+      clearAvatarUpdates() // Clear any previous notifications
 
       try {
         // Create FormData for API call
@@ -283,6 +283,12 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
             Age <span className="text-red-500">*</span>
           </label>
           {renderDropdown('age', ageOptions, 'Select age range')}
+          {showErrors && errors.age && (
+            <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+              <AlertCircle className="w-4 h-4" />
+              {errors.age}
+            </p>
+          )}
         </div>
 
         {/* Gender */}
@@ -291,6 +297,12 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
             Gender <span className="text-red-500">*</span>
           </label>
           {renderDropdown('gender', genderOptions, 'Select gender')}
+          {showErrors && errors.gender && (
+            <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+              <AlertCircle className="w-4 h-4" />
+              {errors.gender}
+            </p>
+          )}
         </div>
 
         {/* Ethnicity */}
@@ -299,6 +311,12 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
             Ethnicity <span className="text-red-500">*</span>
           </label>
           {renderDropdown('ethnicity', ethnicityOptions, 'Select ethnicity')}
+          {showErrors && errors.ethnicity && (
+            <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+              <AlertCircle className="w-4 h-4" />
+              {errors.ethnicity}
+            </p>
+          )}
         </div>
       </div>
 
@@ -338,15 +356,15 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
         </button>
         <button
           onClick={handleCreate}
-          disabled={isCreating || isProcessing}
-          className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 cursor-pointer w-full bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5] ${(isCreating || isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isCreating || isAvatarProcessing}
+          className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 cursor-pointer w-full bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5] ${(isCreating || isAvatarProcessing) ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isCreating ? (
             <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               Creating Avatar...
             </div>
-          ) : isProcessing ? (
+          ) : isAvatarProcessing ? (
             <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               Processing...
