@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { AvatarCreationModal } from './avatar-creation';
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useNotificationStore } from './global-notification';
 import SignupModal from "./signup-modal";
 import ForgotPasswordModal from "./forgot-password-modal";
@@ -48,6 +48,7 @@ const steps: Step[] = [
 ];
 
 export function ProcessSteps({ className }: ProcessStepsProps) {
+  const router = useRouter();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   
   // Modal states
@@ -111,11 +112,15 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
   const handleDefaultAvatarClick = async () => {
     if (user?.id) {
       // Check payment status before allowing video creation
+      console.log('Checking payment status before allowing video creation');
+      console.log('User ID:', user.id);
       try {
         const usageCheck = await checkVideoUsageLimit();
+        console.log('Usage check:', usageCheck);
         
         if (!usageCheck.canCreateVideo) {
           // Check if it's a pending payment issue
+          console.log('Payment is still being processed');
           if (usageCheck.message?.includes('payment is still being processed')) {
             setPaymentContext('video');
             setPendingPaymentMessage(usageCheck.message);
@@ -133,7 +138,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
         }
         
         // Payment is active, proceed with video creation
-        redirect('/create-video/new');
+        router.push('/create-video/new');
       } catch (error) {
         console.error('Failed to check subscription status:', error);
         showNotification('Unable to verify subscription status. Please try again.', 'error');

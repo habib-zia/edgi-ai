@@ -617,24 +617,24 @@ export const PaymentMethods: React.FC<PaymentMethodsProps> = () => {
               {/* Mobile: Stack buttons vertically on small screens */}
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 {/* Usage History Button */}
-                <button
+                {/* <button
                   onClick={() => setShowUsageHistory(card.id)}
                   className="flex-1 sm:flex-none text-gray-600 hover:text-gray-800 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 min-w-0"
                   title="View usage history"
                 >
                   <History className="w-4 h-4 flex-shrink-0" />
                   <span className="hidden sm:inline">History</span>
-                </button>
+                </button> */}
 
                 {/* Card Preview Button */}
-                <button
+                {/* <button
                   onClick={() => setShowCardPreview(card.id)}
                   className="flex-1 sm:flex-none text-gray-600 hover:text-gray-800 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 min-w-0"
                   title="Preview card"
                 >
                   <Eye className="w-4 h-4 flex-shrink-0" />
                   <span className="hidden sm:inline">Preview</span>
-                </button>
+                </button> */}
 
                 {!card.isDefault && (
                   <button
@@ -646,7 +646,7 @@ export const PaymentMethods: React.FC<PaymentMethodsProps> = () => {
                       <div className="w-3 h-3 border-2 border-[#5046E5] border-t-transparent rounded-full animate-spin flex-shrink-0" />
                     )}
                     <Star className="w-4 h-4 flex-shrink-0" />
-                    <span className="hidden sm:inline">Set Default</span>
+                    <span className="inline">Set Default</span>
                   </button>
                 )}
                 
@@ -664,7 +664,7 @@ export const PaymentMethods: React.FC<PaymentMethodsProps> = () => {
                     <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                   )}
                   <X className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden sm:inline">Remove</span>
+                  <span className="inline">Remove</span>
                 </button>
               </div>
             </div>
