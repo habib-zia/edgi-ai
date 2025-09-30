@@ -1,7 +1,8 @@
 // Backend API Configuration
 export const API_CONFIG = {
   // Express Backend URL
-  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
+  // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
+  BACKEND_URL: 'http://localhost:4000',
   
   // https://backend-pi-ten-23.vercel.app
   // http://localhost:4000
@@ -54,7 +55,13 @@ export const API_CONFIG = {
       CREATE_PHOTO_AVATAR: '/api/video/photo-avatar',
     },
 
-
+    // SocialBu endpoints
+    SOCIALBU: {
+      ACCOUNTS_PUBLIC: '/api/socialbu/accounts/public',
+      ACCOUNT_DELETE: '/api/socialbu-account',
+      ACCOUNTS_CONNECT: '/api/socialbu/accounts/connect',
+      MEDIA_CREATE_POST: '/api/socialbu-media/create-post',
+    },
     
     // Webhook endpoints
     WEBHOOK: {

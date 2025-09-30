@@ -7,6 +7,7 @@ import "./globals.css";
 import { Footer, AuthLoader } from "@/components/ui";
 import GlobalNotification from "@/components/ui/global-notification";
 import GlobalLoadingOverlay from "@/components/ui/global-loading-overlay";
+import { NotificationContainer } from "@/components/ui/notification";
 // import WebSocketDebug from "@/components/ui/websocket-debug";
 
 const inter = Inter({
@@ -75,6 +76,7 @@ export default function RootLayout({
             <Footer />
             <GlobalNotification />
             <GlobalLoadingOverlay />
+            <NotificationContainer />
             {/* <WebSocketDebug /> */}
           </AuthLoader>
         </ClientProviders>

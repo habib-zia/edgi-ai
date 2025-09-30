@@ -499,6 +499,7 @@ class ApiService {
       const response = await this.request<RealEstateTrendsData>(API_CONFIG.ENDPOINTS.TRENDS.REAL_ESTATE, {
         method: 'GET',
       }, true);
+      console.log('Real Estate Trends API Response:', JSON?.stringify(response))
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get real estate trends';

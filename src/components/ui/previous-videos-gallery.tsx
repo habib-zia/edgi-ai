@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import CreateVideoModal from './create-video-modal'
+import ConnectAccountsModal from './connect-accounts-modal'
+import CreatePostModal from './create-post-modal'
 import { IoMdArrowDropdown } from "react-icons/io";
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
@@ -17,6 +19,7 @@ type VideoCard = {
   status: 'processing' | 'ready' | 'completed' | 'success' | 'failed'
   createdAt: string
   updatedAt: string
+  videoUrl?: string
   downloadUrl?: string | null
   metadata?: {
     duration?: number
@@ -32,12 +35,15 @@ interface PreviousVideosGalleryProps {
 
 export default function PreviousVideosGallery({ className }: PreviousVideosGalleryProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isConnectAccountsModalOpen, setIsConnectAccountsModalOpen] = useState(false)
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false)
+  const [selectedAccountsForPost, setSelectedAccountsForPost] = useState<any[]>([])
   const [selectedVideoForCreation, setSelectedVideoForCreation] = useState<string>('')
-  const [selectedVideoData, setSelectedVideoData] = useState<{ title: string; youtubeUrl: string; thumbnail: string } | null>(null)
+  const [selectedVideoData, setSelectedVideoData] = useState<{ title: string; youtubeUrl: string; thumbnail: string, videoUrl: string } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
-
+  console.log('selectedVideoData', selectedVideoData)
   // State for API data
   const [videos, setVideos] = useState<VideoCard[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,12 +51,12 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Simplified loading state
   const [showLoadingCard, setShowLoadingCard] = useState(false)
-  const [loadingCardData, setLoadingCardData] = useState<{title: string, message: string} | null>(null)
+  const [loadingCardData, setLoadingCardData] = useState<{ title: string, message: string } | null>(null)
 
   // Get access token and user from Redux store
   const accessToken = useSelector((state: RootState) => state.user.accessToken)
   const currentUser = useSelector((state: RootState) => state.user.user)
-  
+
   // Get unified socket context
   const { 
     latestVideoUpdate
@@ -61,33 +67,41 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Fetch videos from API
   const fetchVideos = useCallback(async () => {
-    if (!accessToken)
-    {
+    if (!accessToken) {
       setError('Authentication required')
       setLoading(false)
       return
     }
 
-    try
-    {
+    try {
       setLoading(true)
       setError(null)
 
       const result = await apiService.getVideoGallery()
 
-      if (result.success && result.data)
-      {
-        setVideos(result.data.videos)
-      } else
-      {
+      if (result.success && result.data) {
+        // Map API response to VideoCard format, preserving original videoUrl
+        const mappedVideos = result.data.videos.map((video: any) => {
+          console.log('Original video data:', {
+            url: video.url,
+            videoUrl: video.videoUrl,
+            downloadUrl: video.downloadUrl
+          })
+          
+          return {
+            ...video,
+            // Keep the original videoUrl from API, don't override with downloadUrl
+            videoUrl: video.videoUrl || video.downloadUrl || ''
+          }
+        })
+        setVideos(mappedVideos)
+      } else {
         throw new Error(result.message || 'Failed to fetch videos')
       }
-    } catch (err: any)
-    {
+    } catch (err: any) {
       const errorMessage = err.message || 'Failed to fetch videos'
       setError(errorMessage)
-    } finally
-    {
+    } finally {
       setLoading(false)
     }
   }, [accessToken])
@@ -152,23 +166,59 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   }, [latestVideoUpdate, currentUser]) // Removed fetchVideos dependency
 
   const handleViewVideo = (video: VideoCard) => {
-    if (video.status !== 'ready')
-    {
+    console.log('firstvideo', video)
+    console.log('handleViewVideo', video)
+    if (video.status !== 'ready') {
       return
     }
 
-    if (!video.downloadUrl)
-    {
+    if (!video.downloadUrl) {
       return
     }
 
     setSelectedVideoForCreation(video.title)
     setSelectedVideoData({
       title: video.title,
+      videoUrl: video.videoUrl || video.downloadUrl || '',
       youtubeUrl: video.downloadUrl, // Use the S3 download URL
       thumbnail: '' // No thumbnail needed
     })
     setIsCreateModalOpen(true)
+  }
+
+  const handlePostVideo = (video: VideoCard) => {
+    console.log('handlePostVideo', video)
+    if (video.status !== 'ready') {
+      return
+    }
+
+    setSelectedVideoForCreation(video.title)
+    setSelectedVideoData({
+      title: video.title,
+      videoUrl: video.videoUrl || '',
+      youtubeUrl: video.downloadUrl || '',
+      thumbnail: ''
+    })
+    setIsConnectAccountsModalOpen(true)
+  }
+
+  const handleCreatePost = (accounts: any[], video: any) => {
+    setSelectedAccountsForPost(accounts)
+    setIsConnectAccountsModalOpen(false)
+    setIsCreatePostModalOpen(true)
+  }
+
+  const handlePostSubmit = (postData: {
+    date: string
+    time: string
+    caption: string
+    accounts: any[]
+    video: any
+  }) => {
+    console.log('Post submitted:', postData)
+    // Here you would typically call an API to create the post
+    setIsCreatePostModalOpen(false)
+    setSelectedAccountsForPost([])
   }
 
   // Filter and sort videos based on search query and sort order
@@ -177,7 +227,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       showLoadingCard, 
       loadingCardData
     })
-    
+
     // Start with regular videos
     const allVideos = [...videos]
 
@@ -213,11 +263,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       const dateA = new Date(a.createdAt).getTime()
       const dateB = new Date(b.createdAt).getTime()
 
-      if (sortOrder === 'newest')
-      {
+      if (sortOrder === 'newest') {
         return dateB - dateA // Newest first
-      } else
-      {
+      } else {
         return dateA - dateB // Oldest first
       }
     })
@@ -229,8 +277,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   }
 
   const getStatusText = (status: string) => {
-    switch (status)
-    {
+    switch (status) {
       case 'ready':
         return 'Ready'
       case 'processing':
@@ -242,8 +289,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     }
   }
 
-  if (loading)
-  {
+  if (loading) {
     return (
       <div className={`w-full ${className}`}>
         <div className="flex items-center justify-center py-12">
@@ -256,8 +302,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     )
   }
 
-  if (error)
-  {
+  if (error) {
     return (
       <div className={`w-full ${className}`}>
         <div className="flex items-center justify-center py-12">
@@ -311,7 +356,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 4V10H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H10M20 20V14H19.4185M19.4185 14C18.2317 16.9318 15.3574 19 12 19C7.92038 19 4.55399 15.9463 4.06189 12M19.4185 14H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M4 4V10H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H10M20 20V14H19.4185M19.4185 14C18.2317 16.9318 15.3574 19 12 19C7.92038 19 4.55399 15.9463 4.06189 12M19.4185 14H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
             Refresh
@@ -374,18 +419,29 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
               className="bg-[#EEEEEE] rounded-[12px] overflow-hidden transition-all duration-300 group min-h-[200px]"
             >
               {/* Video Player Container */}
-              <div className="relative aspect-video max-h-[200px] w-full bg-[#EEEEEE] px-3 pt-3 rounded-[8px]">
+              <div className="relative aspect-video max-h-[200px] w-full bg-[#EEEEEE] px-3 pt-3 rounded-[8px] group">
                 {/* Video Player */}
                 {video.status === 'ready' && video.downloadUrl ? (
-                  <video
-                    src={video.downloadUrl}
-                    className="w-full h-[200px] object-cover rounded-[6px]"
-                    preload="metadata"
-                    poster=""
-                    onError={(e) => console.error('Video load error:', e)}
-                  >
-                    Your browser does not support the video tag.
-                  </video>
+                  <>
+                    <video
+                      src={video.downloadUrl}
+                      className="w-full h-[200px] object-cover rounded-[6px]"
+                      preload="metadata"
+                      poster=""
+                      onError={(e) => console.error('Video load error:', e)}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                    {/* View Video Button Overlay - Only visible on hover */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-grey100 bg-opacity-30 rounded-[6px]">
+                      <button
+                        onClick={() => handleViewVideo(video)}
+                        className="bg-[#5046E5] text-white px-6 py-3 rounded-full font-semibold text-[16px] hover:bg-[#4338CA] transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg"
+                      >
+                        View Video
+                      </button>
+                    </div>
+                  </>
                 ) : video.id.startsWith('loading-') ? (
                   /* Professional Loading Video Card with Advanced Skeleton */
                   <div className="w-full h-[200px] bg-gradient-to-br from-slate-50 to-gray-100 rounded-[6px] relative overflow-hidden border border-gray-200/50">
@@ -394,29 +450,29 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent animate-pulse"></div>
                       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-purple-500/5 to-transparent"></div>
                     </div>
-                    
+
                     {/* Main Content Container */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                      
+
                       {/* Processing Text with Typing Animation */}
                       <div className="text-center mb-4">
-                          <div>
-                            <div className="text-sm font-semibold text-gray-700 mb-2">
-                              <span className="inline-block animate-pulse">Processing</span>
-                              <span className="inline-block animate-bounce ml-1">.</span>
-                              <span className="inline-block animate-bounce ml-0.5" style={{ animationDelay: '0.1s' }}>.</span>
-                              <span className="inline-block animate-bounce ml-0.5" style={{ animationDelay: '0.2s' }}>.</span>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              It usually takes 10–15 minutes to generate a video.
-                            </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-700 mb-2">
+                            <span className="inline-block animate-pulse">Processing</span>
+                            <span className="inline-block animate-bounce ml-1">.</span>
+                            <span className="inline-block animate-bounce ml-0.5" style={{ animationDelay: '0.1s' }}>.</span>
+                            <span className="inline-block animate-bounce ml-0.5" style={{ animationDelay: '0.2s' }}>.</span>
                           </div>
-                      </div>
-                      
-                      {/* Spinner */}
-                        <div className="flex justify-center items-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5]"></div>
+                          <div className="text-xs text-gray-500">
+                            It usually takes 10–15 minutes to generate a video.
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Spinner */}
+                      <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5]"></div>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -449,30 +505,48 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                   </div>
                 ) : (
                   /* Regular Title */
-                <h3 className="text-[18px] font-medium text-[#171717] my-3 line-clamp-2">
-                  {video.title}
-                </h3>
+                  <h3 className="text-[18px] font-medium text-[#171717] my-3 line-clamp-2">
+                    {video.title}
+                  </h3>
                 )}
 
-                {/* View Video Button or Skeleton */}
+                {/* Buttons Container */}
                 {video.id.startsWith('loading-') ? (
-                  /* Professional Skeleton Button */
-                  <div className="w-full py-[3px] px-4 rounded-full">
-                    <div className="w-full h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full animate-pulse shadow-sm border border-gray-200/50"></div>
+                  /* Professional Skeleton Buttons */
+                  <div className="flex gap-2">
+                    <div className="flex-1 py-[3px] px-4 rounded-full">
+                      <div className="w-full h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full animate-pulse shadow-sm border border-gray-200/50"></div>
+                    </div>
+                    <div className="flex-1 py-[3px] px-4 rounded-full">
+                      <div className="w-full h-8 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full animate-pulse shadow-sm border border-gray-200/50"></div>
+                    </div>
                   </div>
                 ) : (
-                  /* Regular Button */
-                <button
-                  onClick={() => handleViewVideo(video)}
-                  disabled={video.status !== 'ready'}
-                    className={`w-full py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${
-                      video.status === 'ready'
-                    ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
-                    }`}
-                >
-                  {video.status === 'ready' ? 'View Video' : getStatusText(video.status)}
-                </button>
+                  /* Regular Buttons - Two buttons in a row */
+                  <div className="flex gap-2">
+                    {/* Post Video Button */}
+                    <button
+                      onClick={() => handlePostVideo(video)}
+                      disabled={video.status !== 'ready'}
+                      className={`flex-1 py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${video.status === 'ready'
+                        ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
+                        }`}
+                    >
+                      Post Video
+                    </button>
+                    {/* <button
+                      onClick={() => handleViewVideo(video)}
+                      disabled={video.status !== 'ready'}
+                      className={`flex-1 py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${
+                        video.status === 'ready'
+                      ? 'bg-transparent text-[#5046E5] hover:bg-[#5046E5] hover:text-white border-2 border-[#5046E5]'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
+                      }`}
+                    >
+                      Create Video on same Title
+                    </button> */}
+                  </div>
                 )}
               </div>
             </div>
@@ -496,6 +570,47 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         startAtComplete={true}
         videoData={selectedVideoData}
       />
+
+      {/* Connect Accounts Modal */}
+      <ConnectAccountsModal
+        isOpen={isConnectAccountsModalOpen}
+        onClose={() => setIsConnectAccountsModalOpen(false)}
+        onNext={() => {
+          setIsConnectAccountsModalOpen(false)
+          // Handle the next step after connecting accounts
+          console.log('Accounts connected, proceeding to next step')
+        }}
+        video={selectedVideoData ? {
+          id: selectedVideoData.title,
+          title: selectedVideoData.title,
+          status: 'ready',
+          url: selectedVideoData.youtubeUrl,
+          thumbnail: selectedVideoData.thumbnail,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } : undefined}
+        onCreatePost={handleCreatePost}
+      />
+
+      {/* Create Post Modal */}
+      {selectedVideoData && (
+        <CreatePostModal
+          isOpen={isCreatePostModalOpen}
+          onClose={() => setIsCreatePostModalOpen(false)}
+          onPost={handlePostSubmit}
+          selectedAccounts={selectedAccountsForPost}
+          video={{
+            id: selectedVideoData.title,
+            title: selectedVideoData.title,
+            status: 'ready',
+            videoUrl: selectedVideoData.videoUrl,
+            url: selectedVideoData.youtubeUrl,
+            thumbnail: selectedVideoData.thumbnail,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }}
+        />
+      )}
     </div>
   )
 }
