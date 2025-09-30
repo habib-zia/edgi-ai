@@ -29,7 +29,7 @@ interface Step8DetailsProps {
 
 export default function Step8Details({ onBack, avatarData, setAvatarData, onSkipBackToUpload, onClose }: Step8DetailsProps) {
   const { user } = useSelector((state: RootState) => state.user)
-  const { isAvatarProcessing, clearAvatarUpdates } = useUnifiedSocketContext()
+  const { clearAvatarUpdates } = useUnifiedSocketContext()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [errors, setErrors] = useState<Partial<Record<keyof AvatarData | 'terms' | 'general', string>>>({})
@@ -182,11 +182,8 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
         return
       }
 
-      // Check if avatar is already being processed
-      if (isAvatarProcessing) {
-        setErrors({ ...errors, general: 'Avatar creation is already in progress. Please wait for it to complete.' })
-        return
-      }
+      // Allow multiple avatar creation - removed global processing check
+      // Each avatar creation is independent and can run simultaneously
 
       setIsCreating(true)
       clearAvatarUpdates() // Clear any previous notifications
@@ -356,18 +353,13 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
         </button>
         <button
           onClick={handleCreate}
-          disabled={isCreating || isAvatarProcessing}
-          className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 cursor-pointer w-full bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5] ${(isCreating || isAvatarProcessing) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isCreating}
+          className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 cursor-pointer w-full bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5] ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isCreating ? (
             <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               Creating Avatar...
-            </div>
-          ) : isAvatarProcessing ? (
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Processing...
             </div>
           ) : (
             'Create'

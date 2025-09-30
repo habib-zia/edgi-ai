@@ -5,7 +5,7 @@ import { apiService } from '@/lib/api-service'
 
 export interface VideoStatusUpdate {
   videoId: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
+  status: 'pending' | 'processing' | 'completed' | 'success' | 'failed'
   message: string
   downloadUrl?: string
   timestamp: string
@@ -186,7 +186,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       
       const videoUpdate: VideoStatusUpdate = {
         videoId: videoId,
-        status: status as 'pending' | 'processing' | 'completed' | 'failed',
+        status: status as 'pending' | 'processing' | 'completed' | 'success' | 'failed',
         message: update.message || update.data?.message || 'Video processing update',
         downloadUrl: update.downloadUrl || update.data?.downloadUrl,
         timestamp: update.timestamp || new Date().toISOString()

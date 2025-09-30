@@ -13,10 +13,9 @@ interface VideoStatusNotificationProps {
 
 export default function VideoStatusNotification({ 
   updates, 
-  isConnected, 
   onClear,
   className = '' 
-}: VideoStatusNotificationProps) {
+}: Omit<VideoStatusNotificationProps, 'isConnected'>) {
   const [isVisible, setIsVisible] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
@@ -34,6 +33,7 @@ export default function VideoStatusNotification({
         setTimeRemaining(countdown)
         
         const timer = setTimeout(() => {
+          // Only clear completed/failed updates, not processing ones
           onClear()
         }, timeout)
         
@@ -54,6 +54,10 @@ export default function VideoStatusNotification({
       } else {
         setTimeRemaining(null)
       }
+    } else {
+      // Hide notification when no updates
+      setIsVisible(false)
+      setTimeRemaining(null)
     }
   }, [updates, onClear])
 

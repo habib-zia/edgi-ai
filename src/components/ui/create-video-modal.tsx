@@ -5,7 +5,6 @@ import { AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
-import { useRouter } from 'next/navigation'
 import { apiService } from '@/lib/api-service'
 import { API_CONFIG } from '@/lib/config'
 import { useAvatarStorage } from '@/hooks/useAvatarStorage'
@@ -46,7 +45,6 @@ interface VideoGenerationData {
 }
 
 export default function CreateVideoModal({ isOpen, onClose, startAtComplete = false, videoData, webhookResponse }: CreateVideoModalProps) {
-  const router = useRouter()
   const [currentStep, setCurrentStep] = useState<ModalStep>(startAtComplete ? 'complete' : 'form')
   const [formData, setFormData] = useState({
     prompt: webhookResponse?.prompt || '',
@@ -61,6 +59,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const [isDownloading, setIsDownloading] = useState(false)
   const [countdown, setCountdown] = useState(10)
   const [avatarError, setAvatarError] = useState<string>('')
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   // Custom hook for avatar storage
   const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
@@ -100,21 +99,24 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       if (currentStep !== 'loading') {
         setCurrentStep('loading')
       }
-    } else if (status === 'completed') {
+    } else if (status === 'completed' || status === 'success') {
       // Video is completed - move to complete state
       setCurrentStep('complete')
-      // Clear video updates to prevent duplicate notifications
-      clearVideoUpdates()
+      // Don't clear all updates - let notification handle its own lifecycle
+      // clearVideoUpdates() // Removed to prevent notification flickering
     } else if (status === 'failed') {
       // Video failed - go back to form with error
       setCurrentStep('form')
       setAvatarError('Video generation failed. Please try again.')
-      // Clear video updates
-      clearVideoUpdates()
+      // Don't clear all updates - let notification handle its own lifecycle
+      // clearVideoUpdates() // Removed to prevent notification flickering
     }
   }, [latestVideoUpdate, currentStep, clearVideoUpdates])
 
   const handleClose = useCallback(() => {
+    // Prevent multiple redirects
+    if (isRedirecting) return
+    
     setCurrentStep(startAtComplete ? 'complete' : 'form')
     setFormData({
       prompt: webhookResponse?.prompt || '',
@@ -130,9 +132,16 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     console.log('🧹 Modal closed: Cleared all localStorage keys and video updates')
     
     onClose()
-    // Redirect to gallery page
-    router.push('/create-video')
-  }, [startAtComplete, webhookResponse, onClose, router, clearVideoUpdates])
+    
+    // Use window.location.href for page reload redirect with proper timing
+    setTimeout(() => {
+      // Only redirect if we're not already on the target page to prevent loops
+      if (window.location.pathname !== '/create-video' && !isRedirecting) {
+        setIsRedirecting(true)
+        window.location.href = '/create-video'
+      }
+    }, 200) // Slightly longer delay to ensure modal closes and state is cleared
+  }, [startAtComplete, webhookResponse, onClose, clearVideoUpdates, isRedirecting])
 
   // Auto close modal with countdown when in loading state
   useEffect(() => {
@@ -146,7 +155,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           if (prev <= 1)
           {
             clearInterval(countdownTimer!)
-            // Close modal and redirect after countdown reaches 0
+            // Close modal without redirect after countdown reaches 0
             setTimeout(() => {
               handleClose()
             }, 1000)
@@ -470,7 +479,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                 {/* Countdown Message */}
                 <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-[#5046E5] text-[16px] font-medium">
-                    Redirecting to gallery page in <span className="font-bold text-lg">{countdown}</span> seconds...
+                    Redirecting to gallery in <span className="font-bold text-lg">{countdown}</span> seconds...
                   </p>
                 </div>
               </div>

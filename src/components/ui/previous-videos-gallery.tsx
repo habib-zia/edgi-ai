@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import CreateVideoModal from './create-video-modal'
 import { IoMdArrowDropdown } from "react-icons/io";
 import { useSelector } from 'react-redux';
@@ -14,7 +14,7 @@ type VideoCard = {
   id: string
   videoId: string
   title: string
-  status: 'processing' | 'ready' | 'failed'
+  status: 'processing' | 'ready' | 'completed' | 'success' | 'failed'
   createdAt: string
   updatedAt: string
   downloadUrl?: string | null
@@ -53,9 +53,11 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   
   // Get unified socket context
   const { 
-    latestVideoUpdate, 
-    isVideoProcessing
+    latestVideoUpdate
   } = useUnifiedSocketContext()
+
+  // Store fetchVideos in ref to avoid dependency issues
+  const fetchVideosRef = useRef<(() => Promise<void>) | null>(null)
 
   // Fetch videos from API
   const fetchVideos = useCallback(async () => {
@@ -90,10 +92,15 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     }
   }, [accessToken])
 
+  // Update ref when fetchVideos changes
+  useEffect(() => {
+    fetchVideosRef.current = fetchVideos
+  }, [fetchVideos])
+
   // Fetch videos on component mount and when access token changes
   useEffect(() => {
-    fetchVideos()
-  }, [fetchVideos])
+    fetchVideosRef.current?.()
+  }, [accessToken]) // Only depend on accessToken, not fetchVideos
 
   // Clear loading card state when user logs out
   useEffect(() => {
@@ -104,21 +111,35 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     }
   }, [currentUser])
 
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      console.log('🧹 PreviousVideosGallery cleanup')
+      setShowLoadingCard(false)
+      setLoadingCardData(null)
+    }
+  }, [])
+
   // Simplified video processing state management
   useEffect(() => {
     if (!currentUser || !latestVideoUpdate) return
 
     const { status, message } = latestVideoUpdate
+    console.log('🎬 Gallery received video update:', { status, message })
     
-    if (status === 'completed' || status === 'failed') {
+    if (status === 'completed' || status === 'success' || status === 'failed') {
       // Hide loading card and refresh gallery
       setShowLoadingCard(false)
       setLoadingCardData(null)
       
-      if (status === 'completed') {
-        setTimeout(() => {
-          fetchVideos()
+      if (status === 'completed' || status === 'success') {
+        console.log('🎬 Video completed successfully, refreshing gallery...')
+        // Use a ref to avoid dependency on fetchVideos
+        const timeoutId = setTimeout(() => {
+          fetchVideosRef.current?.()
         }, 1000)
+        
+        return () => clearTimeout(timeoutId)
       }
     } else if (status === 'processing' || status === 'pending') {
       // Show loading card for processing
@@ -128,7 +149,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         message: message
       })
     }
-  }, [latestVideoUpdate, currentUser, fetchVideos])
+  }, [latestVideoUpdate, currentUser]) // Removed fetchVideos dependency
 
   const handleViewVideo = (video: VideoCard) => {
     if (video.status !== 'ready')
@@ -154,8 +175,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const filteredAndSortedVideos = useMemo(() => {
     console.log('🔄 Recalculating filteredAndSortedVideos:', { 
       showLoadingCard, 
-      loadingCardData, 
-      isVideoProcessing
+      loadingCardData
     })
     
     // Start with regular videos
@@ -201,7 +221,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         return dateA - dateB // Oldest first
       }
     })
-  }, [videos, showLoadingCard, loadingCardData, searchQuery, sortOrder, isVideoProcessing])
+  }, [videos, showLoadingCard, loadingCardData, searchQuery, sortOrder])
 
   const handleSortChange = (newSortOrder: SortOrder) => {
     setSortOrder(newSortOrder)
