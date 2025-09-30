@@ -11,6 +11,9 @@ import SignupModal from "./signup-modal";
 import ForgotPasswordModal from "./forgot-password-modal";
 import SigninModal from "./signin-modal";
 import EmailVerificationModal from "./email-verification-modal";
+import { useSubscription } from '@/hooks/useSubscription';
+import PendingPaymentToast from './pending-payment-toast';
+import SubscriptionRequiredToast from './subscription-required-toast';
 
 interface Step {
   id: string;
@@ -54,13 +57,50 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
   const [isEmailVerificationModalOpen, setIsEmailVerificationModalOpen] = useState(false);
   const [verificationEmail] = useState('');
   
+  // Pending payment toast state
+  const [showPendingPaymentToast, setShowPendingPaymentToast] = useState(false);
+  const [pendingPaymentMessage, setPendingPaymentMessage] = useState('');
+  const [paymentContext, setPaymentContext] = useState<'video' | 'avatar'>('video');
+  
+  // Subscription required toast state
+  const [showSubscriptionRequiredToast, setShowSubscriptionRequiredToast] = useState(false);
+  const [subscriptionRequiredMessage, setSubscriptionRequiredMessage] = useState('');
+  const [subscriptionContext, setSubscriptionContext] = useState<'video' | 'avatar'>('video');
+  
   const { user } = useSelector((state: RootState) => state.user);
   const { showNotification } = useNotificationStore();
+  const { checkVideoUsageLimit } = useSubscription();
 
-  const handleCustomAvatarClick = () => {
+  const handleCustomAvatarClick = async () => {
     if (user?.id) {
-      // User is logged in, open the modal
-      setIsAvatarModalOpen(true);
+      // Check payment status before allowing avatar creation
+      try {
+        const usageCheck = await checkVideoUsageLimit();
+        
+        if (!usageCheck.canCreateVideo) {
+          // Check if it's a pending payment issue
+          if (usageCheck.message?.includes('payment is still being processed')) {
+            setPaymentContext('avatar');
+            setPendingPaymentMessage(usageCheck.message);
+            setShowPendingPaymentToast(true);
+            return;
+          } else if (usageCheck.message?.includes('No active subscription found') || usageCheck.message?.includes('Please subscribe')) {
+            setSubscriptionContext('avatar');
+            setSubscriptionRequiredMessage(usageCheck.message);
+            setShowSubscriptionRequiredToast(true);
+            return;
+          } else {
+            showNotification(usageCheck.message || 'Unable to create avatar', 'error');
+            return;
+          }
+        }
+        
+        // Payment is active, proceed with avatar creation
+        setIsAvatarModalOpen(true);
+      } catch (error) {
+        console.error('Failed to check subscription status:', error);
+        showNotification('Unable to verify subscription status. Please try again.', 'error');
+      }
     } else {
       // User is not logged in, show notification and open signup modal
       showNotification('Please log in to create a custom avatar', 'warning');
@@ -68,10 +108,36 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
     }
   };
 
-  const handleDefaultAvatarClick = () => {
+  const handleDefaultAvatarClick = async () => {
     if (user?.id) {
-      // User is logged in, redirect to default avatar page
-      redirect('/create-video/new');
+      // Check payment status before allowing video creation
+      try {
+        const usageCheck = await checkVideoUsageLimit();
+        
+        if (!usageCheck.canCreateVideo) {
+          // Check if it's a pending payment issue
+          if (usageCheck.message?.includes('payment is still being processed')) {
+            setPaymentContext('video');
+            setPendingPaymentMessage(usageCheck.message);
+            setShowPendingPaymentToast(true);
+            return;
+          } else if (usageCheck.message?.includes('No active subscription found') || usageCheck.message?.includes('Please subscribe')) {
+            setSubscriptionContext('video');
+            setSubscriptionRequiredMessage(usageCheck.message);
+            setShowSubscriptionRequiredToast(true);
+            return;
+          } else {
+            showNotification(usageCheck.message || 'Unable to create video', 'error');
+            return;
+          }
+        }
+        
+        // Payment is active, proceed with video creation
+        redirect('/create-video/new');
+      } catch (error) {
+        console.error('Failed to check subscription status:', error);
+        showNotification('Unable to verify subscription status. Please try again.', 'error');
+      }
     } else {
       // User is not logged in, show notification and open signup modal
       showNotification('Please log in to create a default avatar', 'warning');
@@ -239,6 +305,44 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
         isOpen={isEmailVerificationModalOpen}
         onClose={() => setIsEmailVerificationModalOpen(false)}
         email={verificationEmail}
+      />
+
+      {/* Pending Payment Toast */}
+      <PendingPaymentToast
+        isVisible={showPendingPaymentToast}
+        message={pendingPaymentMessage}
+        context={paymentContext}
+        onClose={() => setShowPendingPaymentToast(false)}
+        onRefresh={async () => {
+          // Refresh subscription status
+          try {
+            const usageCheck = await checkVideoUsageLimit();
+            if (usageCheck.canCreateVideo) {
+              setShowPendingPaymentToast(false);
+              showNotification('Payment confirmed! You can now create videos.', 'success');
+            } else if (usageCheck.message?.includes('payment is still being processed')) {
+              setPendingPaymentMessage(usageCheck.message);
+            } else {
+              setShowPendingPaymentToast(false);
+              showNotification(usageCheck.message || 'Unable to create content', 'error');
+            }
+          } catch (error) {
+            console.error('Failed to refresh subscription status:', error);
+            showNotification('Unable to verify payment status. Please try again.', 'error');
+          }
+        }}
+      />
+
+      {/* Subscription Required Toast */}
+      <SubscriptionRequiredToast
+        isVisible={showSubscriptionRequiredToast}
+        message={subscriptionRequiredMessage}
+        context={subscriptionContext}
+        onClose={() => setShowSubscriptionRequiredToast(false)}
+        onSubscribe={() => {
+          // Redirect to pricing page or scroll to pricing section
+          window.location.href = '/#pricing'
+        }}
       />
     </section>
   );

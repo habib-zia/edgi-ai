@@ -150,7 +150,7 @@ export interface SubscriptionData {
   planId: string;
   stripeSubscriptionId: string;
   stripeCustomerId: string;
-  status: 'active' | 'inactive' | 'cancelled' | 'past_due';
+  status: 'active' | 'inactive' | 'cancelled' | 'past_due' | 'pending';
   currentPeriodStart: string;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;

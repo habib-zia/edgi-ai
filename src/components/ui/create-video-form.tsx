@@ -18,6 +18,8 @@ import { Avatar, Trend } from '@/lib/api-service'
 import { useAvatarStorage, type SelectedAvatars } from '@/hooks/useAvatarStorage'
 import { useSubscription } from '@/hooks/useSubscription'
 import UsageLimitToast from './usage-limit-toast'
+import PendingPaymentToast from './pending-payment-toast'
+import SubscriptionRequiredToast from './subscription-required-toast'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
 
 
@@ -160,6 +162,14 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   // Usage limit toast state
   const [showUsageToast, setShowUsageToast] = useState(false)
   const [usageToastMessage, setUsageToastMessage] = useState('')
+  
+  // Pending payment toast state
+  const [showPendingPaymentToast, setShowPendingPaymentToast] = useState(false)
+  const [pendingPaymentMessage, setPendingPaymentMessage] = useState('')
+  
+  // Subscription required toast state
+  const [showSubscriptionRequiredToast, setShowSubscriptionRequiredToast] = useState(false)
+  const [subscriptionRequiredMessage, setSubscriptionRequiredMessage] = useState('')
 
 
   // Check if user came from Default Avatar button
@@ -490,13 +500,22 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       return
     }
 
-    // Check video usage limit before proceeding
+    // Check video usage limit and payment status before proceeding
     try {
       const usageCheck = await checkVideoUsageLimit()
       
       if (!usageCheck.canCreateVideo) {
-        setUsageToastMessage(usageCheck.message || 'Video limit reached')
-        setShowUsageToast(true)
+        // Check if it's a pending payment issue
+        if (usageCheck.message?.includes('payment is still being processed')) {
+          setPendingPaymentMessage(usageCheck.message)
+          setShowPendingPaymentToast(true)
+        } else if (usageCheck.message?.includes('No active subscription found') || usageCheck.message?.includes('Please subscribe')) {
+          setSubscriptionRequiredMessage(usageCheck.message)
+          setShowSubscriptionRequiredToast(true)
+        } else {
+          setUsageToastMessage(usageCheck.message || 'Video limit reached')
+          setShowUsageToast(true)
+        }
         return
       }
     } catch (error) {
@@ -1482,6 +1501,44 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         onUpgrade={() => {
           // Handle upgrade action
           console.log('User wants to upgrade subscription')
+        }}
+      />
+
+      {/* Pending Payment Toast */}
+      <PendingPaymentToast
+        isVisible={showPendingPaymentToast}
+        message={pendingPaymentMessage}
+        context="video"
+        onClose={() => setShowPendingPaymentToast(false)}
+        onRefresh={async () => {
+          // Refresh subscription status
+          try {
+            const usageCheck = await checkVideoUsageLimit()
+            if (usageCheck.canCreateVideo) {
+              setShowPendingPaymentToast(false)
+              // Optionally show success message
+            } else if (usageCheck.message?.includes('payment is still being processed')) {
+              setPendingPaymentMessage(usageCheck.message)
+            } else {
+              setShowPendingPaymentToast(false)
+              setUsageToastMessage(usageCheck.message || 'Video limit reached')
+              setShowUsageToast(true)
+            }
+          } catch (error) {
+            console.error('Failed to refresh subscription status:', error)
+          }
+        }}
+      />
+
+      {/* Subscription Required Toast */}
+      <SubscriptionRequiredToast
+        isVisible={showSubscriptionRequiredToast}
+        message={subscriptionRequiredMessage}
+        context="video"
+        onClose={() => setShowSubscriptionRequiredToast(false)}
+        onSubscribe={() => {
+          // Redirect to pricing page or scroll to pricing section
+          window.location.href = '/#pricing'
         }}
       />
 

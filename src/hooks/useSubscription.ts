@@ -79,7 +79,16 @@ export const useSubscription = () => {
       return {
         canCreateVideo: false,
         usageInfo,
-        message: 'Unable to verify subscription status. Please try again.'
+        message: 'No active subscription found. Please subscribe to create content.'
+      }
+    }
+
+    // Check if subscription status is pending
+    if (subscriptionData.status === 'pending') {
+      return {
+        canCreateVideo: false,
+        usageInfo,
+        message: 'Your payment is still being processed. Please wait for payment confirmation before creating videos.'
       }
     }
 
