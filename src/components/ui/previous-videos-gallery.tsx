@@ -150,8 +150,8 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     setSelectedVideoForCreation(video.title)
     setSelectedVideoData({
       title: video.title,
-      videoUrl: video.videoUrl || video.downloadUrl || '',
-      youtubeUrl: video.downloadUrl, // Use the S3 download URL
+      videoUrl: video.videoUrl || '',
+      youtubeUrl: video.downloadUrl, // Use the S3 download URL for viewing
       thumbnail: '' // No thumbnail needed
     })
     setIsCreateModalOpen(true)
