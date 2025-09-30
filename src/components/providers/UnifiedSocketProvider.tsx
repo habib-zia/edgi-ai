@@ -25,6 +25,7 @@ export function UnifiedSocketProvider({ children }: UnifiedSocketProviderProps) 
       <VideoStatusNotification
         updates={socketState.videoUpdates}
         onClear={socketState.clearVideoUpdates}
+        onClearCompleted={socketState.clearCompletedVideoUpdates}
       />
       <AvatarStatusNotification
         updates={socketState.avatarUpdates}

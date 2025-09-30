@@ -8,12 +8,14 @@ interface VideoStatusNotificationProps {
   updates: VideoStatusUpdate[]
   isConnected: boolean
   onClear: () => void
+  onClearCompleted: () => void
   className?: string
 }
 
 export default function VideoStatusNotification({ 
   updates, 
   onClear,
+  onClearCompleted,
   className = '' 
 }: Omit<VideoStatusNotificationProps, 'isConnected'>) {
   const [isVisible, setIsVisible] = useState(false)
@@ -26,7 +28,7 @@ export default function VideoStatusNotification({
       const latest = updates[updates.length - 1]
       
       // Auto-close notification based on status
-      if (latest.status === 'completed' || latest.status === 'failed') {
+      if (latest.status === 'completed' || latest.status === 'success' || latest.status === 'failed') {
         const timeout = latest.status === 'failed' ? 60000 : 30000 // 60s for errors, 30s for success
         const countdown = latest.status === 'failed' ? 60 : 30
         
@@ -34,7 +36,7 @@ export default function VideoStatusNotification({
         
         const timer = setTimeout(() => {
           // Only clear completed/failed updates, not processing ones
-          onClear()
+          onClearCompleted()
         }, timeout)
         
         const countdownInterval = setInterval(() => {
@@ -59,11 +61,12 @@ export default function VideoStatusNotification({
       setIsVisible(false)
       setTimeRemaining(null)
     }
-  }, [updates, onClear])
+  }, [updates, onClear, onClearCompleted])
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
+      case 'success':
         return 'border-green-200/60 bg-green-50/70 backdrop-blur-sm'
       case 'failed':
         return 'border-red-200/60 bg-red-50/70 backdrop-blur-sm'
@@ -77,6 +80,7 @@ export default function VideoStatusNotification({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
+      case 'success':
         return <CheckCircle className="w-5 h-5 text-green-500" />
       case 'failed':
         return <AlertCircle className="w-5 h-5 text-red-500" />
@@ -91,6 +95,8 @@ export default function VideoStatusNotification({
     switch (status) {
       case 'completed':
         return 'Video Ready!'
+      case 'success':
+        return 'Video Status Update'
       case 'failed':
         return 'Video Processing Failed'
       case 'processing':
@@ -106,7 +112,7 @@ export default function VideoStatusNotification({
     return null
   }
 
-  const isCompleted = latestUpdate.status === 'completed'
+  const isCompleted = latestUpdate.status === 'completed' || latestUpdate.status === 'success'
   const hasError = latestUpdate.status === 'failed'
   const isProcessing = latestUpdate.status === 'processing' || latestUpdate.status === 'pending'
 
@@ -131,7 +137,7 @@ export default function VideoStatusNotification({
           {/* Close button for completed/failed status */}
           {(isCompleted || hasError) && (
             <button
-              onClick={onClear}
+              onClick={onClearCompleted}
               className="text-gray-400 hover:text-gray-600 transition-colors ml-2 flex-shrink-0"
             >
               <X className="w-4 h-4" />

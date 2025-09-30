@@ -67,7 +67,8 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   // Get unified socket context for video processing updates
   const { 
     latestVideoUpdate, 
-    clearVideoUpdates 
+    clearVideoUpdates,
+    clearCompletedVideoUpdates 
   } = useUnifiedSocketContext()
 
   // Get video topic and user info from Redux store
@@ -125,11 +126,12 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     })
     setErrors({ prompt: '', description: '', conclusion: '' })
     
-    // Clear video updates and localStorage keys when modal is closed
-    clearVideoUpdates()
+    // Clear only completed video updates and localStorage keys when modal is closed
+    // Preserve processing updates so they continue to show in the gallery
+    clearCompletedVideoUpdates()
     localStorage.removeItem('videoGenerationStarted')
     localStorage.removeItem('videoProgress')
-    console.log('🧹 Modal closed: Cleared all localStorage keys and video updates')
+    console.log('🧹 Modal closed: Cleared completed video updates and localStorage keys')
     
     onClose()
     
@@ -141,7 +143,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         window.location.href = '/create-video'
       }
     }, 200) // Slightly longer delay to ensure modal closes and state is cleared
-  }, [startAtComplete, webhookResponse, onClose, clearVideoUpdates, isRedirecting])
+  }, [startAtComplete, webhookResponse, onClose, clearCompletedVideoUpdates, isRedirecting])
 
   // Auto close modal with countdown when in loading state
   useEffect(() => {

@@ -33,6 +33,7 @@ export interface UnifiedSocketState {
   isVideoProcessing: boolean
   isAvatarProcessing: boolean
   clearVideoUpdates: () => void
+  clearCompletedVideoUpdates: () => void
   clearAvatarUpdates: () => void
   checkPendingWorkflows: (userId: string) => Promise<void>
 }
@@ -49,6 +50,12 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
 
   const clearVideoUpdates = useCallback(() => {
     setVideoUpdates([])
+  }, [])
+
+  const clearCompletedVideoUpdates = useCallback(() => {
+    setVideoUpdates(prev => prev.filter(update => 
+      update.status !== 'completed' && update.status !== 'success' && update.status !== 'failed'
+    ))
   }, [])
 
   const clearAvatarUpdates = useCallback(() => {
@@ -277,6 +284,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
     isVideoProcessing,
     isAvatarProcessing,
     clearVideoUpdates,
+    clearCompletedVideoUpdates,
     clearAvatarUpdates,
     checkPendingWorkflows
   }

@@ -49,10 +49,6 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Simplified loading state
-  const [showLoadingCard, setShowLoadingCard] = useState(false)
-  const [loadingCardData, setLoadingCardData] = useState<{ title: string, message: string } | null>(null)
-
   // Get access token and user from Redux store
   const accessToken = useSelector((state: RootState) => state.user.accessToken)
   const currentUser = useSelector((state: RootState) => state.user.user)
@@ -61,6 +57,10 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const { 
     latestVideoUpdate
   } = useUnifiedSocketContext()
+
+  // Persistent loading state - derived from socket updates instead of local state
+  const isVideoProcessing = latestVideoUpdate && 
+    (latestVideoUpdate.status === 'processing' || latestVideoUpdate.status === 'pending')
 
   // Store fetchVideos in ref to avoid dependency issues
   const fetchVideosRef = useRef<(() => Promise<void>) | null>(null)
@@ -116,35 +116,14 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     fetchVideosRef.current?.()
   }, [accessToken]) // Only depend on accessToken, not fetchVideos
 
-  // Clear loading card state when user logs out
-  useEffect(() => {
-    if (!currentUser) {
-      console.log('🧹 User logged out - clearing loading card state')
-      setShowLoadingCard(false)
-      setLoadingCardData(null)
-    }
-  }, [currentUser])
+  // No need for cleanup effects since we're using derived state from socket updates
 
-  // Cleanup on component unmount
-  useEffect(() => {
-    return () => {
-      console.log('🧹 PreviousVideosGallery cleanup')
-      setShowLoadingCard(false)
-      setLoadingCardData(null)
-    }
-  }, [])
-
-  // Simplified video processing state management
+  // Handle video completion - refresh gallery when video is done
   useEffect(() => {
     if (!currentUser || !latestVideoUpdate) return
 
-    const { status, message } = latestVideoUpdate
-    console.log('🎬 Gallery received video update:', { status, message })
-    
-    if (status === 'completed' || status === 'success' || status === 'failed') {
-      // Hide loading card and refresh gallery
-      setShowLoadingCard(false)
-      setLoadingCardData(null)
+    const { status } = latestVideoUpdate
+    console.log('🎬 Gallery received video update:', { status, message: latestVideoUpdate.message })
       
       if (status === 'completed' || status === 'success') {
         console.log('🎬 Video completed successfully, refreshing gallery...')
@@ -155,15 +134,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         
         return () => clearTimeout(timeoutId)
       }
-    } else if (status === 'processing' || status === 'pending') {
-      // Show loading card for processing
-      setShowLoadingCard(true)
-      setLoadingCardData({
-        title: 'Processing Video...',
-        message: message
-      })
-    }
-  }, [latestVideoUpdate, currentUser]) // Removed fetchVideos dependency
+  }, [latestVideoUpdate, currentUser])
 
   const handleViewVideo = (video: VideoCard) => {
     console.log('firstvideo', video)
@@ -202,7 +173,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     setIsConnectAccountsModalOpen(true)
   }
 
-  const handleCreatePost = (accounts: any[], video: any) => {
+  const handleCreatePost = (accounts: any[]) => {
     setSelectedAccountsForPost(accounts)
     setIsConnectAccountsModalOpen(false)
     setIsCreatePostModalOpen(true)
@@ -223,16 +194,22 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Filter and sort videos based on search query and sort order
   const filteredAndSortedVideos = useMemo(() => {
+    // Calculate loading card data inside useMemo to avoid dependency issues
+    const loadingCardData = isVideoProcessing ? {
+      title: 'Processing Video...',
+      message: latestVideoUpdate?.message || 'Your video creation is in progress'
+    } : null
+
     console.log('🔄 Recalculating filteredAndSortedVideos:', { 
-      showLoadingCard, 
+      isVideoProcessing, 
       loadingCardData
     })
 
     // Start with regular videos
     const allVideos = [...videos]
 
-    // Add loading card if it should be shown
-    if (showLoadingCard && loadingCardData) {
+    // Add loading card if video is processing
+    if (isVideoProcessing && loadingCardData) {
       console.log('➕ Adding loading card to video list')
       const loadingCard: VideoCard = {
         id: `loading-${Date.now()}`,
@@ -269,25 +246,13 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         return dateA - dateB // Oldest first
       }
     })
-  }, [videos, showLoadingCard, loadingCardData, searchQuery, sortOrder])
+  }, [videos, isVideoProcessing, latestVideoUpdate, searchQuery, sortOrder])
 
   const handleSortChange = (newSortOrder: SortOrder) => {
     setSortOrder(newSortOrder)
     setIsSortDropdownOpen(false)
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'ready':
-        return 'Ready'
-      case 'processing':
-        return 'Processing'
-      case 'failed':
-        return 'Failed'
-      default:
-        return 'Unknown'
-    }
-  }
 
   if (loading) {
     return (
