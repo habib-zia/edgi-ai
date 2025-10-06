@@ -6,6 +6,7 @@ export interface ScheduleData {
   frequency: string
   posts: Array<{
     day: string
+    date: string
     time: string
   }>
 }
@@ -36,12 +37,12 @@ export const useScheduleValidation = () => {
 
     // Validate posts based on frequency
     const expectedPostCount = getExpectedPostCount(scheduleData.frequency)
-    const validPosts = scheduleData.posts.filter(post => post.day && post.time)
+    const validPosts = scheduleData.posts.filter(post => (post.day || post.date) && post.time)
 
     if (validPosts.length === 0) {
       errors.push({
         field: 'posts',
-        message: 'Please select at least one date and time'
+        message: 'Please select at least one day/date and time'
       })
     } else if (scheduleData.frequency !== 'Custom' && validPosts.length < expectedPostCount) {
       errors.push({
@@ -50,18 +51,39 @@ export const useScheduleValidation = () => {
       })
     }
 
-    // Validate individual posts
+    // Enhanced validation for individual posts
     scheduleData.posts.forEach((post, index) => {
-      if (post.day && !post.time) {
+      const postNumber = index + 1
+      
+      // Check if day/date is selected but time is missing
+      if ((post.day || post.date) && (!post.time || post.time.trim() === '')) {
         errors.push({
           field: `time_${index}`,
-          message: `Please select a time for Day ${index + 1}`
+          message: `Please select a time for Day ${postNumber}`
         })
       }
-      if (post.time && !post.day && scheduleData.frequency !== 'Daily') {
+      
+      // Check if time is selected but day/date is missing (except for Daily frequency)
+      if (post.time && post.time.trim() !== '' && !post.day && !post.date && scheduleData.frequency !== 'Daily') {
         errors.push({
           field: `day_${index}`,
-          message: `Please select a date for Time ${index + 1}`
+          message: `Please select a day or date for Time ${postNumber}`
+        })
+      }
+      
+      // For Daily frequency, check if time is missing
+      if (scheduleData.frequency === 'Daily' && (!post.time || post.time.trim() === '')) {
+        errors.push({
+          field: `time_${index}`,
+          message: `Please select a time for Day ${postNumber}`
+        })
+      }
+      
+      // For non-Daily frequencies, check if day is missing
+      if (scheduleData.frequency !== 'Daily' && scheduleData.frequency !== 'Custom' && (!post.day || post.day.trim() === '')) {
+        errors.push({
+          field: `day_${index}`,
+          message: `Please select a day for Day ${postNumber}`
         })
       }
     })
@@ -71,8 +93,8 @@ export const useScheduleValidation = () => {
     today.setHours(0, 0, 0, 0)
 
     validPosts.forEach((post, index) => {
-      if (post.day) {
-        const selectedDate = new Date(post.day)
+      if (post.date) {
+        const selectedDate = new Date(post.date)
         if (selectedDate < today) {
           errors.push({
             field: `day_${index}`,
@@ -82,18 +104,44 @@ export const useScheduleValidation = () => {
       }
     })
 
-    // Validate time logic (should be reasonable)
+    // Enhanced time validation
     validPosts.forEach((post, index) => {
-      if (post.time) {
-        const [hours, minutes] = post.time.split(':').map(Number)
-        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      if (post.time && post.time.trim() !== '') {
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+        if (!timeRegex.test(post.time)) {
           errors.push({
             field: `time_${index}`,
-            message: `Invalid time format for Time ${index + 1}`
+            message: `Invalid time format for Time ${index + 1}. Use HH:MM format`
           })
+        } else {
+          const [hours, minutes] = post.time.split(':').map(Number)
+          if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            errors.push({
+              field: `time_${index}`,
+              message: `Invalid time for Time ${index + 1}. Hours must be 0-23, minutes 0-59`
+            })
+          }
         }
       }
     })
+
+    // Check for duplicate days (for day-based frequencies)
+    if (scheduleData.frequency !== 'Daily' && scheduleData.frequency !== 'Custom') {
+      const selectedDays = scheduleData.posts
+        .filter(post => post.day && post.day.trim() !== '')
+        .map(post => post.day)
+      
+      const duplicateDays = selectedDays.filter((day, index) => 
+        selectedDays.indexOf(day) !== index
+      )
+      
+      if (duplicateDays.length > 0) {
+        errors.push({
+          field: 'posts',
+          message: `Duplicate days selected: ${duplicateDays.join(', ')}. Please select different days.`
+        })
+      }
+    }
 
     setValidationErrors(errors)
     return {
@@ -128,10 +176,64 @@ export const useScheduleValidation = () => {
     return error ? error.message : null
   }, [validationErrors])
 
+  // Validate individual field in real-time
+  const validateField = useCallback((field: string, value: string, postIndex?: number): string | null => {
+    if (!value || value.trim() === '') {
+      if (field === 'frequency') {
+        return 'Please select a posting frequency'
+      } else if (field === 'day' && postIndex !== undefined) {
+        return `Please select a day for Day ${postIndex + 1}`
+      } else if (field === 'time' && postIndex !== undefined) {
+        return `Please select a time for Time ${postIndex + 1}`
+      }
+      return 'This field is required'
+    }
+
+    // Time format validation
+    if (field === 'time' && value.trim() !== '') {
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+      if (!timeRegex.test(value)) {
+        return 'Invalid time format. Use HH:MM format'
+      }
+    }
+
+    return null
+  }, [])
+
+  // Check if all required fields are filled
+  const isFormComplete = useCallback((scheduleData: ScheduleData): boolean => {
+    if (!scheduleData.frequency || scheduleData.frequency.trim() === '') {
+      return false
+    }
+
+    const expectedPostCount = getExpectedPostCount(scheduleData.frequency)
+    const validPosts = scheduleData.posts.filter(post => {
+      if (scheduleData.frequency === 'Daily') {
+        return post.time && post.time.trim() !== ''
+      } else {
+        return (post.day || post.date) && post.time && post.time.trim() !== ''
+      }
+    })
+
+    return validPosts.length >= expectedPostCount
+  }, [])
+
+  // Get validation summary
+  const getValidationSummary = useCallback((): { totalErrors: number; fieldErrors: string[] } => {
+    const fieldErrors = validationErrors.map(error => error.message)
+    return {
+      totalErrors: validationErrors.length,
+      fieldErrors
+    }
+  }, [validationErrors])
+
   return {
     validateScheduleData,
     clearValidationErrors,
     getFieldError,
+    validateField,
+    isFormComplete,
+    getValidationSummary,
     validationErrors,
     hasErrors: validationErrors.length > 0
   }

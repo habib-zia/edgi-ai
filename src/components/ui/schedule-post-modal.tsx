@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { X, Info, AlertCircle } from 'lucide-react'
+import { X, AlertCircle } from 'lucide-react'
 import { useScheduleValidation, type ScheduleData } from '@/hooks/useScheduleValidation'
+import ScheduleInfoBanner from './schedule-info-banner'
+import SubmitButton from './submit-button'
 
 interface SchedulePostModalProps {
   isOpen: boolean
@@ -18,16 +20,57 @@ const frequencyOptions = [
   'Custom'
 ]
 
+const dayOptions = [
+  'Monday',
+  'Tuesday', 
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday'
+]
+
 export default function SchedulePostModal({ isOpen, onClose, onNext }: SchedulePostModalProps) {
   const [frequency, setFrequency] = useState('Twice a Week')
   const [posts, setPosts] = useState([
-    { day: '', time: '' },
-    { day: '', time: '' }
+    { day: '', date: '', time: '' },
+    { day: '', date: '', time: '' }
   ])
   const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const { validateScheduleData, clearValidationErrors, getFieldError, hasErrors } = useScheduleValidation()
+  // Check if any day is selected to show banner
+  const hasSelectedDays = posts.some(post => post.day)
+  
+  // Get the earliest selected date for the banner
+  const getEarliestDate = () => {
+    const validPosts = posts.filter(post => post.date)
+    if (validPosts.length === 0) return null
+    
+    const dates = validPosts.map(post => new Date(post.date))
+    const earliestDate = new Date(Math.min(...dates.map(date => date.getTime())))
+    
+    // Format as DD-MMM-YYYY
+    const day = earliestDate.getDate().toString().padStart(2, '0')
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+    const month = monthNames[earliestDate.getMonth()]
+    const year = earliestDate.getFullYear()
+    
+    return `${day}-${month}-${year}`
+  }
+  
+  const startDate = getEarliestDate()
+  
+  const { 
+    validateScheduleData, 
+    clearValidationErrors, 
+    getFieldError, 
+    validateField,
+    isFormComplete,
+    getValidationSummary,
+    hasErrors 
+  } = useScheduleValidation()
 
   // Calculate number of posts based on frequency
   const getPostCount = (frequency: string) => {
@@ -40,10 +83,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
         return 3
       case 'Daily':
         return 7
-      case 'Custom':
-        return 2 // Default for custom
       default:
-        return 2
+        return 1
     }
   }
 
@@ -51,15 +92,62 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
   React.useEffect(() => {
     const newPostCount = getPostCount(frequency)
     const newPosts = Array.from({ length: newPostCount }, (_, index) => 
-      posts[index] || { day: '', time: '' }
+      posts[index] || { day: '', date: '', time: '' }
     )
     setPosts(newPosts)
   }, [frequency])
 
-  const handlePostChange = (index: number, field: 'day' | 'time', value: string) => {
+  const handlePostChange = (index: number, field: 'day' | 'date' | 'time', value: string) => {
     const newPosts = [...posts]
     newPosts[index][field] = value
+    
+    // If day is selected, calculate the date for next week
+    if (field === 'day' && value) {
+      const dayIndex = dayOptions.indexOf(value)
+      if (dayIndex !== -1) {
+        const today = new Date()
+        const currentDay = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+        const targetDay = dayIndex === 6 ? 0 : dayIndex + 1 // Convert to Sunday = 0 format
+        
+        // Always calculate for next week (add 7 days minimum)
+        let daysUntilTarget = targetDay - currentDay
+        if (daysUntilTarget <= 0) {
+          daysUntilTarget += 7 // Next week
+        } else {
+          daysUntilTarget += 7 // Always next week, not this week
+        }
+        
+        const targetDate = new Date(today)
+        targetDate.setDate(today.getDate() + daysUntilTarget)
+        
+        newPosts[index].date = targetDate.toISOString().split('T')[0]
+      }
+    }
+    
+    // If a day is cleared, also clear the date
+    if (field === 'day' && !value) {
+      newPosts[index].date = ''
+    }
+    
     setPosts(newPosts)
+    
+    // Clear validation errors for this field when user starts typing
+    if (value.trim() !== '') {
+      clearValidationErrors()
+    }
+  }
+
+  const handleClose = () => {
+    // Reset form data when closing
+    setFrequency('Once a Week')
+    setPosts([
+      { day: '', date: '', time: '' },
+      { day: '', date: '', time: '' }
+    ])
+    setShowFrequencyDropdown(false)
+    setIsSubmitting(false)
+    clearValidationErrors()
+    onClose()
   }
 
   const handleNext = async () => {
@@ -68,7 +156,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
     
     const scheduleData: ScheduleData = {
       frequency,
-      posts: posts.filter(post => post.day && post.time)
+      posts: posts.filter(post => (post.day || post.date) && post.time)
     }
     
     const validation = validateScheduleData(scheduleData)
@@ -96,7 +184,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-800">Schedule Post</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-6 h-6" />
@@ -105,15 +193,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Information Banner */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
-            <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Info className="w-4 h-4 text-orange-600" />
-            </div>
-            <p className="text-orange-800 text-sm">
-              These posts will be scheduled for whole month and You can reschedule the posts on 11-OCT-2025.
-            </p>
-          </div>
+          {/* Information Banner - Show only when days are selected */}
+          {hasSelectedDays && <ScheduleInfoBanner startDate={startDate} />}
 
           {/* Frequency of Posting */}
           <div className="space-y-3">
@@ -186,20 +267,62 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
                       Day {index + 1}
                     </label>
                     <div className="relative">
-                      <input
-                        type="date"
-                        value={post.day}
-                        onChange={(e) => handlePostChange(index, 'day', e.target.value)}
-                        className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
-                          getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300' : 'focus:ring-blue-500'
-                        }`}
-                        style={{
-                          WebkitAppearance: 'none',
-                          MozAppearance: 'textfield'
-                        }}
-                        placeholder="Select Day"
-                      />
+                      {(frequency === 'Once a Week' || frequency === 'Twice a Week' || frequency === 'Three Times a Week') ? (
+                        <select
+                          value={post.day}
+                          onChange={(e) => handlePostChange(index, 'day', e.target.value)}
+                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                            getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
+                          }`}
+                        >
+                          <option value="">Select Day</option>
+                          {dayOptions.map((day) => {
+                            // Check if this day is already selected in other fields
+                            const isDaySelected = posts.some((otherPost, otherIndex) => 
+                              otherIndex !== index && otherPost.day === day
+                            )
+                            
+                            return (
+                              <option 
+                                key={day} 
+                                value={day}
+                                disabled={isDaySelected}
+                                style={{ 
+                                  color: isDaySelected ? '#9CA3AF' : 'inherit',
+                                  backgroundColor: isDaySelected ? '#F3F4F6' : 'inherit'
+                                }}
+                              >
+                                {day} {isDaySelected ? '(Already selected)' : ''}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      ) : (
+                        <input
+                          type="date"
+                          value={post.date}
+                          onChange={(e) => handlePostChange(index, 'date', e.target.value)}
+                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                            getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
+                          }`}
+                          style={{
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'textfield'
+                          }}
+                          placeholder="Select Date"
+                        />
+                      )}
                     </div>
+                    {post.day && post.date && (
+                      <p className="text-blue-600 text-sm font-medium">
+                        📅 Scheduled for: {new Date(post.date).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                    )}
                     {getFieldError(`day_${index}`) && (
                       <p className="text-red-500 text-sm flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
@@ -219,7 +342,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
                       value={post.time}
                       onChange={(e) => handlePostChange(index, 'time', e.target.value)}
                       className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
-                        getFieldError(`time_${index}`) ? 'focus:ring-red-500 border-red-300' : 'focus:ring-blue-500'
+                        getFieldError(`time_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
                       }`}
                       style={{
                         WebkitAppearance: 'none',
@@ -244,31 +367,33 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
         <div className="p-6 border-t border-gray-200">
           {hasErrors && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2 text-red-700 text-sm">
+              <div className="flex items-center gap-2 text-red-700 text-sm mb-2">
                 <AlertCircle className="w-4 h-4" />
                 <span>Please fix the errors above before proceeding</span>
+              </div>
+              <div className="text-red-600 text-xs">
+                {getValidationSummary().fieldErrors.slice(0, 3).map((error, idx) => (
+                  <div key={idx} className="flex items-center gap-1">
+                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                    <span>{error}</span>
+                  </div>
+                ))}
+                {getValidationSummary().totalErrors > 3 && (
+                  <div className="text-red-500 text-xs mt-1">
+                    +{getValidationSummary().totalErrors - 3} more error{getValidationSummary().totalErrors - 3 > 1 ? 's' : ''}
+                  </div>
+                )}
               </div>
             </div>
           )}
           
-          <button
+          <SubmitButton
+            isLoading={isSubmitting}
+            disabled={!isFormComplete({ frequency, posts }) || hasErrors}
+            loadingText="Validating..."
+            buttonText="Next"
             onClick={handleNext}
-            disabled={isSubmitting}
-            className={`w-full font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-4 ${
-              isSubmitting || hasErrors
-                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                : 'bg-[#5046E5] text-white hover:bg-[#4338CA] focus:ring-[#5046E5]/20'
-            }`}
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Validating...
-              </div>
-            ) : (
-              'Next'
-            )}
-          </button>
+          />
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ interface SubmitButtonProps {
   loadingText?: string
   buttonText?: string
   className?: string
+  onClick?: () => void
 }
 
 export default function SubmitButton({
@@ -15,12 +16,14 @@ export default function SubmitButton({
   disabled = false,
   loadingText = 'Creating Video...',
   buttonText = 'Submit',
-  className = ''
+  className = '',
+  onClick
 }: SubmitButtonProps) {
   return (
     <div className="flex justify-center pt-4">
       <button
-        type="submit"
+        type={onClick ? "button" : "submit"}
+        onClick={onClick}
         disabled={isLoading || disabled}
         className={`w-full max-w-full px-8 py-[12.4px] bg-[#5046E5] text-white rounded-full font-semibold text-lg hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#5046E5]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer ${className}`}
       >
