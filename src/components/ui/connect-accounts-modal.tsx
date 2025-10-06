@@ -4,41 +4,7 @@ import React from 'react'
 import { X, ExternalLink, Trash2 } from 'lucide-react'
 import { useSocialAccounts } from '@/hooks/useSocialAccounts'
 import { getAccountTypeIcon } from '@/utils/socialMediaIcons'
-
-interface ConnectedAccount {
-  id: number
-  name: string
-  type: string
-  _type: string
-  active: boolean
-  image: string
-  post_maxlength: number
-  attachment_types: string[]
-  max_attachments: number
-  post_media_required: boolean
-  video_dimensions: {
-    min: [number, number | null]
-    max: [number | null, number | null]
-  }
-  video_duration: {
-    min: number
-    max: number
-  }
-  user_id: number
-  account_id: string
-  public_id: string
-  extra_data: any
-}
-
-interface VideoData {
-  id: string
-  title: string
-  status: string
-  url?: string
-  thumbnail?: string
-  createdAt: string
-  updatedAt: string
-}
+import { ConnectedAccount, VideoData } from '@/types/post-types'
 
 interface ConnectAccountsModalProps {
   isOpen: boolean

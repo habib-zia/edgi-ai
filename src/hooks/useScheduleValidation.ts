@@ -1,25 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-
-export interface ScheduleData {
-  frequency: string
-  posts: Array<{
-    day: string
-    date: string
-    time: string
-  }>
-}
-
-export interface ValidationError {
-  field: string
-  message: string
-}
-
-export interface ValidationResult {
-  isValid: boolean
-  errors: ValidationError[]
-}
+import { ScheduleData, ValidationError, ValidationResult } from '@/types/post-types'
 
 export const useScheduleValidation = () => {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([])
@@ -160,8 +142,6 @@ export const useScheduleValidation = () => {
         return 3
       case 'Daily':
         return 7
-      case 'Custom':
-        return 1 // Minimum for custom
       default:
         return 2
     }

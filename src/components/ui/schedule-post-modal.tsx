@@ -17,7 +17,6 @@ const frequencyOptions = [
   'Twice a Week',
   'Three Times a Week',
   'Daily',
-  'Custom'
 ]
 
 const dayOptions = [

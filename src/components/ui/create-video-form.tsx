@@ -25,6 +25,7 @@ import FormFieldRow from './form-field-row'
 import FormDropdown from './form-dropdown'
 import SubmitButton from './submit-button'
 import SchedulePostModal from './schedule-post-modal'
+import ConnectAccountsModal from './connect-accounts-modal'
 import AvatarSelectionStatus from './avatar-selection-status'
 import { row2Fields, row3Fields } from './form-field-configs'
 import { createVideoSchema, type CreateVideoFormData } from './form-validation-schema'
@@ -90,6 +91,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formDataForModal] = useState<CreateVideoFormData | null>(null)
   const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [showConnectAccountsModal, setShowConnectAccountsModal] = useState(false)
+  const [scheduleData, setScheduleData] = useState<any>(null)
   const [webhookResponse, setWebhookResponse] = useState<{
     prompt?: string
     description?: string
@@ -965,8 +968,22 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         onClose={() => setShowScheduleModal(false)}
         onNext={(scheduleData) => {
           console.log('Schedule data:', scheduleData)
+          setScheduleData(scheduleData)
           setShowScheduleModal(false)
-          // TODO: Implement schedule post functionality
+          setShowConnectAccountsModal(true)
+        }}
+      />
+
+      <ConnectAccountsModal
+        isOpen={showConnectAccountsModal}
+        onClose={() => setShowConnectAccountsModal(false)}
+        onNext={() => {
+          setShowConnectAccountsModal(false)
+          // TODO: Implement final schedule post functionality
+        }}
+        onCreatePost={(accounts, video) => {
+          setShowConnectAccountsModal(false)
+          // TODO: Implement post creation with schedule data
         }}
       />
     </div>
