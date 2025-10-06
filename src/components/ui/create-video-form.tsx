@@ -17,57 +17,22 @@ import { useSearchParams } from 'next/navigation'
 import { Avatar, Trend } from '@/lib/api-service'
 import { useAvatarStorage, type SelectedAvatars } from '@/hooks/useAvatarStorage'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useUserSettings } from '@/hooks/useUserSettings'
+import TrendsDropdown from './trends-dropdown'
+import FormInput from './form-input'
+import FormHeader from './form-header'
+import FormFieldRow from './form-field-row'
+import FormDropdown from './form-dropdown'
+import SubmitButton from './submit-button'
+import SchedulePostModal from './schedule-post-modal'
+import AvatarSelectionStatus from './avatar-selection-status'
+import { row2Fields, row3Fields } from './form-field-configs'
+import { createVideoSchema, type CreateVideoFormData } from './form-validation-schema'
 import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
 
-
-// Zod validation schema
-const createVideoSchema = z.object({
-  prompt: z.string().min(1, 'Please select a prompt option'),
-  avatar: z.string().min(1, 'Please select an avatar'),
-  name: z.string()
-    .min(2, 'Full name must be at least 2 characters')
-    .max(100, 'Full name must be less than 100 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'Full name can only contain letters and spaces'),
-  position: z.string().min(1, 'Please select a position'),
-  companyName: z.string()
-    .min(2, 'Company name must be at least 2 characters')
-    .max(100, 'Company name must be less than 100 characters'),
-  license: z.string()
-    .min(2, 'License must be at least 2 characters')
-    .max(50, 'License must be less than 50 characters'),
-  tailoredFit: z.string()
-    .min(2, 'Tailored fit must be at least 2 characters')
-    .max(200, 'Tailored fit must be less than 200 characters'),
-  socialHandles: z.string()
-    .min(2, 'Social handles must be at least 2 characters')
-    .max(200, 'Social handles must be less than 200 characters'),
-  videoTopic: z.string()
-    .min(1, 'Please select a topic')
-    .max(100, 'Please select a topic'),
-  topicKeyPoints: z.string()
-    .min(2, 'Please select a topic to show key points')
-    .max(500, 'Please select a topic to show key points'),
-  city: z.string()
-    .min(2, 'City must be at least 2 characters')
-    .max(50, 'City must be less than 50 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'City can only contain letters and spaces'),
-  preferredTone: z.string()
-    .min(2, 'Preferred tone must be at least 2 characters')
-    .max(100, 'Preferred tone must be less than 100 characters'),
-  callToAction: z.string()
-    .min(2, 'Call to action must be at least 2 characters')
-    .max(200, 'Call to action must be less than 200 characters'),
-  email: z.string()
-    .email('Please enter a valid email address')
-    .max(255, 'Email must be less than 255 characters')
-})
-
-type CreateVideoFormData = z.infer<typeof createVideoSchema>
-
-// Dropdown options
 const promptOptions = [
   { value: 'Shawheen V1', label: 'Shawheen V1' },
 ]
@@ -117,13 +82,14 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const { user } = useSelector((state: RootState) => state.user)
   const searchParams = useSearchParams()
   const { latestAvatarUpdate } = useUnifiedSocketContext()
-  const { saveSelectedAvatars } = useAvatarStorage()
+  const { saveSelectedAvatars, getSelectedAvatars } = useAvatarStorage()
   const { checkVideoUsageLimit } = useSubscription()
 
   const [showSuccessToast] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [formDataForModal] = useState<CreateVideoFormData | null>(null)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [webhookResponse, setWebhookResponse] = useState<{
     prompt?: string
     description?: string
@@ -175,8 +141,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   // Check if user came from Default Avatar button
   useEffect(() => {
     const source = searchParams.get('source')
-    if (source === 'defaultAvatar')
-    {
+    if (source === 'defaultAvatar') {
       setIsFromDefaultAvatar(true)
     }
   }, [searchParams])
@@ -219,14 +184,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   // Fetch avatars function - extracted to be reusable
   const fetchAvatars = useCallback(async () => {
-    try
-    {
+    try {
       setAvatarsLoading(true)
       setAvatarsError(null)
       const response = await apiService.getAvatars()
 
-      if (response.success)
-      {
+      if (response.success) {
         // Handle both response structures: direct response or nested under data
         const avatarData = (response as any).data || response;
 
@@ -237,22 +200,17 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
         // Explicitly clear any previous errors
         setAvatarsError(null)
-      } else
-      {
+      } else {
         setAvatarsError(response.message || 'Failed to fetch avatars')
       }
-    } catch (error: any)
-    {
+    } catch (error: any) {
       // If API endpoint doesn't exist (404), show a more user-friendly message
-      if (error.message?.includes('Not Found') || error.message?.includes('404'))
-      {
+      if (error.message?.includes('Not Found') || error.message?.includes('404')) {
         setAvatarsError('Avatar API not yet implemented. Using fallback options.')
-      } else
-      {
+      } else {
         setAvatarsError(error.message || 'Failed to load avatars')
       }
-    } finally
-    {
+    } finally {
       setAvatarsLoading(false)
     }
   }, [])
@@ -265,8 +223,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   // Auto-refresh avatars when WebSocket notification shows avatar is ready
   useEffect(() => {
-    if (latestAvatarUpdate)
-    {
+    if (latestAvatarUpdate) {
       console.log('🔔 Latest avatar update received:', latestAvatarUpdate)
 
       // Check if this is an avatar completion notification
@@ -275,8 +232,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         (latestAvatarUpdate.data?.message?.toLowerCase().includes('avatar') ||
           latestAvatarUpdate.data?.message?.toLowerCase().includes('ready'))
 
-      if (isAvatarComplete)
-      {
+      if (isAvatarComplete) {
         console.log('🔄 Avatar ready notification detected, refreshing avatar list...')
         console.log('📋 Avatar update details:', latestAvatarUpdate)
         // Small delay to ensure backend has updated the avatar status
@@ -359,8 +315,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     const target = e.currentTarget as HTMLElement
     target.classList.remove('drag-over')
 
-    if (draggedAvatar)
-    {
+    if (draggedAvatar) {
       // Check if avatar type is allowed based on existing selections
       if (!isAvatarTypeAllowed(draggedAvatar)) {
         setDraggedAvatar(null)
@@ -380,6 +335,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }
 
   const handleRemoveAvatar = (dropZone: 'title' | 'body' | 'conclusion') => {
+
+
     setSelectedAvatars(prev => ({
       ...prev,
       [dropZone]: null
@@ -395,7 +352,18 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setValue('avatar', remainingAvatars[0].avatar_id)
     } else {
       setValue('avatar', '')
+      console.log('🔄 Cleared form field - no avatars remaining')
     }
+    trigger('avatar')
+  }
+
+  const handleClearAllAvatars = () => {
+    setSelectedAvatars({
+      title: null,
+      body: null,
+      conclusion: null
+    })
+    setValue('avatar', '')
     trigger('avatar')
   }
 
@@ -453,6 +421,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           setValue('avatar', avatar.avatar_id)
         }
         trigger('avatar')
+      } else {
+        console.log('🚫 Maximum avatars (3) already selected')
       }
     }
   }
@@ -472,7 +442,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
            selectedAvatars.conclusion?.avatar_id === avatar.avatar_id
   }
 
-
   const {
     register,
     handleSubmit,
@@ -486,7 +455,27 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     mode: 'onChange'
   })
 
-  // Set user's email when user data is available
+  // Monitor form values for debugging
+  const videoTopicValue = watch('videoTopic')
+  const topicKeyPointsValue = watch('topicKeyPoints')
+  
+  useEffect(() => {
+    console.log('📝 Form values changed:', {
+      videoTopic: videoTopicValue,
+      topicKeyPoints: topicKeyPointsValue
+    })
+  }, [videoTopicValue, topicKeyPointsValue])
+
+  // User settings hook
+  const { loadingUserSettings, savingUserSettings, fetchUserSettings, saveUserSettings } = useUserSettings({
+    userEmail: user?.email,
+    avatars,
+    setSelectedAvatars,
+    setValue,
+    trigger
+  })
+
+
   useEffect(() => {
     if (user?.email) {
       setValue('email', user.email)
@@ -494,7 +483,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }, [user?.email, setValue])
 
   const onSubmit = async (data: CreateVideoFormData) => {
-    // Check if all three avatars are selected
     if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
       dispatch(setVideoError('Please select 3 avatars before submitting'))
       return
@@ -603,65 +591,102 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       // Store in Redux (this will also save videoTopic to state)
       dispatch(createVideoRequest(videoRequest))
 
-      // Open modal with webhook response data
+      // Call user-settings API to store video information
+      const userSettingsPayload = {
+        prompt: data.prompt,
+        avatar: [
+          selectedAvatars.title?.avatar_id || '',
+          selectedAvatars.body?.avatar_id || '',
+          selectedAvatars.conclusion?.avatar_id || ''
+        ].filter(id => id !== ''), // Filter out empty strings
+        // Add the three selected avatars separately
+        titleAvatar: selectedAvatars.title?.avatar_id || '',
+        bodyAvatar: selectedAvatars.body?.avatar_id || '',
+        conclusionAvatar: selectedAvatars.conclusion?.avatar_id || '',
+        name: data.name,
+        position: data.position,
+        companyName: data.companyName,
+        license: data.license,
+        tailoredFit: data.tailoredFit,
+        socialHandles: data.socialHandles,
+        city: data.city,
+        preferredTone: data.preferredTone,
+        callToAction: data.callToAction,
+        email: data.email
+      }
+
+      console.log('💾 Storing user settings with all avatar IDs:', {
+        avatar_array: [
+          selectedAvatars.title?.avatar_id || '',
+          selectedAvatars.body?.avatar_id || '',
+          selectedAvatars.conclusion?.avatar_id || ''
+        ].filter(id => id !== ''),
+        titleAvatar: selectedAvatars.title?.avatar_id || 'none',
+        bodyAvatar: selectedAvatars.body?.avatar_id || 'none', 
+        conclusionAvatar: selectedAvatars.conclusion?.avatar_id || 'none',
+        formAvatar: data.avatar
+      })
+
+      const userSettingsResult = await saveUserSettings(userSettingsPayload)
+      if (!userSettingsResult.success) {
+        console.error('Failed to store user settings:', userSettingsResult.error)
+      } else {
+        console.log('✅ User settings stored successfully with all avatar IDs')
+      }
+
       setIsModalOpen(true)
 
-      // Clear any previous errors
       dispatch(clearVideoError())
 
-      // Reset form after modal is opened
       setTimeout(() => {
         reset()
-        // Don't clear webhookResponse here - let the modal use it
       }, 100)
-    } catch (error: any)
-    {
+    } catch (error: any) {
       dispatch(setVideoError(error.message || 'Failed to create video'))
-    } finally
-    {
+    } finally {
       dispatch(setVideoLoading(false))
     }
   }
 
   const handleDropdownSelect = (field: keyof CreateVideoFormData, value: string) => {
-    // For avatar field, ensure mutual exclusivity between custom and default avatars
-    if (field === 'avatar')
-    {
-      // Check if the selected value is a custom avatar
-      // ...existing code...
-
-      // Clear any previous selection first
-      setValue('avatar', '')
-
-      // Then set the new value
+    console.log('🎯 handleDropdownSelect called:', { field, value })
+    
+    // Close dropdown first
+    setOpenDropdown(null)
+    
+    // Use setTimeout to ensure the dropdown closes before setting values
+    setTimeout(() => {
+      if (field === 'avatar') {
+        setValue('avatar', '')
       setValue('avatar', value)
-    } else if (field === 'videoTopic')
-    {
-      // Handle trend selection - set both videoTopic and auto-fill topicKeyPoints
+      } else if (field === 'videoTopic') {
+        console.log('🎯 Setting videoTopic value:', value)
       setValue('videoTopic', value)
       
-      // Find the selected trend and auto-fill keypoints
       const selectedTrend = safeTrends.find(trend => trend.description === value)
+        console.log('🎯 Found selected trend:', selectedTrend)
       if (selectedTrend) {
+          console.log('🎯 Setting topicKeyPoints:', selectedTrend.keypoints)
         setValue('topicKeyPoints', selectedTrend.keypoints)
       }
-    } else
-    {
+      } else {
       setValue(field, value)
     }
 
-    trigger(field) // Trigger validation for this specific field
-    setOpenDropdown(null)
+      // Trigger validation after setting values
+      trigger(field)
+      console.log('🎯 Values set and field triggered')
+    }, 50)
   }
 
   const handleDropdownToggle = (field: keyof CreateVideoFormData) => {
     const isOpen = openDropdown === field
-    if (isOpen)
-    {
+    console.log('🔄 Dropdown toggle:', { field, isOpen, currentOpen: openDropdown })
+    
+    if (isOpen) {
       // If closing dropdown without selection, trigger validation
       const currentValue = watch(field)
-      if (!currentValue || currentValue.trim() === '')
-      {
+      if (!currentValue || currentValue.trim() === '') {
         // Trigger validation for this field only if no value is selected
         setValue(field, '', { shouldValidate: true })
       }
@@ -674,455 +699,46 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     options: { value: string; label: string }[],
     placeholder: string
   ) => {
-    // Use extended options for avatar field when coming from Default Avatar
-    const displayOptions = field === 'avatar' && isFromDefaultAvatar ? extendedAvatarOptions : options
     const currentValue = watch(field)
-
-    // For avatar field, try to find the selected avatar from API data first
-    let selectedOption;
-    if (field === 'avatar' && currentValue)
-    {
-      const customAvatar = avatars.custom.find(avatar => avatar.avatar_id === currentValue)
-      const defaultAvatar = avatars.default.find(avatar => avatar.avatar_id === currentValue)
-      if (customAvatar)
-      {
-        // Show avatar_id for custom avatars (same as default avatars)
-        selectedOption = { value: customAvatar.avatar_id, label: customAvatar.avatar_id }
-      } else if (defaultAvatar)
-      {
-        selectedOption = { value: defaultAvatar.avatar_id, label: defaultAvatar.avatar_id }
-      } else
-      {
-        // Fallback to static options
-        selectedOption = displayOptions.find(option => option.value === currentValue)
-      }
-    } else
-    {
-      selectedOption = displayOptions.find(option => option.value === currentValue)
-    }
-
     const isOpen = openDropdown === field
     const hasError = errors[field]
 
     return (
-      <div className="relative">
-        {/* eslint-disable-next-line jsx-a11y/role-supports-aria-props */}
-        <button
-          type="button"
-          onClick={() => handleDropdownToggle(field)}
-          onBlur={() => {
-            setTimeout(() => {
-              const currentValue = watch(field)
-              if ((!currentValue || currentValue.trim() === '') && openDropdown === field)
-              {
-                setValue(field, '', { shouldValidate: true })
-              }
-            }, 100)
-          }}
-          className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${hasError ? 'ring-2 ring-red-500' : ''
-            } ${selectedOption ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
-          aria-describedby={hasError ? `${field}-error` : undefined}
-          aria-invalid={hasError ? 'true' : 'false'}
-        >
-          <span>{selectedOption ? selectedOption.label : placeholder}</span>
-          <IoMdArrowDropdown
-            className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        {isOpen && (
-          <div>
-            {field === 'avatar' ? (
-              <div className="absolute z-50 lg:w-[900px] w-full mt-1 bg-white rounded-[12px] shadow-lg !overflow-hidden lg:-left-[190px]">
-                {/* Avatar Dropdown Header with Refresh Button */}
-                <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800">Select Avatar</h3>
-                  <button
-                    onClick={fetchAvatars}
-                    disabled={avatarsLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-[#5046E5] hover:bg-gray-50 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Refresh avatars"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${avatarsLoading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </button>
-                </div>
-
-                {/* Main Content - Two Column Layout */}
-                <div className="flex h-[500px]">
-                  {/* Left Side - Avatar Selection */}
-                  <div className="flex-1 py-4 px-6 overflow-y-auto border-r border-gray-200">
-                    {avatarsLoading ? (
-                      <div className="flex justify-center items-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5]"></div>
-                        <span className="ml-2 text-[#5F5F5F]">Loading avatars...</span>
-                      </div>
-                    ) : avatarsError ? (
-                      <div className="text-center py-8">
-                        <p className="text-red-500 mb-2">Failed to load avatars</p>
-                        <p className="text-sm text-[#5F5F5F]">{avatarsError}</p>
-                        <button
-                          onClick={fetchAvatars}
-                          className="mt-3 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Custom Avatar Section */}
-                        {avatars.custom.length > 0 && (
-                          <div className="mb-6">
-                            <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Custom Avatar</h4>
-                            {/* Info bar */}
-                            <div className="flex md:flex-row flex-col items-center justify-between md:mb-3 mb-5 px-3 py-2 bg-purple-100 rounded-lg gap-y-4">
-                              <div className="flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 text-purple-600 md:block hidden" />
-                                <span className="md:text-sm text-xs text-purple-700">
-                                  Click to select up to 3 avatars for your video
-                                  {(() => {
-                                    const existingAvatars = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean) as Avatar[]
-                                    if (existingAvatars.length > 0) {
-                                      const avatarType = getAvatarType(existingAvatars[0])
-                                      return ` • All avatars must be ${avatarType}`
-                                    }
-                                    return ''
-                                  })()}
-                                </span>
-                              </div>
-                              {(() => {
-                                const totalSelected = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
-                                return totalSelected > 0 && (
-                                  <button
-                                    onClick={() => {
-                                      setSelectedAvatars({ title: null, body: null, conclusion: null })
-                                    }}
-                                    className="text-xs text-purple-600 hover:text-purple-800 underline"
-                                  >
-                                    Clear Selection
-                                  </button>
-                                )
-                              })()}
-                            </div>
-                            <div className="md:grid flex flex-wrap lg:grid-cols-4 md:grid-cols-2 grid-cols-1 justify-center items-center gap-2">
-                              {avatars.custom.map((avatar) => {
-                                const selectionNumber = getAvatarSelectionNumber(avatar)
-                                const isSelected = isAvatarSelected(avatar)
-                                const isTypeAllowed = isAvatarTypeAllowed(avatar)
-                                const isDisabled = isAvatarPending(avatar) || !isTypeAllowed
-                                
-                                return (
-                                  <div
-                                    key={avatar._id}
-                                    draggable={!isDisabled}
-                                    onDragStart={(e) => !isDisabled && handleDragStart(e, avatar)}
+      <FormDropdown
+        field={field}
+        options={options}
+        placeholder={placeholder}
+        currentValue={currentValue}
+        isOpen={isOpen}
+        hasError={hasError}
+        register={register}
+        errors={errors}
+        onToggle={handleDropdownToggle}
+        onSelect={handleDropdownSelect}
+        onBlur={(field) => setValue(field, '', { shouldValidate: true })}
+        // Avatar-specific props
+        isAvatarField={field === 'avatar'}
+        isFromDefaultAvatar={isFromDefaultAvatar}
+        extendedAvatarOptions={extendedAvatarOptions}
+        avatars={avatars}
+        avatarsLoading={avatarsLoading}
+        avatarsError={avatarsError}
+        selectedAvatars={selectedAvatars}
+        onFetchAvatars={fetchAvatars}
+        onAvatarClick={handleAvatarClick}
+        onDragStart={handleDragStart}
                                     onDragEnd={handleDragEnd}
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      handleAvatarClick(avatar)
-                                    }}
-                                    className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${
-                                      isDisabled
-                                        ? 'opacity-40 cursor-not-allowed' 
-                                        : isSelected
-                                        ? 'cursor-pointer'
-                                        : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
-                                    }`}
-                                  >
-                                    <div className="relative">
-                                      <Image
-                                        src={avatar.preview_image_url || avatar.imageUrl || '/images/avatars/avatargirl.png'}
-                                        alt={avatar.avatar_name || avatar.name || 'Avatar'}
-                                        width={80}
-                                        height={80}
-                                        className={`rounded-lg object-cover w-[80px] h-[80px] ${isAvatarPending(avatar) ? 'opacity-50' : ''
-                                          }`}
-                                        onError={(e) => {
-                                          const target = e.target as HTMLImageElement;
-                                          target.src = '/images/avatars/avatargirl.png';
-                                        }}
-                                      />
-                                      
-                                      {/* Selection number indicator */}
-                                      {selectionNumber && (
-                                        <div className="absolute -top-3 -right-2 w-5 h-5 bg-[#5046E5]/60 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg backdrop-blur-lg leading-0">
-                                          {selectionNumber}
-                                        </div>
-                                      )}
-                                      
-                                      {/* Loading overlay for pending avatars */}
-                                      {isAvatarPending(avatar) && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
-                                          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">
-                                      {avatar.avatar_id}
-                                      {isAvatarPending(avatar) && (
-                                        <>
-                                          <span className="block text-xs text-orange-500 mt-1">Processing...</span>
-                                        </>
-                                      )}
-                                    </span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Separator - only show if both custom and default avatars exist */}
-                        {avatars.custom.length > 0 && avatars.default.length > 0 && (
-                          <div className="bg-[#A0A3BD] h-[1px] mb-6"></div>
-                        )}
-
-                        {/* Default Avatar Section */}
-                        {avatars.default.length > 0 && (
-                          <div>
-                            <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Default Avatar</h4>
-                            <div className="md:grid flex flex-wrap lg:grid-cols-4 md:grid-cols-2 grid-cols-1 justify-center items-center gap-2">
-                              {avatars.default.slice(0, 12).map((avatar) => {
-                                const selectionNumber = getAvatarSelectionNumber(avatar)
-                                const isSelected = isAvatarSelected(avatar)
-                                const isTypeAllowed = isAvatarTypeAllowed(avatar)
-                                const isDisabled = !isTypeAllowed
-                                
-                                return (
-                                  <div
-                                    key={avatar._id}
-                                    draggable={!isDisabled}
-                                    onDragStart={(e) => !isDisabled && handleDragStart(e, avatar)}
-                                    onDragEnd={handleDragEnd}
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      handleAvatarClick(avatar)
-                                    }}
-                                    className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${
-                                      isDisabled
-                                        ? 'opacity-40 cursor-not-allowed' 
-                                        : isSelected
-                                        ? 'cursor-pointer'
-                                        : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
-                                    }`}
-                                  >
-                                    <div className="relative">
-                                      <Image
-                                        src={avatar.preview_image_url || avatar.imageUrl || '/images/avatars/avatargirl.png'}
-                                        alt={avatar.avatar_name || avatar.name || 'Avatar'}
-                                        width={80}
-                                        height={80}
-                                        className="rounded-lg object-cover w-[80px] h-[80px]"
-                                        onError={(e) => {
-                                          const target = e.target as HTMLImageElement;
-                                          target.src = '/images/avatars/avatargirl.png';
-                                        }}
-                                      />
-                                      
-                                      {/* Selection number indicator */}
-                                      {selectionNumber && (
-                                        <div className="absolute -top-3 -right-2 w-5 h-5 bg-[#5046E5]/60 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg backdrop-blur-lg leading-0">
-                                          {selectionNumber}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">{avatar.avatar_id}</span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                            {avatars.default.length > 12 && (
-                              <p className="text-sm text-[#5F5F5F] text-center mt-3">
-                                Showing first 12 of {avatars.default.length} default avatars
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* No avatars message */}
-                        {avatars.custom.length === 0 && avatars.default.length === 0 && (
-                          <div className="text-center py-8">
-                            <p className="text-[#5F5F5F]">No avatars available</p>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Right Side - Drop Zones */}
-                  <div className="lg:max-w-80 max-w-[50%] py-4 px-6 bg-white">
-                    <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Sort Avatar</h4>
-                    <p className="text-sm text-[#5F5F5F] mb-6">Drag and drop the selected Images</p>
-
-                    {/* Drop Zones */}
-                    <div className="space-y-4">
-                      {/* Title Avatar Drop Zone */}
-                      <div
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, 'title')}
-                        className={`relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer`}
-                      >
-                        {selectedAvatars.title ? (
-                          <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
-                            <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm relative">
-                              <Image
-                                src={selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || '/images/avatars/avatargirl.png'}
-                                alt={selectedAvatars.title.avatar_name || selectedAvatars.title.name || 'Avatar'}
-                                width={50}
-                                height={50}
-                                className="rounded-lg object-cover w-[50px] h-[50px]"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = '/images/avatars/avatargirl.png';
-                                }}
-                              />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveAvatar('title')
-                                }}
-                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                              >
-                                ×
-                              </button>
-                            </div>
-                            <span className="text-sm text-gray-500">Title Avatar</span>
-                          </div>
-                        ) : (
-                          <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
-                            <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm">
-                              <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <span className="text-sm text-gray-500">Title Avatar</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Body Avatar Drop Zone */}
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, 'body')}
-                        className={`relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer`}
-                      >
-                        {selectedAvatars.body ? (
-                          <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
-                            <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm relative">
-                              <Image
-                                src={selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || '/images/avatars/avatargirl.png'}
-                                alt={selectedAvatars.body.avatar_name || selectedAvatars.body.name || 'Avatar'}
-                                width={50}
-                                height={50}
-                                className="rounded-lg object-cover w-[50px] h-[50px]"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = '/images/avatars/avatargirl.png';
-                                }}
-                              />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveAvatar('body')
-                                }}
-                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                              >
-                                ×
-                              </button>
-                            </div>
-                            <span className="text-sm text-gray-500">Body Avatar</span>
-                          </div>
-                        ) : (
-                          <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
-                            <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm">
-                              <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <span className="text-sm text-gray-500">Body Avatar</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Conclusion Avatar Drop Zone */}
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, 'conclusion')}
-                        className={`relative flex items-center py-3 transition-colors duration-200 hover:bg-gray-50 rounded-lg cursor-pointer`}
-                      >
-                        {selectedAvatars.conclusion ? (
-                          <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
-                            <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm relative">
-                              <Image
-                                src={selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || '/images/avatars/avatargirl.png'}
-                                alt={selectedAvatars.conclusion.avatar_name || selectedAvatars.conclusion.name || 'Avatar'}
-                                width={50}
-                                height={50}
-                                className="rounded-lg object-cover w-[50px] h-[50px]"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = '/images/avatars/avatargirl.png';
-                                }}
-                              />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveAvatar('conclusion')
-                                }}
-                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                              >
-                                ×
-                              </button>
-                            </div>
-                            <span className="text-sm text-gray-500">Conclusion Avatar</span>
-                          </div>
-                        ) : (
-                          <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
-                            <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm">
-                              <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <span className="text-sm text-gray-500">Conclusion Avatar</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Show regular dropdown options for normal users or fallback */
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
-                {options.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleDropdownSelect(field, option.value)}
-                    className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 flex items-center justify-between text-[#282828] cursor-pointer"
-                  >
-                    <span>{option.label}</span>
-                    {currentValue === option.value && (
-                      <Check className="w-4 h-4 text-[#5046E5]" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-
-          </div>
-        )}
-
-        {hasError && (
-          <p id={`${field}-error`} className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
-            <AlertCircle className="w-4 h-4" />
-            {hasError.message}
-          </p>
-        )}
-      </div>
+        onDrop={handleDrop}
+        onRemoveAvatar={handleRemoveAvatar}
+        onClearAllAvatars={handleClearAllAvatars}
+        isAvatarSelected={isAvatarSelected}
+        isAvatarTypeAllowed={isAvatarTypeAllowed}
+        isAvatarPending={isAvatarPending}
+        getAvatarSelectionNumber={getAvatarSelectionNumber}
+        getAvatarType={getAvatarType}
+      />
     )
   }
 
@@ -1135,90 +751,23 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     const isOpen = openDropdown === field
     const hasError = errors[field]
     
-    // Debug logging
-    console.log('Dropdown render - safeTrends:', safeTrends)
-    console.log('Dropdown render - trendsLoading:', trendsLoading)
-    console.log('Dropdown render - trendsError:', trendsError)
 
     return (
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => handleDropdownToggle(field)}
-          onBlur={() => {
-            setTimeout(() => {
-              const currentValue = watch(field)
-              if ((!currentValue || currentValue.trim() === '') && openDropdown === field)
-              {
-                setValue(field, '', { shouldValidate: true })
-              }
-            }, 100)
-          }}
-          className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${hasError ? 'ring-2 ring-red-500' : ''
-            } ${selectedTrend ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
-          aria-describedby={hasError ? `${field}-error` : undefined}
-        >
-          <span className="truncate">
-            {selectedTrend ? selectedTrend.description : placeholder}
-          </span>
-          <IoMdArrowDropdown
-            className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
-            {trendsLoading ? (
-              <div className="px-4 py-3 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#5046E5] mx-auto mb-2"></div>
-                Loading trends...
-              </div>
-            ) : trendsError ? (
-              <div className="px-4 py-3 text-center text-red-500">
-                <p className="text-sm">{trendsError}</p>
-                <button
-                  onClick={fetchTrends}
-                  className="mt-2 px-3 py-1 text-xs bg-[#5046E5] text-white rounded hover:bg-[#4338CA] transition-colors"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : safeTrends.length === 0 ? (
-              <div className="px-4 py-3 text-center text-gray-500">
-                No trends available
-              </div>
-            ) : (
-              safeTrends.map((trend, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleDropdownSelect(field, trend.description)}
-                  className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 flex items-start justify-between text-[#282828] cursor-pointer border-b border-gray-100 last:border-b-0"
-                >
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-800 mb-1">
-                      {trend.description}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Key Points: {trend.keypoints}
-                    </div>
-                  </div>
-                  {currentValue === trend.description && (
-                    <Check className="w-4 h-4 text-[#5046E5] mt-1 flex-shrink-0" />
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-        )}
-
-        {hasError && (
-          <p id={`${field}-error`} className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
-            <AlertCircle className="w-4 h-4" />
-            {hasError.message}
-          </p>
-        )}
-      </div>
+      <TrendsDropdown
+        field={field}
+        placeholder={placeholder}
+        currentValue={currentValue}
+        selectedTrend={selectedTrend}
+        isOpen={isOpen}
+        hasError={hasError}
+        trendsLoading={trendsLoading}
+        trendsError={trendsError}
+        safeTrends={safeTrends}
+        onToggle={handleDropdownToggle}
+        onSelect={handleDropdownSelect}
+        onBlur={(field) => setValue(field, '', { shouldValidate: true })}
+        onRetry={fetchTrends}
+      />
     )
   }
 
@@ -1228,41 +777,30 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     type: string = 'text',
     autoComplete?: string
   ) => {
-    const hasError = errors[field]
-    const isDisabled = field === 'topicKeyPoints' || field === 'email'
+    const isDisabled = field === 'email'
 
     return (
-      <div className="relative">
-        <input
-          {...register(field)}
-          type={type}
+      <FormInput
+        field={field}
           placeholder={placeholder}
+        type={type}
           autoComplete={autoComplete}
+        register={register}
+        errors={errors}
           disabled={isDisabled}
-          aria-describedby={hasError ? `${field}-error` : undefined}
-          aria-invalid={hasError ? 'true' : 'false'}
-          className={`w-full px-4 py-[10.5px] text-[18px] font-normal placeholder:text-[#11101066] border-0 rounded-[8px] text-gray-800 transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white bg-[#EEEEEE] hover:bg-[#F5F5F5]
-          ${hasError ? 'ring-2 ring-red-500' : ''}     ${
-      isDisabled 
-        ? 'bg-gray-100 text-gray-600 cursor-not-allowed' 
-        : 'bg-[#EEEEEE] hover:bg-[#F5F5F5]'
-    } `}
-        />
-        {hasError && (
-          <p id={`${field}-error`} className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
-            <AlertCircle className="w-4 h-4" />
-            {hasError.message}
-          </p>
-        )}
-      </div>
+      />
     )
   }
 
-
-
   return (
     <div className={`w-full max-w-[1260px] mx-auto ${className}`}>
-      {/* Success Toast */}
+      <FormHeader
+        title="Fill the details to create video"
+        onLoadSettings={fetchUserSettings}
+        loadingUserSettings={loadingUserSettings}
+        avatarsLoaded={!avatarsLoading && (avatars.custom.length > 0 || avatars.default.length > 0)}
+        onSchedulePost={() => setShowScheduleModal(true)}
+      />
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg max-w-sm">
           <div className="flex items-center gap-3">
@@ -1276,11 +814,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           </div>
         </div>
       )}
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
-
-
-        {/* Error Display */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
@@ -1292,8 +826,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             </div>
           </div>
         )}
-
-        {/* Row 1 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
@@ -1323,70 +855,18 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             {renderDropdown('position', positionOptions, 'Select Option')}
           </div>
         </div>
-
-        {/* Row 2 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Company Name <span className="text-red-500">*</span>
-            </label>
-            {renderInput('companyName', 'e.g. Keller Williams', 'text', 'organization')}
-          </div>
-
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              License <span className="text-red-500">*</span>
-            </label>
-            {renderInput('license', 'e.g. License #12345', 'text')}
-          </div>
-
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Tailored Fit <span className="text-red-500">*</span>
-            </label>
-            {renderInput('tailoredFit', 'e.g. First-time buyer specialist', 'text')}
-          </div>
-
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Social Handles <span className="text-red-500">*</span>
-            </label>
-            {renderInput('socialHandles', 'e.g. @johnsmith, @facebook', 'text')}
-          </div>
-        </div>
-
-        {/* Row 3 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              City <span className="text-red-500">*</span>
-            </label>
-            {renderInput('city', 'e.g. Los Angeles', 'text', 'address-level2')}
-          </div>
-
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Preferred Tone <span className="text-red-500">*</span>
-            </label>
-            {renderInput('preferredTone', 'e.g. Professional, friendly, etc.', 'text')}
-          </div>
-
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Call to Action <span className="text-red-500">*</span>
-            </label>
-            {renderInput('callToAction', 'e.g. Call for consultation', 'text')}
-          </div>
-
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Email <span className="text-red-500">*</span>
-            </label>
-            {renderInput('email', 'your.email@example.com', 'email', 'email')}
-          </div>
-        </div>
-
-        {/* Row 4 */}
+        <FormFieldRow
+          fields={row2Fields}
+          register={register}
+          errors={errors}
+          columns="4"
+        />
+        <FormFieldRow
+          fields={row3Fields}
+          register={register}
+          errors={errors}
+          columns="4"
+        />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
@@ -1402,78 +882,22 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             {renderInput('topicKeyPoints', 'Key points will auto-fill when topic is selected', 'text')}
           </div>
         </div>
-
-        {/* Avatar Selection Status */}
-        {(() => {
-          const totalSelected = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
-          return totalSelected > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h3 className="text-blue-800 font-semibold">Avatar Selection</h3>
-                  <p className="text-blue-700 text-sm">
-                    {totalSelected} of 3 avatars selected
-                    {totalSelected < 3 && (
-                      <span className="block text-xs text-blue-600 mt-1">
-                        Select {3 - totalSelected} more avatar{3 - totalSelected > 1 ? 's' : ''} to continue
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
-
-        {(!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-              <div>
-                <h3 className="text-yellow-800 font-semibold">Avatar Assignment Required</h3>
-                <p className="text-yellow-700 text-sm">
-                  Please assign selected avatars to: 
-                  {!selectedAvatars.title && <span className="font-semibold"> Title,</span>}
-                  {!selectedAvatars.body && <span className="font-semibold"> Body <span className="font-normal">and</span></span>}
-                  {!selectedAvatars.conclusion && <span className="font-semibold"> Conclusion</span>}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Submit Button */}
-        <div className="flex justify-center pt-4">
-          <button
-            type="submit"
-            disabled={isLoading || !selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion}
-            className="w-full max-w-full px-8 py-[12.4px] bg-[#5046E5] text-white rounded-full font-semibold text-lg hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#5046E5]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
-          >
-            {isLoading ? (
-              <>
-                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Creating Video...
-              </>
-            ) : (
-              'Submit'
-            )}
-          </button>
-        </div>
+        <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
+        <SubmitButton
+          isLoading={isLoading}
+          disabled={!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion}
+          loadingText="Creating Video..."
+          buttonText="Submit"
+        />
       </form>
 
-      {/* Click outside to close dropdowns */}
       {openDropdown && (
         <div
           className="fixed inset-0 z-40"
           onClick={() => {
             // If closing dropdown without selection, trigger validation
             const currentValue = watch(openDropdown as keyof CreateVideoFormData)
-            if (!currentValue || currentValue.trim() === '')
-            {
+            if (!currentValue || currentValue.trim() === '') {
               // Trigger validation for this field only if no value is selected
               setValue(openDropdown as keyof CreateVideoFormData, '', { shouldValidate: true })
             }
@@ -1481,8 +905,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           }}
         />
       )}
-
-      {/* Create Video Modal */}
       <CreateVideoModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -1492,8 +914,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         videoTitle={formDataForModal?.prompt || 'Custom Video'}
         webhookResponse={webhookResponse}
       />
-
-      {/* Usage Limit Toast */}
       <UsageLimitToast
         isVisible={showUsageToast}
         message={usageToastMessage}
@@ -1529,8 +949,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           }
         }}
       />
-
-      {/* Subscription Required Toast */}
       <SubscriptionRequiredToast
         isVisible={showSubscriptionRequiredToast}
         message={subscriptionRequiredMessage}
@@ -1542,6 +960,15 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         }}
       />
 
+      <SchedulePostModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onNext={(scheduleData) => {
+          console.log('Schedule data:', scheduleData)
+          setShowScheduleModal(false)
+          // TODO: Implement schedule post functionality
+        }}
+      />
     </div>
   )
 }

@@ -48,3 +48,4 @@ export const getAccountTypeIcon = (type: string) => {
   }
   return null
 }
+
