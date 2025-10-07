@@ -803,6 +803,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         loadingUserSettings={loadingUserSettings}
         avatarsLoaded={!avatarsLoading && (avatars.custom.length > 0 || avatars.default.length > 0)}
         onSchedulePost={() => setShowScheduleModal(true)}
+        userEmail={user?.email}
       />
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg max-w-sm">
@@ -981,6 +982,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           setShowConnectAccountsModal(false)
           // TODO: Implement final schedule post functionality
         }}
+        buttonText="Schedule Post"
+        scheduleData={scheduleData}
         onCreatePost={(accounts, video) => {
           setShowConnectAccountsModal(false)
           // TODO: Implement post creation with schedule data

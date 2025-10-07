@@ -1,9 +1,9 @@
 // Backend API Configuration
 export const API_CONFIG = {
   // Express Backend URL
-  // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
-  BACKEND_URL: 'http://localhost:4000',
-  // BACKEND_URL: 'http://192.168.1.80:4000',
+  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
+  // BACKEND_URL: 'http://localhost:4000',
+  // BACKEND_URL: 'http://192.168.1.60:4000',
   // https://backend-pi-ten-23.vercel.app
   // http://localhost:4000
   // http://192.168.1.72:4000
@@ -66,6 +66,11 @@ export const API_CONFIG = {
       ACCOUNT_DELETE: '/api/socialbu-account',
       ACCOUNTS_CONNECT: '/api/socialbu/accounts/connect',
       MEDIA_CREATE_POST: '/api/socialbu-media/create-post',
+    },
+    
+    // Video Schedule endpoints
+    VIDEO_SCHEDULE: {
+      SCHEDULE: '/api/video-schedule/schedule',
     },
     
     // Webhook endpoints
