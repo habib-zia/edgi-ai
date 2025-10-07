@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react'
+import { Check, AlertCircle, RefreshCw, CheckCircle, Clock } from 'lucide-react'
+import ScheduleInterface from './schedule-interface'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { setVideoLoading, setVideoError, createVideoRequest, clearVideoError, VideoRequest } from '@/store/slices/videoSlice'
@@ -26,6 +27,7 @@ import FormDropdown from './form-dropdown'
 import SubmitButton from './submit-button'
 import SchedulePostModal from './schedule-post-modal'
 import ConnectAccountsModal from './connect-accounts-modal'
+import FormLoadingOverlay from './form-loading-overlay'
 import AvatarSelectionStatus from './avatar-selection-status'
 import { row2Fields, row3Fields } from './form-field-configs'
 import { createVideoSchema, type CreateVideoFormData } from './form-validation-schema'
@@ -93,6 +95,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showConnectAccountsModal, setShowConnectAccountsModal] = useState(false)
   const [scheduleData, setScheduleData] = useState<any>(null)
+  const [autoFilling, setAutoFilling] = useState(false)
+  const [isFormReady, setIsFormReady] = useState(false)
+  const [isScheduleMode, setIsScheduleMode] = useState(false)
   const [webhookResponse, setWebhookResponse] = useState<{
     prompt?: string
     description?: string
@@ -223,6 +228,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     fetchAvatars()
     fetchTrends()
   }, [fetchAvatars, fetchTrends])
+
 
   // Auto-refresh avatars when WebSocket notification shows avatar is ready
   useEffect(() => {
@@ -477,6 +483,29 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     setValue,
     trigger
   })
+
+  // Auto-fill form when avatars are loaded and user has settings
+  useEffect(() => {
+    if (!avatarsLoading && (avatars.custom.length > 0 || avatars.default.length > 0) && user?.email) {
+      console.log('🎯 Avatars loaded, auto-filling form with user settings...')
+      setAutoFilling(true)
+      fetchUserSettings().finally(() => {
+        setAutoFilling(false)
+        setIsFormReady(true)
+      })
+    } else if (!avatarsLoading && (avatars.custom.length > 0 || avatars.default.length > 0) && !user?.email) {
+      // If avatars are loaded but no user email, form is ready
+      setIsFormReady(true)
+    }
+  }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings])
+
+  // Check if all data is loaded
+  const isDataLoading = avatarsLoading || autoFilling || !isFormReady
+
+  // Toggle schedule mode
+  const handleToggleScheduleMode = () => {
+    setIsScheduleMode(!isScheduleMode)
+  }
 
 
   useEffect(() => {
@@ -796,14 +825,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }
 
   return (
-    <div className={`w-full max-w-[1260px] mx-auto ${className}`}>
+    <div className={`w-full max-w-[1260px] mx-auto ${className} relative`}>
+      <FormLoadingOverlay
+        avatarsLoading={avatarsLoading}
+        autoFilling={autoFilling}
+        isFormReady={isFormReady}
+        hasUserEmail={!!user?.email}
+      />
       <FormHeader
         title="Fill the details to create video"
-        onLoadSettings={fetchUserSettings}
-        loadingUserSettings={loadingUserSettings}
-        avatarsLoaded={!avatarsLoading && (avatars.custom.length > 0 || avatars.default.length > 0)}
         onSchedulePost={() => setShowScheduleModal(true)}
         userEmail={user?.email}
+        isScheduleMode={isScheduleMode}
+        onToggleScheduleMode={handleToggleScheduleMode}
       />
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg max-w-sm">
@@ -818,6 +852,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           </div>
         </div>
       )}
+        {isScheduleMode ? (
+          <ScheduleInterface onStartScheduling={() => setShowScheduleModal(true)} />
+        ) : (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -894,6 +931,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           buttonText="Submit"
         />
       </form>
+      )}
 
       {openDropdown && (
         <div
