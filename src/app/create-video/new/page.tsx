@@ -38,11 +38,6 @@ export default function NewVideoPage() {
 
           {/* Form Content */}
           <div className="pt-4">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-[32px] font-semibold text-[#282828] mb-2">
-                Fill the details to create video
-              </h2>
-            </div>
             <CreateVideoForm />
           </div>
         </div>

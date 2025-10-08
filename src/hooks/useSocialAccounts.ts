@@ -31,12 +31,7 @@ interface ConnectedAccount {
 interface SocialBuResponse {
   success: boolean
   message: string
-  data: {
-    connected_accounts: ConnectedAccount[]
-    user_account_ids: number[]
-    total_connected: number
-    socialbu_status: string
-  }
+  data: ConnectedAccount[]
 }
 
 interface SocialPlatform {
@@ -128,7 +123,7 @@ const fetchConnectedAccounts = useCallback(async () => {
     const data: SocialBuResponse = await response.json()
 
     if (data.success) {
-      setConnectedAccounts(data.data.connected_accounts)
+      setConnectedAccounts(data.data)
     } else {
       throw new Error(data.message || 'Failed to fetch accounts')
     }
@@ -207,7 +202,7 @@ const connectPlatform = useCallback(async (platformId: string) => {
       body: JSON.stringify({
         provider: provider,
         user_id: userId, // This should come from user data
-        postback_url: "https://a0db020b7848.ngrok-free.app/api/webhook/socialbu"
+        postback_url: "https://6bcb17162993.ngrok-free.app/api/webhook/socialbu"
       })
     })
 

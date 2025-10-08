@@ -1,0 +1,434 @@
+'use client'
+
+import React, { useState } from 'react'
+import { X, AlertCircle } from 'lucide-react'
+import { useScheduleValidation } from '@/hooks/useScheduleValidation'
+import { type ScheduleData } from '@/types/post-types'
+import ScheduleInfoBanner from './schedule-info-banner'
+import SubmitButton from './submit-button'
+
+interface SchedulePostModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onNext: (scheduleData: ScheduleData) => void
+}
+
+const frequencyOptions = [
+  'Once a Week',
+  'Twice a Week',
+  'Three Times a Week',
+  'Daily',
+]
+
+const dayOptions = [
+  'Monday',
+  'Tuesday', 
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday'
+]
+
+export default function SchedulePostModal({ isOpen, onClose, onNext }: SchedulePostModalProps) {
+  const [frequency, setFrequency] = useState('Twice a Week')
+  const [posts, setPosts] = useState([
+    { day: '', date: '', time: '' },
+    { day: '', date: '', time: '' }
+  ])
+  const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Check if any day is selected to show banner
+  const hasSelectedDays = posts.some(post => post.day)
+  
+  // Get the earliest selected date for the banner
+  const getEarliestDate = () => {
+    const validPosts = posts.filter(post => post.date)
+    if (validPosts.length === 0) return null
+    
+    const dates = validPosts.map(post => new Date(post.date))
+    const earliestDate = new Date(Math.min(...dates.map(date => date.getTime())))
+    
+    // Format as DD-MMM-YYYY
+    const day = earliestDate.getDate().toString().padStart(2, '0')
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+    const month = monthNames[earliestDate.getMonth()]
+    const year = earliestDate.getFullYear()
+    
+    return `${day}-${month}-${year}`
+  }
+  
+  const startDate = getEarliestDate()
+  
+  const { 
+    validateScheduleData, 
+    clearValidationErrors, 
+    getFieldError, 
+    validateField,
+    isFormComplete,
+    getValidationSummary,
+    hasErrors 
+  } = useScheduleValidation()
+
+  // Calculate number of posts based on frequency
+  const getPostCount = (frequency: string) => {
+    switch (frequency) {
+      case 'Once a Week':
+        return 1
+      case 'Twice a Week':
+        return 2
+      case 'Three Times a Week':
+        return 3
+      case 'Daily':
+        return 1
+      default:
+        return 1
+    }
+  }
+  const setDailyTime = () => {
+    const existingPost = posts[0] || { day: '', date: '', time: '' }
+    const newPosts = [{
+      day: '', // No day needed for Daily
+      date: '', // No date needed for Daily
+      time: existingPost.time || ''
+    }]
+    setPosts(newPosts)
+  }
+
+  // Update posts array when frequency changes
+  React.useEffect(() => {
+    const newPostCount = getPostCount(frequency)
+    
+    if (frequency === 'Daily') {
+      if (posts.length !== 1) {
+        setDailyTime()
+      }
+    } else {
+      const newPosts = Array.from({ length: newPostCount }, (_, index) => 
+        posts[index] || { day: '', date: '', time: '' }
+      )
+      setPosts(newPosts)
+    }
+  }, [frequency])
+
+  const handlePostChange = (index: number, field: 'day' | 'date' | 'time', value: string) => {
+    const newPosts = [...posts]
+    newPosts[index][field] = value
+    
+    if (field === 'day' && value) {
+      const dayIndex = dayOptions.indexOf(value)
+      if (dayIndex !== -1) {
+        const today = new Date()
+        const currentDay = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+        const targetDay = dayIndex === 6 ? 0 : dayIndex + 1 // Convert to Sunday = 0 format
+        
+        let daysUntilTarget = targetDay - currentDay
+        if (daysUntilTarget < 0) {
+          daysUntilTarget += 7 // Next week
+        }
+        
+        const targetDate = new Date(today)
+        targetDate.setDate(today.getDate() + daysUntilTarget)
+        
+        newPosts[index].date = targetDate.toISOString().split('T')[0]
+      }
+    }
+    
+    if (frequency === 'Daily' && field === 'day') {
+      newPosts.forEach((post, idx) => {
+        if (post.day) {
+          const dayIndex = dayOptions.indexOf(post.day)
+          if (dayIndex !== -1) {
+            const today = new Date()
+            const currentDay = today.getDay()
+            const targetDay = dayIndex === 6 ? 0 : dayIndex + 1
+            let daysUntilTarget = targetDay - currentDay
+            if (daysUntilTarget < 0) {
+              daysUntilTarget += 7
+            }
+            const targetDate = new Date(today)
+            targetDate.setDate(today.getDate() + daysUntilTarget)
+            newPosts[idx].date = targetDate.toISOString().split('T')[0]
+          }
+        }
+      })
+    }
+    // If a day is cleared, also clear the date
+    if (field === 'day' && !value) {
+      newPosts[index].date = ''
+    }
+    
+    setPosts(newPosts)
+    
+    // Clear validation errors for this field when user starts typing
+    if (value.trim() !== '') {
+      clearValidationErrors()
+    }
+  }
+
+  const handleClose = () => {
+    // Reset form data when closing
+    setFrequency('Once a Week')
+    setPosts([
+      { day: '', date: '', time: '' },
+      { day: '', date: '', time: '' }
+    ])
+    setShowFrequencyDropdown(false)
+    setIsSubmitting(false)
+    clearValidationErrors()
+    onClose()
+  }
+
+  const handleNext = async () => {
+    setIsSubmitting(true)
+    clearValidationErrors()
+    
+    const scheduleData: ScheduleData = {
+      frequency,
+      posts: frequency === 'Daily' 
+        ? posts.filter(post => post.time && post.time.trim() !== '')
+        : posts.filter(post => (post.day || post.date) && post.time)
+    }
+    
+    const validation = validateScheduleData(scheduleData)
+    
+    if (!validation.isValid) {
+      setIsSubmitting(false)
+      return
+    }
+    
+    try {
+      await onNext(scheduleData)
+    } catch (error) {
+      console.error('Error submitting schedule:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-gray-500 bg-opacity-30 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-800">Schedule Post</h2>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Information Banner - Show only when days are selected */}
+          {hasSelectedDays && <ScheduleInfoBanner startDate={startDate} />}
+
+          {/* Frequency of Posting */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Frequency of Posting
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowFrequencyDropdown(!showFrequencyDropdown)}
+                className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-left transition-colors duration-200 flex items-center justify-between cursor-pointer"
+              >
+                <span className="text-gray-800">{frequency}</span>
+                <svg
+                  className={`w-4 h-4 transition-transform duration-200 ${showFrequencyDropdown ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showFrequencyDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+                  {frequencyOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        setFrequency(option)
+                        setShowFrequencyDropdown(false)
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between text-gray-800 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    >
+                      <span>{option}</span>
+                      {frequency === option && (
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Select Date & Time for each post */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                {frequency === 'Daily' 
+                  ? `Select Time for Daily Posts`
+                  : `Select Date & Time for each post (${posts.length} ${posts.length === 1 ? 'post' : 'posts'})`
+                }
+              </h3>
+              <div className="w-full h-px bg-gray-200"></div>
+            </div>
+
+            {posts.map((post, index) => (
+              <div key={index} className={`grid gap-4 ${
+                frequency === 'Daily' 
+                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
+                  : posts.length > 4 
+                    ? 'grid-cols-1 lg:grid-cols-2' 
+                    : 'grid-cols-1 sm:grid-cols-2'
+              }`}>
+                {frequency !== 'Daily' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Day {index + 1}
+                    </label>
+                    <div className="relative">
+                      {(frequency === 'Once a Week' || frequency === 'Twice a Week' || frequency === 'Three Times a Week') ? (
+                        <select
+                          value={post.day}
+                          onChange={(e) => handlePostChange(index, 'day', e.target.value)}
+                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                            getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
+                          }`}
+                        >
+                          <option value="">Select Day</option>
+                          {dayOptions.map((day) => {
+                            // Check if this day is already selected in other fields
+                            const isDaySelected = posts.some((otherPost, otherIndex) => 
+                              otherIndex !== index && otherPost.day === day
+                            )
+                            
+                            return (
+                              <option 
+                                key={day} 
+                                value={day}
+                                disabled={isDaySelected}
+                                style={{ 
+                                  color: isDaySelected ? '#9CA3AF' : 'inherit',
+                                  backgroundColor: isDaySelected ? '#F3F4F6' : 'inherit'
+                                }}
+                              >
+                                {day} {isDaySelected ? '(Already selected)' : ''}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      ) : (
+                        <input
+                          type="date"
+                          value={post.date}
+                          onChange={(e) => handlePostChange(index, 'date', e.target.value)}
+                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                            getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
+                          }`}
+                          style={{
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'textfield'
+                          }}
+                          placeholder="Select Date"
+                        />
+                      )}
+                    </div>
+                    {post.day && post.date && (
+                      <p className="text-blue-600 text-sm font-medium">
+                        📅 Scheduled for: {new Date(post.date).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                    )}
+                    {getFieldError(`day_${index}`) && (
+                      <p className="text-red-500 text-sm flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        {getFieldError(`day_${index}`)}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {frequency === 'Daily' ? `Time for Day ${index + 1}` : `Time ${index + 1}`}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={post.time}
+                      onChange={(e) => handlePostChange(index, 'time', e.target.value)}
+                      className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                        getFieldError(`time_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
+                      }`}
+                      style={{
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'textfield'
+                      }}
+                      placeholder="Select Time"
+                    />
+                  </div>
+                  {getFieldError(`time_${index}`) && (
+                    <p className="text-red-500 text-sm flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {getFieldError(`time_${index}`)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-200">
+          {hasErrors && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-2 text-red-700 text-sm mb-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>Please fix the errors above before proceeding</span>
+              </div>
+              <div className="text-red-600 text-xs">
+                {getValidationSummary().fieldErrors.slice(0, 3).map((error, idx) => (
+                  <div key={idx} className="flex items-center gap-1">
+                    <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                    <span>{error}</span>
+                  </div>
+                ))}
+                {getValidationSummary().totalErrors > 3 && (
+                  <div className="text-red-500 text-xs mt-1">
+                    +{getValidationSummary().totalErrors - 3} more error{getValidationSummary().totalErrors - 3 > 1 ? 's' : ''}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <SubmitButton
+            isLoading={isSubmitting}
+            disabled={!isFormComplete({ frequency, posts }) || hasErrors}
+            loadingText="Validating..."
+            buttonText="Next"
+            onClick={handleNext}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

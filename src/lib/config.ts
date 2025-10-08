@@ -1,9 +1,9 @@
 // Backend API Configuration
 export const API_CONFIG = {
   // Express Backend URL
-  // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
-  BACKEND_URL: 'https://backend.edgeairealty.com',
-  
+  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
+  // BACKEND_URL: 'http://localhost:4000',
+  // BACKEND_URL: 'http://192.168.1.60:4000',
   // https://backend-pi-ten-23.vercel.app
   // http://localhost:4000
   // http://192.168.1.72:4000
@@ -41,6 +41,8 @@ export const API_CONFIG = {
       // DOWNLOAD_PROXY: '/api/video/download-proxy',
       GENERATE: '/api/video/generate-video',
       PENDING_WORKFLOWS: '/api/video/pending-workflows',
+      USER_SETTINGS: '/api/video/user-settings',
+      
       // CREATE_VIDEO: '/api/video/create',
     },
     
@@ -55,12 +57,20 @@ export const API_CONFIG = {
       CREATE_PHOTO_AVATAR: '/api/video/photo-avatar',
     },
 
+    // User settings endpoints
+    USER_SETTINGS: '/api/user-settings/user-settings',
+
     // SocialBu endpoints
     SOCIALBU: {
-      ACCOUNTS_PUBLIC: '/api/socialbu/accounts/public',
+      ACCOUNTS_PUBLIC: '/api/socialbu/accounts',
       ACCOUNT_DELETE: '/api/socialbu-account',
       ACCOUNTS_CONNECT: '/api/socialbu/accounts/connect',
       MEDIA_CREATE_POST: '/api/socialbu-media/create-post',
+    },
+    
+    // Video Schedule endpoints
+    VIDEO_SCHEDULE: {
+      SCHEDULE: '/api/video-schedule/schedule',
     },
     
     // Webhook endpoints
@@ -124,6 +134,10 @@ export const getAuthenticatedHeaders = (): Record<string, string> => {
   } else {
     console.warn('No access token found in localStorage');
   }
+  
+  // Automatically detect and add timezone header
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  headers['x-timezone'] = userTimezone;
   
   return headers;
 };

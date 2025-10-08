@@ -110,6 +110,7 @@ export interface CreatePhotoAvatarResponse {
 export interface Trend {
   description: string;
   keypoints: string;
+  postdescription: string;
 }
 
 export interface RealEstateTrendsData {
