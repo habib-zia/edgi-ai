@@ -27,6 +27,14 @@ type VideoCard = {
     format?: string
   }
   error?: string
+  socialMediaCaptions?: {
+    instagram_caption?: string
+    facebook_caption?: string
+    linkedin_caption?: string
+    twitter_caption?: string
+    tiktok_caption?: string
+    youtube_caption?: string
+  }
 }
 
 interface PreviousVideosGalleryProps {
@@ -39,7 +47,16 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false)
   const [selectedAccountsForPost, setSelectedAccountsForPost] = useState<any[]>([])
   const [selectedVideoForCreation, setSelectedVideoForCreation] = useState<string>('')
-  const [selectedVideoData, setSelectedVideoData] = useState<{ title: string; youtubeUrl: string; thumbnail: string, videoUrl: string } | null>(null)
+  const [selectedVideoData, setSelectedVideoData] = useState<{
+    title: string; youtubeUrl: string; thumbnail: string, videoUrl: string, socialMediaCaptions: {
+      instagram_caption?: string
+      facebook_caption?: string
+      linkedin_caption?: string
+      twitter_caption?: string
+      tiktok_caption?: string
+      youtube_caption?: string
+    }
+  } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
@@ -54,12 +71,12 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const currentUser = useSelector((state: RootState) => state.user.user)
 
   // Get unified socket context
-  const { 
+  const {
     latestVideoUpdate
   } = useUnifiedSocketContext()
 
   // Persistent loading state - derived from socket updates instead of local state
-  const isVideoProcessing = latestVideoUpdate && 
+  const isVideoProcessing = latestVideoUpdate &&
     (latestVideoUpdate.status === 'processing' || latestVideoUpdate.status === 'pending')
 
   // Store fetchVideos in ref to avoid dependency issues
@@ -87,7 +104,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
             videoUrl: video.videoUrl,
             downloadUrl: video.downloadUrl
           })
-          
+
           return {
             ...video,
             // Keep the original videoUrl from API, don't override with downloadUrl
@@ -124,16 +141,16 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
     const { status } = latestVideoUpdate
     console.log('🎬 Gallery received video update:', { status, message: latestVideoUpdate.message })
-      
-      if (status === 'completed' || status === 'success') {
-        console.log('🎬 Video completed successfully, refreshing gallery...')
-        // Use a ref to avoid dependency on fetchVideos
-        const timeoutId = setTimeout(() => {
-          fetchVideosRef.current?.()
-        }, 1000)
-        
-        return () => clearTimeout(timeoutId)
-      }
+
+    if (status === 'completed' || status === 'success') {
+      console.log('🎬 Video completed successfully, refreshing gallery...')
+      // Use a ref to avoid dependency on fetchVideos
+      const timeoutId = setTimeout(() => {
+        fetchVideosRef.current?.()
+      }, 1000)
+
+      return () => clearTimeout(timeoutId)
+    }
   }, [latestVideoUpdate, currentUser])
 
   const handleViewVideo = (video: VideoCard) => {
@@ -152,7 +169,11 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       title: video.title,
       videoUrl: video.videoUrl || '',
       youtubeUrl: video.downloadUrl, // Use the S3 download URL for viewing
-      thumbnail: '' // No thumbnail needed
+      thumbnail: '' ,// No thumbnail needed
+      socialMediaCaptions:
+        typeof video.socialMediaCaptions === 'string'
+          ? JSON.parse(video.socialMediaCaptions)
+          : video.socialMediaCaptions || {}
     })
     setIsCreateModalOpen(true)
   }
@@ -168,7 +189,11 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       title: video.title,
       videoUrl: video.videoUrl || '',
       youtubeUrl: video.downloadUrl || '',
-      thumbnail: ''
+      thumbnail: '',
+      socialMediaCaptions:
+        typeof video.socialMediaCaptions === 'string'
+          ? JSON.parse(video.socialMediaCaptions)
+          : video.socialMediaCaptions || {}
     })
     setIsConnectAccountsModalOpen(true)
   }
@@ -200,8 +225,8 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       message: latestVideoUpdate?.message || 'Your video creation is in progress'
     } : null
 
-    console.log('🔄 Recalculating filteredAndSortedVideos:', { 
-      isVideoProcessing, 
+    console.log('🔄 Recalculating filteredAndSortedVideos:', {
+      isVideoProcessing,
       loadingCardData
     })
 
@@ -500,17 +525,6 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                     >
                       Post Video
                     </button>
-                    {/* <button
-                      onClick={() => handleViewVideo(video)}
-                      disabled={video.status !== 'ready'}
-                      className={`flex-1 py-[3px] px-4 rounded-full font-semibold text-[16px] transition-colors duration-300 flex items-center justify-center gap-2 group/btn cursor-pointer ${
-                        video.status === 'ready'
-                      ? 'bg-transparent text-[#5046E5] hover:bg-[#5046E5] hover:text-white border-2 border-[#5046E5]'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-300'
-                      }`}
-                    >
-                      Create Video on same Title
-                    </button> */}
                   </div>
                 )}
               </div>
@@ -572,7 +586,8 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
             url: selectedVideoData.youtubeUrl,
             thumbnail: selectedVideoData.thumbnail,
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            socialMediaCaptions: selectedVideoData.socialMediaCaptions,
           }}
         />
       )}

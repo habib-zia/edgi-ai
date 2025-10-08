@@ -13,6 +13,7 @@ export const useCreatePost = ({
   selectedAccounts, 
   video 
 }: CreatePostModalProps) => {
+  console.log("video", JSON?.stringify(video))
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [caption] = useState('')
@@ -118,10 +119,22 @@ export const useCreatePost = ({
 
     try {
       // Format time to include seconds
-      const formattedTime = time.includes(':') && time.split(':').length === 2 
+      // const formattedTime = time.includes(':') && time.split(':').length === 2 
+      //   ? `${time}:00` 
+      //   : time
+        const formattedTime = time.includes(':') && time.split(':').length === 2 
         ? `${time}:00` 
-        : time
-
+        : time;
+      
+      // Combine with today's date (local)
+      const localDate = new Date();
+      const [hours, minutes, seconds] = formattedTime.split(':').map(Number);
+      localDate.setHours(hours, minutes, seconds || 0, 0);
+      
+      // Convert to UTC ISO string
+      const utcTime = localDate.toISOString();
+      
+      console.log("UTC Time:", utcTime);
       const requestBody = {
         accountIds: selectedAccountIds,
         name: video.title || '',
@@ -131,12 +144,12 @@ export const useCreatePost = ({
         caption: 'Caption',
         userId: userId,
         selectedAccounts: selectedAccounts.filter(account => selectedAccountIds.includes(account.id)),
-        instagram_caption: "Explore the booming suburbs 🏘️ #SuburbanLife #RealEstateTrends 🌳",
-        facebook_caption: "The suburban home market is booming like never before. See why people are choosing suburbs over cities.",
-        linkedin_caption: "Unprecedented growth in the suburban home market. A shift towards a balanced lifestyle and affordability.",
-        twitter_caption: "Suburbs are the new cities. #SuburbanBoom #RealEstateTrends",
-        tiktok_caption: "Ditch the city, join the suburbs! 🏡 #TikTokSuburbs",
-        youtube_caption: "Discover why the suburban real estate market is experiencing rapid growth. Embrace the new American dream."
+        instagram_caption: video.socialMediaCaptions?.instagram_caption || '',
+        facebook_caption: video.socialMediaCaptions?.facebook_caption || '',
+        linkedin_caption: video.socialMediaCaptions?.linkedin_caption || '',
+        twitter_caption: video.socialMediaCaptions?.twitter_caption || '',
+        tiktok_caption: video.socialMediaCaptions?.tiktok_caption || '',
+        youtube_caption: video.socialMediaCaptions?.youtube_caption || ''
       }
 
       const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.SOCIALBU.MEDIA_CREATE_POST), {
