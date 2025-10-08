@@ -14,7 +14,6 @@ export default function CreatePostModal({
   video 
 }: CreatePostModalProps) {
   const {
-    // State
     date,
     setDate,
     time,
@@ -22,13 +21,9 @@ export default function CreatePostModal({
     selectedAccountIds,
     matchedSelectedAccounts,
     isSubmitting,
-    apiResponse,
-    showResponse,
     validationErrors,
     minDate,
     minTime,
-    
-    // Handlers
     handleAccountToggle,
     handleSubmit,
     handleClose

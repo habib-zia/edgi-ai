@@ -32,6 +32,14 @@ export interface VideoData {
   thumbnail?: string
   createdAt: string
   updatedAt: string
+  socialMediaCaptions?: {
+    instagram_caption?: string
+    facebook_caption?: string
+    linkedin_caption?: string
+    twitter_caption?: string
+    tiktok_caption?: string
+    youtube_caption?: string
+  }
 }
 
 export interface PostData {
