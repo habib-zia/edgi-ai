@@ -227,7 +227,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   useEffect(() => {
     fetchAvatars()
     fetchTrends()
-  }, [fetchAvatars, fetchTrends])
+  }, [])
 
 
   // Auto-refresh avatars when WebSocket notification shows avatar is ready
