@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react'
 import { X, AlertCircle } from 'lucide-react'
-import { useScheduleValidation, type ScheduleData } from '@/hooks/useScheduleValidation'
+import { useScheduleValidation } from '@/hooks/useScheduleValidation'
+import { type ScheduleData } from '@/types/post-types'
 import ScheduleInfoBanner from './schedule-info-banner'
 import SubmitButton from './submit-button'
 
@@ -81,26 +82,41 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
       case 'Three Times a Week':
         return 3
       case 'Daily':
-        return 7
+        return 1
       default:
         return 1
     }
+  }
+  const setDailyTime = () => {
+    const existingPost = posts[0] || { day: '', date: '', time: '' }
+    const newPosts = [{
+      day: '', // No day needed for Daily
+      date: '', // No date needed for Daily
+      time: existingPost.time || ''
+    }]
+    setPosts(newPosts)
   }
 
   // Update posts array when frequency changes
   React.useEffect(() => {
     const newPostCount = getPostCount(frequency)
-    const newPosts = Array.from({ length: newPostCount }, (_, index) => 
-      posts[index] || { day: '', date: '', time: '' }
-    )
-    setPosts(newPosts)
+    
+    if (frequency === 'Daily') {
+      if (posts.length !== 1) {
+        setDailyTime()
+      }
+    } else {
+      const newPosts = Array.from({ length: newPostCount }, (_, index) => 
+        posts[index] || { day: '', date: '', time: '' }
+      )
+      setPosts(newPosts)
+    }
   }, [frequency])
 
   const handlePostChange = (index: number, field: 'day' | 'date' | 'time', value: string) => {
     const newPosts = [...posts]
     newPosts[index][field] = value
     
-    // If day is selected, calculate the date for next week
     if (field === 'day' && value) {
       const dayIndex = dayOptions.indexOf(value)
       if (dayIndex !== -1) {
@@ -108,12 +124,9 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
         const currentDay = today.getDay() // 0 = Sunday, 1 = Monday, etc.
         const targetDay = dayIndex === 6 ? 0 : dayIndex + 1 // Convert to Sunday = 0 format
         
-        // Always calculate for next week (add 7 days minimum)
         let daysUntilTarget = targetDay - currentDay
-        if (daysUntilTarget <= 0) {
+        if (daysUntilTarget < 0) {
           daysUntilTarget += 7 // Next week
-        } else {
-          daysUntilTarget += 7 // Always next week, not this week
         }
         
         const targetDate = new Date(today)
@@ -123,6 +136,25 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
       }
     }
     
+    if (frequency === 'Daily' && field === 'day') {
+      newPosts.forEach((post, idx) => {
+        if (post.day) {
+          const dayIndex = dayOptions.indexOf(post.day)
+          if (dayIndex !== -1) {
+            const today = new Date()
+            const currentDay = today.getDay()
+            const targetDay = dayIndex === 6 ? 0 : dayIndex + 1
+            let daysUntilTarget = targetDay - currentDay
+            if (daysUntilTarget < 0) {
+              daysUntilTarget += 7
+            }
+            const targetDate = new Date(today)
+            targetDate.setDate(today.getDate() + daysUntilTarget)
+            newPosts[idx].date = targetDate.toISOString().split('T')[0]
+          }
+        }
+      })
+    }
     // If a day is cleared, also clear the date
     if (field === 'day' && !value) {
       newPosts[index].date = ''
@@ -155,7 +187,9 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
     
     const scheduleData: ScheduleData = {
       frequency,
-      posts: posts.filter(post => (post.day || post.date) && post.time)
+      posts: frequency === 'Daily' 
+        ? posts.filter(post => post.time && post.time.trim() !== '')
+        : posts.filter(post => (post.day || post.date) && post.time)
     }
     
     const validation = validateScheduleData(scheduleData)
@@ -245,7 +279,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext }: ScheduleP
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-3">
                 {frequency === 'Daily' 
-                  ? `Select Time for each day of the week (${posts.length} days)`
+                  ? `Select Time for Daily Posts`
                   : `Select Date & Time for each post (${posts.length} ${posts.length === 1 ? 'post' : 'posts'})`
                 }
               </h3>

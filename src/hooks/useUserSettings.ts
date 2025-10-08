@@ -220,16 +220,6 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         email: userSettingsData.email
       }
       
-      console.log('🔍 Sending user settings payload:', {
-        original_payload: userSettingsData,
-        clean_payload: cleanPayload,
-        avatar_field: cleanPayload.avatar,
-        avatar_type: typeof cleanPayload.avatar,
-        avatar_is_array: Array.isArray(cleanPayload.avatar),
-        avatar_length: cleanPayload.avatar.length,
-        stringified: JSON.stringify(cleanPayload)
-      })
-      
       const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.USER_SETTINGS), {
         method: 'POST',
         headers: getAuthenticatedHeaders(),

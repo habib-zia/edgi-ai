@@ -135,6 +135,10 @@ export const getAuthenticatedHeaders = (): Record<string, string> => {
     console.warn('No access token found in localStorage');
   }
   
+  // Automatically detect and add timezone header
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  headers['x-timezone'] = userTimezone;
+  
   return headers;
 };
 

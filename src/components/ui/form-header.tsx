@@ -64,27 +64,28 @@ export default function FormHeader({ title, onSchedulePost, userEmail, isSchedul
       {hasUserSettings && onToggleScheduleMode && (
         <div className="flex items-center gap-3">
           <span className="text-[#5046E5] font-bold" style={{ fontSize: '20px' }}>Schedule Post</span>
-          <button
-            type="button"
-            onClick={onToggleScheduleMode}
-            className="relative inline-flex items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:ring-offset-2"
-            style={{
-              height: '31px',
-              width: '56px',
-              background: isScheduleMode ? '#5046E5' : '#E5E7EB',
-              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <span
-              className={`inline-block rounded-full bg-white transition-transform duration-200 ease-in-out ${isScheduleMode ? 'translate-x-6.5' : 'translate-x-1'
-                }`}
-              style={{
-                height: '27px',
-                width: '27px',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-              }}
-            />
-          </button>
+          <label className='flex cursor-pointer select-none items-center'>
+            <div className='relative'>
+              <input
+                type='checkbox'
+                checked={isScheduleMode}
+                onChange={onToggleScheduleMode}
+                className='sr-only'
+              />
+              <div 
+                className='block h-8 w-14 rounded-full transition-colors'
+                style={{
+                  backgroundColor: isScheduleMode ? '#5046E5' : '#E5E7EB'
+                }}
+              ></div>
+              <div 
+                className='dot absolute left-1 top-1 h-6 w-6 rounded-full bg-white transition'
+                style={{
+                  transform: isScheduleMode ? 'translateX(24px)' : 'translateX(0px)'
+                }}
+              ></div>
+            </div>
+          </label>
         </div>
       )}
     </div>

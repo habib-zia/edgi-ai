@@ -1016,10 +1016,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       <ConnectAccountsModal
         isOpen={showConnectAccountsModal}
         onClose={() => setShowConnectAccountsModal(false)}
-        onNext={() => {
-          setShowConnectAccountsModal(false)
-          // TODO: Implement final schedule post functionality
-        }}
+        onNext={() => {setShowConnectAccountsModal(false)}}
         buttonText="Schedule Post"
         scheduleData={scheduleData}
         onCreatePost={(accounts, video) => {

@@ -60,7 +60,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
         // Transform schedule data to match API format
         const times = scheduleData.posts.map((post: any) => post.time)
         const days = scheduleData.posts.map((post: any) => post.day)
-        const startDate = new Date().toISOString()
+        const startDate = new Date().toISOString().split('T')[0] // Format: YYYY-MM-DD
         
         // Map frequency to API format
         const getFrequencyMapping = (frequency: string) => {
@@ -83,13 +83,11 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
         const requestBody = {
           frequency: getFrequencyMapping(scheduleData.frequency),
           schedule: {
-            days: days,
+            days: scheduleData.frequency === 'Daily' ? [] : days,
             times: times
           },
           startDate: startDate
         }
-        
-        console.log('Sending schedule request:', requestBody)
         
         const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.VIDEO_SCHEDULE.SCHEDULE), {
           method: 'POST',
@@ -97,31 +95,55 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
           body: JSON.stringify(requestBody)
         })
         
-        const responseData = await response.json()
-        setApiResponse(responseData)
-        
-        if (response.ok && responseData.success) {
-          console.log('Schedule created successfully:', responseData)
+        if (response.ok) {
+          const responseData = await response.json()
+          setApiResponse(responseData)
           
-          if ((window as any).showNotification) {
-            (window as any).showNotification({
-              type: 'success',
-              title: 'Schedule Created Successfully',
-              message: 'Your video schedule has been created successfully!',
-              duration: 5000
-            })
+          if (responseData.success) {
+            console.log('Schedule created successfully:', responseData)
+            
+            if ((window as any).showNotification) {
+              (window as any).showNotification({
+                type: 'success',
+                title: 'Schedule Created Successfully',
+                message: 'Your video schedule has been created successfully!',
+                duration: 5000
+              })
+            }
+            
+            // Close modal after successful schedule creation
+            onClose()
+          } else {
+            console.error('Schedule API Error:', responseData)
+            const errorMessage = responseData.error || responseData.message || 'Failed to create schedule'
+            
+            if ((window as any).showNotification) {
+              (window as any).showNotification({
+                type: 'error',
+                title: 'Schedule Failed',
+                message: errorMessage,
+                duration: 8000
+              })
+            }
+          }
+        } else {
+          // Handle CORS and other HTTP errors
+          let errorMessage = 'Failed to create schedule. Please try again.'
+          
+          if (response.status === 0) {
+            errorMessage = 'CORS Error: Unable to connect to the server. Please check if the backend is running and CORS is configured properly.'
+          } else if (response.status === 404) {
+            errorMessage = 'API endpoint not found. Please check the server configuration.'
+          } else if (response.status === 500) {
+            errorMessage = 'Server error. Please try again later.'
           }
           
-          // Close modal after successful schedule creation
-          onClose()
-        } else {
-          console.error('Schedule API Error:', responseData)
-          const errorMessage = responseData.error || responseData.message || 'Failed to create schedule'
+          setApiResponse({ success: false, message: errorMessage })
           
           if ((window as any).showNotification) {
             (window as any).showNotification({
               type: 'error',
-              title: 'Schedule Failed',
+              title: 'Connection Error',
               message: errorMessage,
               duration: 8000
             })

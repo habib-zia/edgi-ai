@@ -19,13 +19,26 @@ export const useScheduleValidation = () => {
 
     // Validate posts based on frequency
     const expectedPostCount = getExpectedPostCount(scheduleData.frequency)
-    const validPosts = scheduleData.posts.filter(post => (post.day || post.date) && post.time)
+
+    let validPosts
+    if (scheduleData.frequency === 'Daily') {
+      validPosts = scheduleData.posts.filter(post => post.time && post.time.trim() !== '')
+    } else {
+      validPosts = scheduleData.posts.filter(post => (post.day || post.date) && post.time)
+    }
 
     if (validPosts.length === 0) {
-      errors.push({
-        field: 'posts',
-        message: 'Please select at least one day/date and time'
-      })
+      if (scheduleData.frequency === 'Daily') {
+        errors.push({
+          field: 'posts',
+          message: 'Please select at least one time'
+        })
+      } else {
+        errors.push({
+          field: 'posts',
+          message: 'Please select at least one day/date and time'
+        })
+      }
     } else if (scheduleData.frequency !== 'Custom' && validPosts.length < expectedPostCount) {
       errors.push({
         field: 'posts',
@@ -37,28 +50,29 @@ export const useScheduleValidation = () => {
     scheduleData.posts.forEach((post, index) => {
       const postNumber = index + 1
       
-      // Check if day/date is selected but time is missing
-      if ((post.day || post.date) && (!post.time || post.time.trim() === '')) {
-        errors.push({
-          field: `time_${index}`,
-          message: `Please select a time for Day ${postNumber}`
-        })
-      }
-      
-      // Check if time is selected but day/date is missing (except for Daily frequency)
-      if (post.time && post.time.trim() !== '' && !post.day && !post.date && scheduleData.frequency !== 'Daily') {
-        errors.push({
-          field: `day_${index}`,
-          message: `Please select a day or date for Time ${postNumber}`
-        })
-      }
-      
-      // For Daily frequency, check if time is missing
-      if (scheduleData.frequency === 'Daily' && (!post.time || post.time.trim() === '')) {
-        errors.push({
-          field: `time_${index}`,
-          message: `Please select a time for Day ${postNumber}`
-        })
+      // For Daily frequency, only validate time
+      if (scheduleData.frequency === 'Daily') {
+        if (!post.time || post.time.trim() === '') {
+          errors.push({
+            field: `time_${index}`,
+            message: `Please select a time for Day ${postNumber}`
+          })
+        }
+      } else {
+        // For non-Daily frequencies, validate both day/date and time
+        if ((post.day || post.date) && (!post.time || post.time.trim() === '')) {
+          errors.push({
+            field: `time_${index}`,
+            message: `Please select a time for Day ${postNumber}`
+          })
+        }
+        
+        if (post.time && post.time.trim() !== '' && !post.day && !post.date) {
+          errors.push({
+            field: `day_${index}`,
+            message: `Please select a day or date for Time ${postNumber}`
+          })
+        }
       }
       
       // For non-Daily frequencies, check if day is missing
@@ -141,7 +155,7 @@ export const useScheduleValidation = () => {
       case 'Three Times a Week':
         return 3
       case 'Daily':
-        return 7
+        return 1
       default:
         return 2
     }
