@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { AlertCircle } from 'lucide-react'
-import { UseFormRegister, FieldErrors } from 'react-hook-form'
+import { UseFormRegister, FieldErrors, FieldError } from 'react-hook-form'
 
 interface FormInputProps {
   field: string
@@ -23,7 +23,7 @@ export default function FormInput({
   errors,
   disabled = false
 }: FormInputProps) {
-  const hasError = errors[field]
+  const error = errors[field] as FieldError | undefined
 
   return (
     <div className="relative">
@@ -33,18 +33,23 @@ export default function FormInput({
         placeholder={placeholder}
         autoComplete={autoComplete}
         disabled={disabled}
-        aria-describedby={hasError ? `${field}-error` : undefined}
-        aria-invalid={hasError ? 'true' : 'false'}
-        className={`w-full px-4 py-[10.5px] text-[18px] font-normal placeholder:text-[#11101066] border-0 rounded-[8px] text-gray-800 transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white bg-[#EEEEEE] hover:bg-[#F5F5F5]
-        ${hasError ? 'ring-2 ring-red-500' : ''}     ${disabled
-            ? 'bg-gray-100 text-gray-600 cursor-not-allowed'
-            : 'bg-[#EEEEEE] hover:bg-[#F5F5F5]'
-          } `}
+        aria-describedby={error ? `${field}-error` : undefined}
+        aria-invalid={error ? 'true' : 'false'}
+        className={`w-full px-4 py-[10.5px] text-[18px] font-normal placeholder:text-[#11101066] border-0 rounded-[8px] text-gray-800 transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white
+        ${error ? 'ring-2 ring-red-500' : ''}
+        ${disabled
+          ? 'bg-gray-100 text-gray-600 cursor-not-allowed'
+          : 'bg-[#EEEEEE] hover:bg-[#F5F5F5]'
+        }`}
       />
-      {hasError && (
-        <p id={`${field}-error`} className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+      {error?.message && (
+        <p
+          id={`${field}-error`}
+          className="text-red-500 text-sm mt-1 flex items-center gap-1"
+          role="alert"
+        >
           <AlertCircle className="w-4 h-4" />
-          {hasError.message}
+          {typeof error.message === 'string' ? error.message : String(error.message)}
         </p>
       )}
     </div>
