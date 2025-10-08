@@ -202,7 +202,7 @@ const connectPlatform = useCallback(async (platformId: string) => {
       body: JSON.stringify({
         provider: provider,
         user_id: userId, // This should come from user data
-        postback_url: "https://6bcb17162993.ngrok-free.app/api/webhook/socialbu"
+        postback_url: `${API_CONFIG.BACKEND_URL}/api/webhook/socialbu`
       })
     })
 
