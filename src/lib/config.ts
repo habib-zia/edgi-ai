@@ -2,8 +2,8 @@
 export const API_CONFIG = {
   // Express Backend URL
   // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
-  // BACKEND_URL: 'https://backend.edgeairealty.com',
-  BACKEND_URL: 'http://192.168.1.60:4000',
+  BACKEND_URL: 'https://backend.edgeairealty.com',
+  // BACKEND_URL: 'http://192.168.1.60:4000',
   
   // HeyGen API Configuration
   HEYGEN_API_URL: 'https://api.heygen.com',
