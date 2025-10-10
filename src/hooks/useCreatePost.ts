@@ -140,7 +140,7 @@ export const useCreatePost = ({
         name: video.title || '',
         videoUrl: video.videoUrl || video.url || '',
         date: date,
-        time: formattedTime,
+        time: utcTime,
         caption: 'Caption',
         userId: userId,
         selectedAccounts: selectedAccounts.filter(account => selectedAccountIds.includes(account.id)),
