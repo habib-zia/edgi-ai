@@ -109,6 +109,10 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
     }
   };
 
+  const handleCustomVideoClickTest =  () => {
+    setIsAvatarModalOpen(true);
+  };
+
   const handleDefaultAvatarClick = async () => {
     if (user?.id) {
       // Check payment status before allowing video creation
@@ -259,7 +263,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
             Have More Questions? See our FAQ
           </Link> */}
           <button 
-            onClick={handleCustomAvatarClick}
+            onClick={handleCustomVideoClickTest}
             className="inline-flex md:w-fit w-full items-center gap-3 bg-transparent border-2 border-[#5046E5] text-[#5046E5] hover:bg-[#5046E5] hover:text-white py-[7.4px] rounded-full text-[20px] font-semibold transition-colors duration-300 group md:max-w-[192px] max-w-full text-center justify-center px-4"
           >
             Custom Avatar

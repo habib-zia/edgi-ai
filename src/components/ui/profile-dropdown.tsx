@@ -133,6 +133,11 @@ export default function ProfileDropdown({ isMobile = false, onClose }: ProfileDr
       isLogout: false
     },
     {
+      label: 'Report Analytics',
+      href: '/report-analytics',
+      isLogout: false
+    },
+    {
       label: 'Logout',
       href: '#',
       isLogout: true

@@ -9,6 +9,16 @@ export const NAVIGATION_ITEMS = [
   { label: "Contact", href: "#contact" },
 ];
 
+export const NAVIGATION_ITEMS_MOBILE = [
+  { label: "Getting Started", href: "#getting-started" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Benefits", href: "#benefits" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
+  { label: "Contact", href: "#contact" },
+  { label: "Report Analytics", href: "/report-analytics" },
+];
+
 export const BREAKPOINTS = {
   sm: "640px",
   md: "768px",

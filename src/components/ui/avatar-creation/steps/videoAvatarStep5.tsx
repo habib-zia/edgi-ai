@@ -20,15 +20,16 @@ interface AvatarData {
   avatarType: 'digital-twin' | 'photo-avatar' | null
 }
 
-interface Step8DetailsProps {
+interface VideoAvatarStep5Props {
   onBack: () => void
   avatarData: AvatarData
   setAvatarData: (data: AvatarData) => void
-  onSkipBackToUpload?: () => void // Add optional prop to skip back to upload step
-  onClose?: () => void // Add optional prop to close the modal
+  onSkipBackToUpload?: () => void
+  onClose?: () => void
+  onShowToast?: (message: string, type: 'success' | 'error' | 'info') => void
 }
 
-export default function Step8Details({ onBack, avatarData, setAvatarData, onSkipBackToUpload, onClose }: Step8DetailsProps) {
+export default function VideoAvatarStep5({ onBack, avatarData, setAvatarData, onSkipBackToUpload, onClose, onShowToast }: VideoAvatarStep5Props) {
   const { user } = useSelector((state: RootState) => state.user)
   const { clearAvatarUpdates } = useUnifiedSocketContext()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -36,6 +37,8 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
   const [errors, setErrors] = useState<Partial<Record<keyof AvatarData | 'terms' | 'general', string>>>({})
   const [showErrors, setShowErrors] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationStatus, setGenerationStatus] = useState<string>('')
 
   const ageOptions = [
     { value: '18-24', label: '18-24' },
@@ -67,7 +70,6 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
 
   const handleInputChange = (field: keyof AvatarData, value: string) => {
     setAvatarData({ ...avatarData, [field]: value })
-    // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors({ ...errors, [field]: undefined })
     }
@@ -177,9 +179,14 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
         return
       }
 
-      // Check if photo is uploaded
-      if (!avatarData.photoFiles || avatarData.photoFiles.length === 0) {
-        setErrors({ ...errors, general: 'Please upload a photo first' })
+      // Check if both videos are uploaded
+      if (!avatarData.videoFile) {
+        setErrors({ ...errors, general: 'Please upload a training video first' })
+        return
+      }
+
+      if (!avatarData.consentVideoFile) {
+        setErrors({ ...errors, general: 'Please record a consent video first' })
         return
       }
 
@@ -190,31 +197,79 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
       clearAvatarUpdates() // Clear any previous notifications
 
       try {
-        // Create FormData for API call
-        const formData = new FormData()
-        formData.append('image', avatarData.photoFiles[0]) // First (and only) photo
-        formData.append('name', avatarData.name)
-        formData.append('age_group', avatarData.age)
-        formData.append('gender', avatarData.gender.toLowerCase())
-        formData.append('ethnicity', avatarData.ethnicity.toLowerCase())
-        formData.append('userId', user.id)
+        console.log('🎬 Creating video avatar with HeyGen API')
+        console.log('📹 Training video file:', avatarData.videoFile)
+        console.log('📹 Consent video file:', avatarData.consentVideoFile)
+        console.log('👤 Avatar name:', avatarData.name)
         
-        // Call API
-        const result = await apiService.createPhotoAvatar(formData)
+        // Call HeyGen API with actual File objects
+        const result = await apiService.createVideoAvatar(
+          avatarData.videoFile,
+          avatarData.consentVideoFile,
+          avatarData.name
+        )
         
         if (result.success) {
-          // Close modal immediately - WebSocket will handle progress notifications
-          if (onClose) {
-            onClose()
+          // Store the avatar_id for status checking
+          console.log('✅ Video avatar created successfully:', result.data)
+          const avatarId = result.data?.avatar_id
+          if (!avatarId) {
+            setErrors({ ...errors, general: 'No avatar ID received from server' })
+            return
+          }
+          console.log('🆔 Avatar ID:', avatarId)
+          
+          // Start polling for avatar status
+          console.log('🔄 Starting status polling...')
+          setIsGenerating(true)
+          setGenerationStatus('Avatar generation started...')
+          
+          const statusResult = await apiService.pollVideoAvatarStatus(
+            avatarId,
+            (status, data) => {
+              console.log(`📊 Status update: ${status}`, data)
+              // Update UI with status and show notifications for all statuses
+              if (status === 'in_progress') {
+                setGenerationStatus('Generating your avatar... This may take a few minutes.')
+                // Show processing notification (non-dismissible)
+                if (onShowToast) {
+                  onShowToast('Avatar is being generated... Please wait', 'info')
+                }
+              } else if (status === 'completed') {
+                setGenerationStatus('Avatar generation completed!')
+                // Show success notification
+                if (onShowToast) {
+                  onShowToast('Avatar generated successfully!', 'success')
+                }
+              } else if (status === 'failed') {
+                setGenerationStatus('Avatar generation failed.')
+                // Show error notification
+                if (onShowToast) {
+                  onShowToast('Avatar generation failed. Please try again.', 'error')
+                }
+              }
+            }
+          )
+          
+          if (statusResult.success) {
+            console.log('🎉 Avatar generation completed!', statusResult.data)
+            // Close modal on success
+            if (onClose) {
+              onClose()
+            }
+          } else {
+            console.error('❌ Avatar generation failed:', statusResult.message)
+            setErrors({ ...errors, general: statusResult.message || 'Avatar generation failed' })
           }
         } else {
-          setErrors({ ...errors, general: result.message || 'Failed to create avatar' })
+          setErrors({ ...errors, general: result.message || 'Failed to create video avatar' })
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to create avatar'
         setErrors({ ...errors, general: errorMessage })
       } finally {
         setIsCreating(false)
+        setIsGenerating(false)
       }
     } else {
       // Scroll to top to show errors
@@ -241,6 +296,7 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
         <p className="text-[18px] font-normal text-[#5F5F5F]">
         Now, let&apos;s add some details to bring your avatar to life.
         </p>
+        
       </div>
 
       {/* General Error Message */}
@@ -248,6 +304,14 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
         <div className="px-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-red-700 text-sm">{errors.general}</p>
+        </div>
+      )}
+
+      {/* Generation Status Message */}
+      {isGenerating && generationStatus && (
+        <div className="px-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+          <p className="text-blue-700 text-sm">{generationStatus}</p>
         </div>
       )}
 
@@ -354,13 +418,18 @@ export default function Step8Details({ onBack, avatarData, setAvatarData, onSkip
         </button>
         <button
           onClick={handleCreate}
-          disabled={isCreating}
-          className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 cursor-pointer w-full bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5] ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isCreating || isGenerating}
+          className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 cursor-pointer w-full bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5] ${(isCreating || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isCreating ? (
             <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               Creating Avatar...
+            </div>
+          ) : isGenerating ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Generating...
             </div>
           ) : (
             'Create'
