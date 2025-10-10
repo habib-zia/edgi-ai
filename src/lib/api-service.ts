@@ -509,6 +509,35 @@ class ApiService {
     }
   }
 
+  // Schedule Methods
+  async getSchedule(): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>('/api/video-schedule/schedule', {
+        method: 'GET',
+      }, true);
+      console.log('Schedule API Response:', JSON?.stringify(response))
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get schedule data';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async deleteSchedule(scheduleId: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>(`${API_CONFIG.ENDPOINTS.VIDEO_SCHEDULE.DELETE}/${scheduleId}`, {
+        method: 'DELETE',
+      }, true);
+      console.log('Delete Schedule API Response:', JSON?.stringify(response))
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete schedule';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
   async createPhotoAvatar(formData: FormData): Promise<ApiResponse<CreatePhotoAvatarResponse>> {
     try {
       console.log('🔧 API Service - createPhotoAvatar called')

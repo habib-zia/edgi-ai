@@ -71,6 +71,7 @@ export const API_CONFIG = {
     // Video Schedule endpoints
     VIDEO_SCHEDULE: {
       SCHEDULE: '/api/video-schedule/schedule',
+      DELETE: '/api/schedule',
     },
     
     // Webhook endpoints
