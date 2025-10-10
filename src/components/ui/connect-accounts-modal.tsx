@@ -15,9 +15,10 @@ interface ConnectAccountsModalProps {
   video?: VideoData
   scheduleData?: any
   onCreatePost?: (accounts: ConnectedAccount[], video: VideoData) => void
+  onScheduleCreated?: () => void
 }
 
-export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, scheduleData, onCreatePost, buttonText='Next' }: ConnectAccountsModalProps) {
+export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, scheduleData, onCreatePost, onScheduleCreated, buttonText='Next' }: ConnectAccountsModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiResponse, setApiResponse] = useState<any>(null)
   
@@ -109,6 +110,11 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
                 message: 'Your video schedule has been created successfully!',
                 duration: 5000
               })
+            }
+            
+            // Call the callback to refresh schedule data
+            if (onScheduleCreated) {
+              onScheduleCreated()
             }
             
             // Close modal after successful schedule creation

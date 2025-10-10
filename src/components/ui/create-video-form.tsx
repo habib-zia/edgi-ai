@@ -85,7 +85,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const { user } = useSelector((state: RootState) => state.user)
   const searchParams = useSearchParams()
   const { latestAvatarUpdate } = useUnifiedSocketContext()
-  const { saveSelectedAvatars, getSelectedAvatars } = useAvatarStorage()
+  const { saveSelectedAvatars } = useAvatarStorage()
   const { checkVideoUsageLimit } = useSubscription()
 
   const [showSuccessToast] = useState(false)
@@ -117,8 +117,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [trends, setTrends] = useState<Trend[]>([])
   const [trendsLoading, setTrendsLoading] = useState(false)
   const [trendsError, setTrendsError] = useState<string | null>(null)
-  
-  // Ensure trends is always an array to prevent .find() errors
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [autoScheduleData, setAutoScheduleData] = useState<any>(null);
   const safeTrends = Array.isArray(trends) ? trends : []
 
   // Drag and drop state
@@ -160,16 +160,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setTrendsLoading(true)
       setTrendsError(null)
       const response = await apiService.getRealEstateTrends()
-      
-      console.log('Trends API Response:', response) // Debug log
-      
       if (response.success && response.data) {
         // Extract trends array from response.data.trends
         const trendsData = response.data.trends || []
-        console.log('Trends Data:', trendsData) // Debug log
         
         if (Array.isArray(trendsData)) {
-          console.log('Setting trends:', trendsData) // Debug log
           setTrends(trendsData)
           setTrendsError(null)
         } else {
@@ -223,28 +218,41 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [])
 
-  // Fetch avatars and real estate trends when component mounts
+  // Fetch schedule data function
+  const fetchSchedule = useCallback(async () => {
+    try {
+      setScheduleLoading(true)
+      const response = await apiService.getSchedule()
+      if (response.success && response.data) {
+        setAutoScheduleData(response.data)
+      } else {
+        setAutoScheduleData(null)
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching schedule data:', error)
+      setAutoScheduleData(null)
+    } finally {
+      setScheduleLoading(false)
+    }
+  }, [])
+
+  // Fetch avatars, trends, and schedule when component mounts
   useEffect(() => {
     fetchAvatars()
     fetchTrends()
-  }, [])
+    fetchSchedule()
+  }, [fetchSchedule])
 
 
   // Auto-refresh avatars when WebSocket notification shows avatar is ready
   useEffect(() => {
     if (latestAvatarUpdate) {
-      console.log('🔔 Latest avatar update received:', latestAvatarUpdate)
-
-      // Check if this is an avatar completion notification
       const isAvatarComplete = (latestAvatarUpdate.step === 'complete' || latestAvatarUpdate.step === 'ready') &&
         latestAvatarUpdate.status === 'success' &&
         (latestAvatarUpdate.data?.message?.toLowerCase().includes('avatar') ||
           latestAvatarUpdate.data?.message?.toLowerCase().includes('ready'))
 
       if (isAvatarComplete) {
-        console.log('🔄 Avatar ready notification detected, refreshing avatar list...')
-        console.log('📋 Avatar update details:', latestAvatarUpdate)
-        // Small delay to ensure backend has updated the avatar status
         setTimeout(() => {
           fetchAvatars()
         }, 1000)
@@ -476,7 +484,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }, [videoTopicValue, topicKeyPointsValue])
 
   // User settings hook
-  const { loadingUserSettings, savingUserSettings, fetchUserSettings, saveUserSettings } = useUserSettings({
+  const { fetchUserSettings, saveUserSettings } = useUserSettings({
     userEmail: user?.email,
     avatars,
     setSelectedAvatars,
@@ -500,7 +508,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings])
 
   // Check if all data is loaded
-  const isDataLoading = avatarsLoading || autoFilling || !isFormReady
+  const isDataLoading = avatarsLoading || scheduleLoading || autoFilling || !isFormReady
 
   // Toggle schedule mode
   const handleToggleScheduleMode = () => {
@@ -827,7 +835,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   return (
     <div className={`w-full max-w-[1260px] mx-auto ${className} relative`}>
       <FormLoadingOverlay
-        avatarsLoading={avatarsLoading}
+        avatarsLoading={isDataLoading}
         autoFilling={autoFilling}
         isFormReady={isFormReady}
         hasUserEmail={!!user?.email}
@@ -853,7 +861,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         </div>
       )}
         {isScheduleMode ? (
-          <ScheduleInterface onStartScheduling={() => setShowScheduleModal(true)} />
+          <ScheduleInterface 
+            onStartScheduling={() => setShowScheduleModal(true)} 
+            autoScheduleData={autoScheduleData}
+            onScheduleDeleted={fetchSchedule}
+          />
         ) : (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
         {error && (
@@ -1023,6 +1035,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           setShowConnectAccountsModal(false)
           // TODO: Implement post creation with schedule data
         }}
+        onScheduleCreated={fetchSchedule}
       />
     </div>
   )
