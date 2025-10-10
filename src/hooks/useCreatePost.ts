@@ -134,13 +134,13 @@ export const useCreatePost = ({
       // Convert to UTC ISO string
       const utcTime = localDate.toISOString();
       
-      console.log("UTC Time:", utcTime);
+      const timeOnly = utcTime.split('T')[1].split('.')[0];
       const requestBody = {
         accountIds: selectedAccountIds,
         name: video.title || '',
         videoUrl: video.videoUrl || video.url || '',
         date: date,
-        time: utcTime,
+        time: timeOnly,
         caption: 'Caption',
         userId: userId,
         selectedAccounts: selectedAccounts.filter(account => selectedAccountIds.includes(account.id)),
