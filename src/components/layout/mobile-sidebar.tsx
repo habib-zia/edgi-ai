@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAVIGATION_ITEMS, BRAND_NAME, ANIMATIONS } from "@/lib/constants";
+import { NAVIGATION_ITEMS, NAVIGATION_ITEMS_MOBILE, BRAND_NAME, ANIMATIONS } from "@/lib/constants";
 import { cn, handleAnchorClick } from "@/lib/utils";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { useActiveSection } from "@/hooks/use-active-section";
@@ -224,7 +224,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               </div>
               
               {/* Home Page Navigation Items */}
-              {NAVIGATION_ITEMS.map((item, index) => {
+              {NAVIGATION_ITEMS_MOBILE.map((item, index) => {
                 const sectionId = item.href.substring(1); // Remove the # from href
                 const isActive = isHomePage && activeSection === sectionId;
                 return (
@@ -298,6 +298,22 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   </Link>
                 );
               })}
+
+              {/* <Link
+                href="/report-analytics"
+                onClick={() => {
+                  onClose();
+                  trackNavigation(pathname, "/report-analytics", "click");
+                }}
+                className={cn(
+                  "group relative flex items-center px-4 py-4 ml-12 text-base font-medium rounded-2xl transition-all duration-500 ease-out overflow-hidden focus:outline-none",
+                  pathname === "/report-analytics"
+                    ? "bg-gradient-to-r from-[#5046E5] to-[#3A2DFD] text-white"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-100/90"
+                )}
+              >
+                Report Analytics
+              </Link> */}
 
               {/* Account Navigation Items - Only show when logged in */}
               {isAuthenticated && (

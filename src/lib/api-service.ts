@@ -1,4 +1,4 @@
-import { getApiUrl, getAuthHeaders, getAuthenticatedHeaders, ensureTokenStored, API_CONFIG } from './config';
+import { getApiUrl, getAuthHeaders, getAuthenticatedHeaders, ensureTokenStored, API_CONFIG, getHeyGenApiUrl, getHeyGenHeaders } from './config';
 // API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -104,6 +104,28 @@ export interface CreatePhotoAvatarRequest {
 export interface CreatePhotoAvatarResponse {
   success: boolean;
   message: string;
+}
+
+// Video Avatar Types
+export interface CreateVideoAvatarRequest {
+  training_footage_url: string;
+  video_consent_url: string;
+  avatar_name: string;
+  avatar_group_id?: string;
+  callback_id?: string;
+  callback_url?: string;
+}
+
+export interface CreateVideoAvatarResponse {
+  avatar_id: string;
+  avatar_group_id: string;
+}
+
+export interface VideoAvatarStatusResponse {
+  avatar_id: string;
+  status: 'in_progress' | 'completed' | 'failed';
+  avatar_group_id: string;
+  error?: string;
 }
 
 // Trends Types
@@ -560,6 +582,228 @@ class ApiService {
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
+  }
+
+  // Helper function to convert File to URL for HeyGen API
+  private async fileToUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async createVideoAvatar(
+    trainingVideoFile: File, 
+    consentVideoFile: File, 
+    avatarName: string
+  ): Promise<ApiResponse<CreateVideoAvatarResponse>> {
+    try {
+      console.log('🔧 Creating video avatar with HeyGen API');
+      console.log('📹 Training video:', trainingVideoFile.name, `(${(trainingVideoFile.size / (1024 * 1024)).toFixed(2)} MB)`);
+      console.log('📹 Consent video:', consentVideoFile.name, `(${(consentVideoFile.size / (1024 * 1024)).toFixed(2)} MB)`);
+      console.log('👤 Avatar name:', avatarName);
+
+      // Convert files to data URLs
+      const [trainingFootageUrl, videoConsentUrl] = await Promise.all([
+        this.fileToUrl(trainingVideoFile),
+        this.fileToUrl(consentVideoFile)
+      ]);
+
+      const requestData = {
+        training_footage_url: trainingFootageUrl,
+        video_consent_url: videoConsentUrl,
+        avatar_name: avatarName
+      };
+
+      const url = getHeyGenApiUrl(API_CONFIG.ENDPOINTS.VIDEO_AVATAR.CREATE);
+      const headers = getHeyGenHeaders();
+
+      console.log('🌐 HeyGen API URL:', url);
+      console.log('📤 Request data:', { ...requestData, training_footage_url: '[DATA_URL]', video_consent_url: '[DATA_URL]' });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          this.showNotification(errorData.message || 'Failed to create video avatar', 'error');
+          return { 
+            success: false, 
+            message: errorData.message || 'Failed to create video avatar', 
+            error: errorData.message,
+            status: response.status 
+          };
+        } catch {
+          this.showNotification(errorText || 'Failed to create video avatar', 'error');
+          return { 
+            success: false, 
+            message: errorText || 'Failed to create video avatar', 
+            error: errorText,
+            status: response.status 
+          };
+        }
+      }
+
+      const result = await response.json();
+      console.log('✅ Video avatar created successfully:', result);
+      
+      return {
+        success: true,
+        message: 'Video avatar created successfully',
+        data: result
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create video avatar';
+      console.error('❌ Error creating video avatar:', error);
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async getVideoAvatarStatus(id: string): Promise<ApiResponse<VideoAvatarStatusResponse>> {
+    try {
+      console.log('🔍 Checking video avatar status for ID:', id);
+      
+      const url = getHeyGenApiUrl(`${API_CONFIG.ENDPOINTS.VIDEO_AVATAR.STATUS}/${id}`);
+      const headers = getHeyGenHeaders();
+
+      console.log('🌐 HeyGen Status API URL:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          this.showNotification(errorData.message || 'Failed to get video avatar status', 'error');
+          return { 
+            success: false, 
+            message: errorData.message || 'Failed to get video avatar status', 
+            error: errorData.message,
+            status: response.status 
+          };
+        } catch {
+          this.showNotification(errorText || 'Failed to get video avatar status', 'error');
+          return { 
+            success: false, 
+            message: errorText || 'Failed to get video avatar status', 
+            error: errorText,
+            status: response.status 
+          };
+        }
+      }
+
+      const result = await response.json();
+      console.log('✅ Video avatar status retrieved:', result);
+      
+      return {
+        success: true,
+        message: 'Video avatar status retrieved successfully',
+        data: result
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get video avatar status';
+      console.error('❌ Error getting video avatar status:', error);
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  // Poll video avatar status until completion or failure
+  async pollVideoAvatarStatus(
+    avatarId: string, 
+    onStatusUpdate?: (status: string, data: any) => void,
+    maxAttempts: number = 60, // 5 minutes with 5-second intervals
+    intervalMs: number = 5000
+  ): Promise<ApiResponse<VideoAvatarStatusResponse>> {
+    console.log('🔄 Starting status polling for avatar ID:', avatarId);
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        console.log(`📊 Polling attempt ${attempt}/${maxAttempts}`);
+        
+        const statusResponse = await this.getVideoAvatarStatus(avatarId);
+        
+        if (!statusResponse.success) {
+          console.error('❌ Status check failed:', statusResponse.message);
+          return statusResponse;
+        }
+
+        const statusData = statusResponse.data;
+        if (!statusData) {
+          console.error('❌ No status data received');
+          return {
+            success: false,
+            message: 'No status data received from server',
+            error: 'No data'
+          };
+        }
+        
+        const status = statusData.status;
+        
+        console.log(`📈 Current status: ${status}`);
+        
+        // Notify about status update
+        if (onStatusUpdate) {
+          onStatusUpdate(status, statusData);
+        }
+
+        // Check if avatar generation is complete
+        if (status === 'completed') {
+          console.log('✅ Avatar generation completed successfully!');
+          return statusResponse;
+        }
+        
+        // Check if avatar generation failed
+        if (status === 'failed') {
+          console.error('❌ Avatar generation failed:', statusData.error);
+          return {
+            success: false,
+            message: statusData.error || 'Avatar generation failed',
+            error: statusData.error,
+            data: statusData
+          };
+        }
+
+        // If still in progress, wait before next attempt
+        if (status === 'in_progress') {
+          console.log(`⏳ Avatar still processing... waiting ${intervalMs}ms before next check`);
+          await new Promise(resolve => setTimeout(resolve, intervalMs));
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error in polling attempt ${attempt}:`, error);
+        if (attempt === maxAttempts) {
+          return {
+            success: false,
+            message: 'Failed to check avatar status after maximum attempts',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          };
+        }
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+
+    // If we reach here, we've exceeded max attempts
+    console.warn('⚠️ Maximum polling attempts reached');
+    return {
+      success: false,
+      message: 'Avatar generation is taking longer than expected. Please check back later.',
+      error: 'Timeout'
+    };
   }
 
   // Contact Form

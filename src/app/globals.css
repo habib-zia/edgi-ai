@@ -200,3 +200,16 @@ button{
    }
 }
 
+.recharts-surface:focus{
+  outline: none !important;
+}
+
+fieldset.MuiPickersOutlinedInput-notchedOutline.css-lqwr9g-MuiPickersOutlinedInput-notchedOutline{
+  border: none !important;
+}
+.css-1y4gq5a-MuiPickersSectionList-root-MuiPickersInputBase-sectionsContainer-MuiPickersOutlinedInput-sectionsContainer{
+  padding: 12px 0px !important;
+}
+.css-1fb7els-MuiPickersSectionList-root-MuiPickersInputBase-sectionsContainer-MuiPickersOutlinedInput-sectionsContainer{
+  padding: 12px 0px !important;
+}

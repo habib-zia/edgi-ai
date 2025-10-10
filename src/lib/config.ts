@@ -1,9 +1,14 @@
 // Backend API Configuration
 export const API_CONFIG = {
   // Express Backend URL
-  BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
-  // BACKEND_URL: 'http://localhost:4000',
-  // BACKEND_URL: 'http://192.168.1.60:4000',
+  // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
+  // BACKEND_URL: 'https://backend.edgeairealty.com',
+  BACKEND_URL: 'http://192.168.1.60:4000',
+  
+  // HeyGen API Configuration
+  HEYGEN_API_URL: 'https://api.heygen.com',
+  HEYGEN_API_KEY: 'ZjNmMWU2YTE5MTAzNDQ5MWJhN2E0ZjNiZWQxN2MwOGQtMTcxNzQ0MDQ3Mw==',
+  
   // https://backend-pi-ten-23.vercel.app
   // http://localhost:4000
   // http://192.168.1.72:4000
@@ -45,7 +50,7 @@ export const API_CONFIG = {
       
       // CREATE_VIDEO: '/api/video/create',
     },
-    
+    USER_SETTINGS: '/api/user-settings/user-settings',
     // Trends endpoints
     TRENDS: {
       REAL_ESTATE: '/api/trends/real-estate',
@@ -56,9 +61,12 @@ export const API_CONFIG = {
       GET_AVATARS: '/api/video/avatars',
       CREATE_PHOTO_AVATAR: '/api/video/photo-avatar',
     },
-
-    // User settings endpoints
-    USER_SETTINGS: '/api/user-settings/user-settings',
+    
+    // Video Avatar endpoints (HeyGen API)
+    VIDEO_AVATAR: {
+      CREATE: '/v2/video_avatar',
+      STATUS: '/v2/video_avatar', // Will be appended with /{id} in the method
+    },
 
     // SocialBu endpoints
     SOCIALBU: {
@@ -115,6 +123,11 @@ export const getApiUrl = (endpoint: string): string => {
   return `${API_CONFIG.BACKEND_URL}${endpoint}`;
 };
 
+// Helper function to get HeyGen API URL
+export const getHeyGenApiUrl = (endpoint: string): string => {
+  return `${API_CONFIG.HEYGEN_API_URL}${endpoint}`;
+};
+
 // Helper function to get auth headers
 export const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {
@@ -150,4 +163,12 @@ export const ensureTokenStored = (): boolean => {
     return false;
   }
   return true;
+};
+
+// Helper function to get HeyGen API headers
+export const getHeyGenHeaders = (): Record<string, string> => {
+  return {
+    'x-api-key': API_CONFIG.HEYGEN_API_KEY,
+    'Content-Type': 'application/json',
+  };
 };
