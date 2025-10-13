@@ -1,31 +1,102 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "./DatePicker";
 import TimePicker from "./TimePicker";
-import VideoTopicDropdown from "./VideoTopicDropdown";
 import CaptionsTextarea from "./CaptionsTextarea";
 import CaptionsDropdown from "./CaptionsDropdown";
 
 interface EditPostModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: (formData: any) => Promise<void>;
   postData?: {
+    id: string;
+    index: number;
+    scheduleId: string;
+    description: string;
+    keypoints: string;
+    scheduledFor: string;
+    status: string;
+    captions: {
+      instagram: string;
+      facebook: string;
+      linkedin: string;
+      twitter: string;
+      tiktok: string;
+      youtube: string;
+    };
+    scheduledForLocal: string;
+    platform: string;
     date: string;
     time: string;
     videoTopic: string;
-    captions: string;
-    platform: string;
   };
 }
 
-export default function EditPostModal({ isOpen, onClose, postData }: EditPostModalProps) {
+export default function EditPostModal({ isOpen, onClose, onEdit, postData }: EditPostModalProps) {
   const [formData, setFormData] = useState({
     date: postData?.date || "",
     time: postData?.time || "",
     videoTopic: postData?.videoTopic || "",
     captions: postData?.captions || "",
-    platform: postData?.platform || "Youtube"
+    platform: postData?.platform || "Youtube",
+    // Platform-specific captions
+    instagram: typeof postData?.captions === 'object' && postData?.captions !== null ? postData.captions.instagram || "" : "",
+    facebook: typeof postData?.captions === 'object' && postData?.captions !== null ? postData.captions.facebook || "" : "",
+    linkedin: typeof postData?.captions === 'object' && postData?.captions !== null ? postData.captions.linkedin || "" : "",
+    twitter: typeof postData?.captions === 'object' && postData?.captions !== null ? postData.captions.twitter || "" : "",
+    tiktok: typeof postData?.captions === 'object' && postData?.captions !== null ? postData.captions.tiktok || "" : "",
+    youtube: typeof postData?.captions === 'object' && postData?.captions !== null ? postData.captions.youtube || "" : "",
+    // Additional post data
+    id: postData?.id || "",
+    index: postData?.index || 0,
+    keypoints: postData?.keypoints || ""
   });
+
+  // Update formData when postData changes
+  useEffect(() => {
+    if (postData) {
+      setFormData({
+        date: postData.date || "",
+        time: postData.time || "",
+        videoTopic: postData.videoTopic || "",
+        captions: postData.captions || "",
+        platform: postData.platform || "Youtube",
+        // Platform-specific captions
+        instagram: typeof postData.captions === 'object' ? postData.captions?.instagram || "" : "",
+        facebook: typeof postData.captions === 'object' ? postData.captions?.facebook || "" : "",
+        linkedin: typeof postData.captions === 'object' ? postData.captions?.linkedin || "" : "",
+        twitter: typeof postData.captions === 'object' ? postData.captions?.twitter || "" : "",
+        tiktok: typeof postData.captions === 'object' ? postData.captions?.tiktok || "" : "",
+        youtube: typeof postData.captions === 'object' ? postData.captions?.youtube || "" : "",
+        // Additional post data
+        id: postData.id || "",
+        index: postData.index || 0,
+        keypoints: postData.keypoints || ""
+      });
+    }
+  }, [postData]);
+
+  // Get current caption based on selected platform
+  const getCurrentCaption = () => {
+    const platform = formData.platform.toLowerCase();
+    switch (platform) {
+      case 'instagram':
+        return formData.instagram;
+      case 'facebook':
+        return formData.facebook;
+      case 'linkedin':
+        return formData.linkedin;
+      case 'twitter':
+        return formData.twitter;
+      case 'tiktok':
+        return formData.tiktok;
+      case 'youtube':
+        return formData.youtube;
+      default:
+        return typeof formData.captions === 'string' ? formData.captions : '';
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -34,11 +105,41 @@ export default function EditPostModal({ isOpen, onClose, postData }: EditPostMod
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCaptionChange = (value: string) => {
+    const platform = formData.platform.toLowerCase();
+    setFormData(prev => ({
+      ...prev,
+      [platform]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log("Updated post data:", formData);
-    onClose();
+    
+    // Prepare the data in the format expected by handleEdit
+    const updateData = {
+      description: formData.videoTopic,
+      keypoints: formData.keypoints || '',
+      captions: {
+        instagram: formData.instagram || '',
+        facebook: formData.facebook || '',
+        linkedin: formData.linkedin || '',
+        twitter: formData.twitter || '',
+        tiktok: formData.tiktok || '',
+        youtube: formData.youtube || ''
+      },
+      scheduledFor: `${formData.date.split('T')[0]} ${formData.time}:00` // Combine date and time
+    };
+    if (onEdit) {
+      try {
+        await onEdit(updateData);
+        onClose();
+      } catch (error) {
+        console.error('Error updating post:', error);
+      }
+    } else {
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -75,8 +176,6 @@ export default function EditPostModal({ isOpen, onClose, postData }: EditPostMod
                   placeholder="Select Date"
                 />
               </div>
-
-              {/* Time Field */}
               <div>
                 <label className="block text-base font-normal text-[#5F5F5F] mb-[2px]">Time</label>
                 <TimePicker
@@ -86,18 +185,18 @@ export default function EditPostModal({ isOpen, onClose, postData }: EditPostMod
                 />
               </div>
             </div>
-
-            {/* Video Topic Field */}
-            <div>
-              <label className="block text-base font-normal text-[#5F5F5F] mb-[2px]">
-                Video Topic <span className="text-red-500">*</span>
-              </label>
-              <VideoTopicDropdown
-                value={formData.videoTopic}
-                onChange={(value) => handleInputChange('videoTopic', value)}
-                placeholder="Please Specify"
-              />
-            </div>
+              <div>
+                <label className="block text-base font-normal text-[#5F5F5F] mb-[2px]">
+                  Video Topic <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.videoTopic}
+                  onChange={(e) => handleInputChange('videoTopic', e.target.value)}
+                  placeholder="Please Specify"
+                  className="w-full bg-[#EEEEEE] rounded-[7px] px-3 py-2 text-sm font-medium text-[#282828] placeholder-[#858999] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#5046E5] focus:border-transparent transition-all"
+                />
+              </div>
 
             {/* Captions Field */}
             <div>
@@ -109,8 +208,8 @@ export default function EditPostModal({ isOpen, onClose, postData }: EditPostMod
                 />
               </div>
               <CaptionsTextarea
-                value={formData.captions}
-                onChange={(value) => handleInputChange('captions', value)}
+                value={getCurrentCaption()}
+                onChange={handleCaptionChange}
                 placeholder="Enter Caption"
               />
             </div>

@@ -84,21 +84,7 @@ export const useScheduleValidation = () => {
       }
     })
 
-    // Validate date logic (dates should be in the future)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    validPosts.forEach((post, index) => {
-      if (post.date) {
-        const selectedDate = new Date(post.date)
-        if (selectedDate < today) {
-          errors.push({
-            field: `day_${index}`,
-            message: `Date for Day ${index + 1} must be in the future`
-          })
-        }
-      }
-    })
+    // Date validation removed - allow past dates to hit the API
 
     // Enhanced time validation
     validPosts.forEach((post, index) => {

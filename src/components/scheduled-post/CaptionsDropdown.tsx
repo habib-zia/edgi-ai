@@ -75,6 +75,20 @@ const platforms = [
     icon: <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M19.582 6.191C19.582 6.191 19.4303 4.675 18.8333 4.07833C18.0953 3.27333 17.316 3.264 16.916 3.205C14.1023 3 10.0047 3 10.0047 3H9.99533C9.99533 3 5.89767 3 3.084 3.205C2.684 3.264 1.90467 3.27333 1.16667 4.07833C0.569667 4.675 0.418 6.191 0.418 6.191C0.418 6.191 0.25 8.16333 0.25 10.1357V12.0083C0.25 13.9807 0.418 15.953 0.418 15.953C0.418 15.953 0.569667 17.469 1.16667 18.0657C1.90467 18.8707 2.88467 18.859 3.33333 18.929C5.41667 19.1357 10 19.1667 10 19.1667C10 19.1667 14.1023 19.1667 16.916 18.9617C17.316 18.9027 18.0953 18.8933 18.8333 18.0883C19.4303 17.4917 19.582 15.9757 19.582 15.9757C19.582 15.9757 19.75 14.0033 19.75 12.0307V10.1583C19.75 8.18567 19.582 6.21333 19.582 6.191ZM8.08333 13.75V7.41667L13.1667 10.5833L8.08333 13.75Z" fill="#FF0000"/>
     </svg>
+  },
+  { 
+    name: "LinkedIn", 
+    color: "#0077B5", 
+    icon: <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18.5195 0H1.47656C0.660156 0 0 0.644531 0 1.44141V18.5547C0 19.3516 0.660156 20 1.47656 20H18.5195C19.3398 20 20 19.3516 20 18.5547V1.44141C20 0.644531 19.3398 0 18.5195 0ZM5.93359 17.043H2.96484V7.49609H5.93359V17.043ZM4.44922 6.19531C3.49609 6.19531 2.72656 5.42578 2.72656 4.47266C2.72656 3.51953 3.49609 2.75 4.44922 2.75C5.40234 2.75 6.17188 3.51953 6.17188 4.47266C6.17188 5.42188 5.40234 6.19531 4.44922 6.19531ZM17.043 17.043H14.0781V12.4023C14.0781 11.2969 14.0586 9.87109 12.5352 9.87109C10.9922 9.87109 10.7578 11.0781 10.7578 12.3203V17.043H7.79688V7.49609H10.6406V8.80078H10.6797C11.0742 8.05078 12.043 7.25781 13.4844 7.25781C16.4883 7.25781 17.043 9.23438 17.043 11.8047V17.043Z" fill="#0077B5"/>
+    </svg>
+  },
+  { 
+    name: "TikTok", 
+    color: "#000000", 
+    icon: <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.69V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z" fill="#000000"/>
+    </svg>
   }
 ];
 
@@ -104,7 +118,7 @@ export default function CaptionsDropdown({ value, onChange }: CaptionsDropdownPr
   const selectedPlatform = platforms.find(p => p.name === value) || platforms[0];
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-[100]" ref={dropdownRef}>
       <div 
         className="flex items-center gap-2 px-3 py-2 bg-[#EEEEEE] rounded-[7px] cursor-pointer hover:bg-gray-200 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
@@ -127,7 +141,11 @@ export default function CaptionsDropdown({ value, onChange }: CaptionsDropdownPr
       
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 bg-white border border-[#F1F1F4] rounded-lg shadow-lg z-10 min-w-[160px]">
+        <div className="fixed bg-white border border-[#F1F1F4] rounded-lg shadow-lg z-[9999] min-w-[160px]" 
+             style={{
+               top: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().bottom + 8 : 0,
+               right: dropdownRef.current ? window.innerWidth - dropdownRef.current.getBoundingClientRect().right : 0
+             }}>
           {platforms.map((platform) => (
             <div
               key={platform.name}

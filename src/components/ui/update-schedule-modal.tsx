@@ -7,11 +7,18 @@ import { type ScheduleData } from '@/types/post-types'
 import ScheduleInfoBanner from './schedule-info-banner'
 import SubmitButton from './submit-button'
 
-interface SchedulePostModalProps {
+interface UpdateScheduleModalProps {
   isOpen: boolean
   onClose: () => void
-  onNext: (scheduleData: ScheduleData) => void
-  title?: string
+  onUpdate: (scheduleData: ScheduleData) => void
+  existingScheduleData?: {
+    frequency: string
+    schedule: {
+      days: string[]
+      times: string[]
+    }
+    startDate: string
+  }
 }
 
 const frequencyOptions = [
@@ -31,11 +38,11 @@ const dayOptions = [
   'Sunday'
 ]
 
-export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Schedule Post" }: SchedulePostModalProps) {
+export default function UpdateScheduleModal({ isOpen, onClose, onUpdate, existingScheduleData }: UpdateScheduleModalProps) {
   const [frequency, setFrequency] = useState('Twice a Week')
   const [posts, setPosts] = useState([
-    { day: '', date: '', time: '', _isNextWeek: false },
-    { day: '', date: '', time: '', _isNextWeek: false }
+    { day: '', date: '', time: '' },
+    { day: '', date: '', time: '' }
   ])
   const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -67,6 +74,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     validateScheduleData, 
     clearValidationErrors, 
     getFieldError, 
+    validateField,
     isFormComplete,
     getValidationSummary,
     hasErrors 
@@ -88,16 +96,49 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     }
   }
   const setDailyTime = () => {
-    const existingPost = posts[0] || { day: '', date: '', time: '', _isNextWeek: false }
+    const existingPost = posts[0] || { day: '', date: '', time: '' }
     const newPosts = [{
       day: '', // No day needed for Daily
       date: '', // No date needed for Daily
-      time: existingPost.time || '',
-      _isNextWeek: false
+      time: existingPost.time || ''
     }]
     setPosts(newPosts)
   }
 
+  // Populate form data when modal opens with existing data
+  React.useEffect(() => {
+    if (existingScheduleData && isOpen) {
+      const { frequency: apiFrequency, schedule } = existingScheduleData;
+      
+      // Convert frequency from API format to display format
+      const displayFrequency = apiFrequency === "daily" ? "Daily" : 
+                              apiFrequency === "twice_week" ? "Twice a Week" : 
+                              apiFrequency === "once_week" ? "Once a Week" : 
+                              apiFrequency === "three_week" ? "Three Times a Week" : 
+                              apiFrequency === "weekly" ? "Once a Week" : "Twice a Week";
+      
+      setFrequency(displayFrequency);
+      
+      // Create posts array from existing data
+      if (apiFrequency === "daily") {
+        // For daily, use times array
+        const dailyPosts = schedule.times.map(time => ({
+          day: '',
+          date: '',
+          time: time
+        }));
+        setPosts(dailyPosts);
+      } else {
+        // For other frequencies, combine days and times
+        const posts = schedule.days.map((day, index) => ({
+          day: day,
+          date: '', // Will be calculated when day is set
+          time: schedule.times[index] || ""
+        }));
+        setPosts(posts);
+      }
+    }
+  }, [existingScheduleData, isOpen]);
 
   // Update posts array when frequency changes
   React.useEffect(() => {
@@ -109,13 +150,18 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
       }
     } else {
       const newPosts = Array.from({ length: newPostCount }, (_, index) => 
-        posts[index] || { day: '', date: '', time: '', _isNextWeek: false }
+        posts[index] || { day: '', date: '', time: '' }
       )
       setPosts(newPosts)
     }
-  }, [frequency, posts, setDailyTime])
+  }, [frequency])
 
   const handlePostChange = (index: number, field: 'day' | 'date' | 'time', value: string) => {
+    // Prevent day changes when frequency is Daily
+    if (field === 'day' && frequency === 'Daily') {
+      return;
+    }
+    
     const newPosts = [...posts]
     newPosts[index][field] = value
     
@@ -135,54 +181,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         targetDate.setDate(today.getDate() + daysUntilTarget)
         
         newPosts[index].date = targetDate.toISOString().split('T')[0]
-        
-        // Reset the next week flag when day changes
-        newPosts[index]._isNextWeek = false
-        
-        // Recalculate if time is already set
-        if (newPosts[index].time) {
-          const selectedDay = newPosts[index].day
-          const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1]
-          
-          if (selectedDay === currentDayName) {
-            const currentTime = new Date()
-            const [selectedHour, selectedMinute] = newPosts[index].time.split(':').map(Number)
-            const selectedTime = new Date()
-            selectedTime.setHours(selectedHour, selectedMinute, 0, 0)
-            
-            const minAllowedTime = new Date(currentTime.getTime() + 40 * 60 * 1000)
-            
-            if (selectedTime < minAllowedTime) {
-              newPosts[index]._isNextWeek = true
-            }
-          }
-        }
-      }
-    }
-    
-    // Check if user selects today and if time is valid
-    if (field === 'time' && value && newPosts[index].day) {
-      const selectedDay = newPosts[index].day
-      const today = new Date()
-      const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1] // Convert to our day format
-      
-      if (selectedDay === currentDayName) {
-        const currentTime = new Date()
-        const [selectedHour, selectedMinute] = value.split(':').map(Number)
-        const selectedTime = new Date()
-        selectedTime.setHours(selectedHour, selectedMinute, 0, 0)
-        
-        // Add 40 minutes to current time
-        const minAllowedTime = new Date(currentTime.getTime() + 40 * 60 * 1000)
-        
-        if (selectedTime < minAllowedTime) {
-          // Time is too soon, will be scheduled for next week
-          newPosts[index]._isNextWeek = true
-        } else {
-          newPosts[index]._isNextWeek = false
-        }
-      } else {
-        newPosts[index]._isNextWeek = false
       }
     }
     
@@ -205,10 +203,9 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         }
       })
     }
-    // If a day is cleared, also clear the date and reset next week flag
+    // If a day is cleared, also clear the date
     if (field === 'day' && !value) {
       newPosts[index].date = ''
-      newPosts[index]._isNextWeek = false
     }
     
     setPosts(newPosts)
@@ -223,8 +220,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     // Reset form data when closing
     setFrequency('Once a Week')
     setPosts([
-      { day: '', date: '', time: '', _isNextWeek: false },
-      { day: '', date: '', time: '', _isNextWeek: false }
+      { day: '', date: '', time: '' },
+      { day: '', date: '', time: '' }
     ])
     setShowFrequencyDropdown(false)
     setIsSubmitting(false)
@@ -232,7 +229,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     onClose()
   }
 
-  const handleNext = async () => {
+  const handleUpdate = async () => {
     setIsSubmitting(true)
     clearValidationErrors()
     
@@ -251,9 +248,9 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     }
     
     try {
-      await onNext(scheduleData)
+      await onUpdate(scheduleData)
     } catch (error) {
-      console.error('Error submitting schedule:', error)
+      console.error('Error updating schedule:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -266,7 +263,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Update Schedule</h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -311,6 +308,15 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                       onClick={() => {
                         setFrequency(option)
                         setShowFrequencyDropdown(false)
+                        
+                        // If Daily is selected, ensure day field is empty
+                        if (option === 'Daily') {
+                          const updatedPosts = posts.map(post => ({
+                            ...post,
+                            day: '' // Clear day field for Daily frequency
+                          }));
+                          setPosts(updatedPosts);
+                        }
                       }}
                       className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between text-gray-800 cursor-pointer border-b border-gray-100 last:border-b-0"
                     >
@@ -431,12 +437,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                       {getFieldError(`time_${index}`)}
                     </p>
                   )}
-                  {post._isNextWeek && (
-                    <p className="text-red-500 text-sm flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      This schedule will be applied next week
-                    </p>
-                  )}
                 </div>
               </div>
             ))}
@@ -470,9 +470,9 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
           <SubmitButton
             isLoading={isSubmitting}
             disabled={!isFormComplete({ frequency, posts }) || hasErrors}
-            loadingText="Validating..."
-            buttonText="Next"
-            onClick={handleNext}
+            loadingText="Updating..."
+            buttonText="Update Schedule"
+            onClick={handleUpdate}
           />
         </div>
       </div>

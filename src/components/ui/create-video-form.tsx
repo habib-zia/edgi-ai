@@ -19,6 +19,7 @@ import { Avatar, Trend } from '@/lib/api-service'
 import { useAvatarStorage, type SelectedAvatars } from '@/hooks/useAvatarStorage'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useUserSettings } from '@/hooks/useUserSettings'
+import { useSchedule } from '@/hooks/useSchedule'
 import TrendsDropdown from './trends-dropdown'
 import FormInput from './form-input'
 import FormHeader from './form-header'
@@ -117,8 +118,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [trends, setTrends] = useState<Trend[]>([])
   const [trendsLoading, setTrendsLoading] = useState(false)
   const [trendsError, setTrendsError] = useState<string | null>(null)
-  const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [autoScheduleData, setAutoScheduleData] = useState<any>(null);
+  // Use schedule hook
+  const { scheduleData: autoScheduleData, scheduleLoading, fetchSchedule } = useSchedule()
   const safeTrends = Array.isArray(trends) ? trends : []
 
   // Drag and drop state
@@ -218,23 +219,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [])
 
-  // Fetch schedule data function
-  const fetchSchedule = useCallback(async () => {
-    try {
-      setScheduleLoading(true)
-      const response = await apiService.getSchedule()
-      if (response.success && response.data) {
-        setAutoScheduleData(response.data)
-      } else {
-        setAutoScheduleData(null)
-      }
-    } catch (error: any) {
-      console.error('❌ Error fetching schedule data:', error)
-      setAutoScheduleData(null)
-    } finally {
-      setScheduleLoading(false)
-    }
-  }, [])
 
   // Fetch avatars, trends, and schedule when component mounts
   useEffect(() => {

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "./DatePicker";
 import FrequencyDropdown from "./FrequencyDropdown";
 import TimePicker from "./TimePicker";
@@ -8,6 +8,21 @@ import TimePicker from "./TimePicker";
 interface ModifyScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
+  scheduledPostsDurationData?: {
+    frequency: string;
+    schedule: {
+      days: string[];
+      times: string[];
+    };
+    startDate: string;
+    stats: {
+      completed: number;
+      pending: number;
+      processing: number;
+      total: number;
+    };
+    updatedAt: string;
+  };
 }
 
 interface ScheduleData {
@@ -18,7 +33,7 @@ interface ScheduleData {
   }>;
 }
 
-export default function ModifyScheduleModal({ isOpen, onClose }: ModifyScheduleModalProps) {
+export default function ModifyScheduleModal({ isOpen, onClose, scheduledPostsDurationData }: ModifyScheduleModalProps) {
   const [scheduleData, setScheduleData] = useState<ScheduleData>({
     frequency: "Twice a Week",
     posts: [
@@ -26,6 +41,29 @@ export default function ModifyScheduleModal({ isOpen, onClose }: ModifyScheduleM
       { day: "", time: "" }
     ]
   });
+
+  // Populate form data when modal opens with existing data
+  useEffect(() => {
+    if (scheduledPostsDurationData && isOpen) {
+      const { frequency, schedule } = scheduledPostsDurationData;
+      
+      // Convert frequency from API format to display format
+      const displayFrequency = frequency === "twice_week" ? "Twice a Week" : 
+                              frequency === "daily" ? "Daily" : 
+                              frequency === "weekly" ? "Weekly" : "Twice a Week";
+      
+      // Create posts array from days and times
+      const posts = schedule.days.map((day, index) => ({
+        day: day,
+        time: schedule.times[index] || ""
+      }));
+      
+      setScheduleData({
+        frequency: displayFrequency,
+        posts: posts
+      });
+    }
+  }, [scheduledPostsDurationData, isOpen]);
 
   const handleFrequencyChange = (frequency: string) => {
     setScheduleData(prev => ({
@@ -81,7 +119,7 @@ export default function ModifyScheduleModal({ isOpen, onClose }: ModifyScheduleM
             </svg>
 
               <p className="text-[#EF9943] md:text-lg text-base !font-tight leading-[140%] max-w-[90%]">
-                These posts will be scheduled for whole month and this schedule will starts from 13-Oct-2025
+                These posts will be scheduled for whole month and this schedule will starts from {scheduledPostsDurationData?.startDate ? new Date(scheduledPostsDurationData.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '13-Oct-2025'}
               </p>
             </div>
           </div>

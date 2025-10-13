@@ -47,9 +47,6 @@ const nextConfig: NextConfig = {
 
   poweredByHeader: false, // hide "x-powered-by"
   serverExternalPackages: ["dompurify"],
-  experimental: {
-    serverComponentsExternalPackages: ["dompurify"],
-  },
 };
 
 export default nextConfig;
