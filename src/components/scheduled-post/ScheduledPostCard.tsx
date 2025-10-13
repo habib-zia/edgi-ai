@@ -2,30 +2,83 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FaClock, FaChevronDown } from "react-icons/fa6";
 import EditPostModal from "./EditPostModal";
+import { apiService } from "@/lib/api-service";
 
 interface ScheduledPost {
-  id: number;
-  topic: string;
-  title: string;
-  caption: string;
-  platform: string;
-  date: string;
+  id: string;
+  index: number;
+  scheduleId: string;
+  description: string;
+  keypoints: string;
+  scheduledFor: string;
+  status: string;
+  captions: {
+    instagram: string;
+    facebook: string;
+    linkedin: string;
+    twitter: string;
+    tiktok: string;
+    youtube: string;
+  };
+  scheduledForLocal: string;
 }
 
 interface ScheduledPostCardProps {
   post: ScheduledPost;
+  scheduleId?: string;
+  onPostDeleted?: () => void;
+  onPostUpdated?: () => void;
 }
 
-export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
+export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onPostUpdated }: ScheduledPostCardProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState("Youtube");
-  const [caption, setCaption] = useState("");
+  const [selectedPlatform, setSelectedPlatform] = useState("Instagram");
+  const [platformCaptions, setPlatformCaptions] = useState<{[key: string]: string}>({});
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const platformOptions = ['Instagram', 'Facebook', 'Twitter'];
+  const platformOptions = ['Instagram', 'Facebook', 'LinkedIn', 'Twitter', 'TikTok', 'Youtube'];
 
-  // Function to get platform icon
+  const formatDate = (dateString: string) => {
+    if (!dateString) return dateString;
+    
+    try {
+      // Handle different date formats
+      let date: Date;
+      
+      if (dateString.includes('T')) {
+        // ISO format like "2025-10-10T21:11:00.000Z"
+        date = new Date(dateString);
+      } else if (dateString.includes(' ')) {
+        // Format like "2025-10-10 21:11:00"
+        date = new Date(dateString.replace(' ', 'T'));
+      } else if (dateString.includes(':')) {
+        // Time only format like "21:11"
+        const today = new Date();
+        const [hours, minutes] = dateString.split(':');
+        date = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
+      } else {
+        // Try to parse as is
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) {
+        return dateString; // Return original if parsing fails
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
       case 'Instagram':
@@ -81,6 +134,21 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
         </clipPath>
         </defs>
         </svg>;
+      case 'LinkedIn':
+        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18.5195 0H1.47656C0.661719 0 0 0.644531 0 1.44141V18.5547C0 19.3516 0.661719 20 1.47656 20H18.5195C19.3398 20 20 19.3555 20 18.5547V1.44141C20 0.644531 19.3398 0 18.5195 0ZM5.93359 17.043H2.96484V7.49609H5.93359V17.043ZM4.44922 6.19531C3.49609 6.19531 2.72656 5.42578 2.72656 4.47656C2.72656 3.52734 3.49609 2.75781 4.44922 2.75781C5.39844 2.75781 6.16797 3.52734 6.16797 4.47656C6.16797 5.42188 5.39844 6.19531 4.44922 6.19531ZM17.043 17.043H14.0781V12.4023C14.0781 11.2969 14.0586 9.87109 12.5352 9.87109C10.9922 9.87109 10.7578 11.0781 10.7578 12.3203V17.043H7.79688V7.49609H10.6406V8.80078H10.6797C11.0742 8.05078 12.043 7.25781 13.4844 7.25781C16.4883 7.25781 17.043 9.23438 17.043 11.8047V17.043Z" fill="#0077B5"/>
+        </svg>;
+      case 'TikTok':
+        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-1.356-.145 6.33 6.33 0 0 0-6.33 6.33 6.33 6.33 0 0 0 6.33 6.33 6.33 6.33 0 0 0 6.33-6.33V8.108a8.252 8.252 0 0 0 4.6 1.392v-3.401a4.805 4.805 0 0 1-.771-.413z" fill="#000000"/>
+        </svg>;
+      case 'Youtube':
+        return <div className="w-5 h-5 bg-red-600 rounded flex items-center justify-center">
+          <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="12" height="8" rx="1" fill="white"/>
+            <path d="M4.5 2.5L7.5 4L4.5 5.5V2.5Z" fill="#FF0000"/>
+          </svg>
+        </div>;
       default:
         return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g clipPath="url(#clip0_8552_3665)">
@@ -115,23 +183,173 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
     }
   };
 
-  const handleEdit = () => {
-    setIsEditModalOpen(true);
+  const handleEdit = async (updateData?: any) => {
+    try {
+      if (!scheduleId) {
+        console.error('No schedule ID provided');
+        if ((window as any).showNotification) {
+          (window as any).showNotification({
+            type: 'error',
+            title: 'Update Failed',
+            message: 'No schedule ID found',
+            duration: 5000
+          });
+        }
+        return;
+      }
+
+      // Use provided updateData or prepare default data
+      const dataToUpdate = updateData || {
+        description: post.description,
+        keypoints: post.keypoints || '',
+        captions: {
+          instagram: platformCaptions['Instagram'] || post.captions?.instagram || '',
+          facebook: platformCaptions['Facebook'] || post.captions?.facebook || '',
+          linkedin: platformCaptions['LinkedIn'] || post.captions?.linkedin || '',
+          twitter: platformCaptions['Twitter'] || post.captions?.twitter || '',
+          tiktok: platformCaptions['TikTok'] || post.captions?.tiktok || '',
+          youtube: platformCaptions['Youtube'] || post.captions?.youtube || ''
+        },
+        scheduledFor: post.scheduledFor
+      };
+      
+      const response = await apiService.updatePost(scheduleId, post.id.toString(), dataToUpdate);
+      
+      if (response.success) {
+        if ((window as any).showNotification) {
+          (window as any).showNotification({
+            type: 'success',
+            title: 'Post Updated',
+            message: 'Post has been updated successfully!',
+            duration: 5000
+          });
+        }
+        
+        // Call the callback to refresh the posts list
+        if (onPostUpdated) {
+          onPostUpdated();
+        }
+      } else {
+        if ((window as any).showNotification) {
+          (window as any).showNotification({
+            type: 'error',
+            title: 'Update Failed',
+            message: response.message || 'Failed to update post',
+            duration: 5000
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+      if ((window as any).showNotification) {
+        (window as any).showNotification({
+          type: 'error',
+          title: 'Network Error',
+          message: 'Failed to update post. Please try again.',
+          duration: 5000
+        });
+      }
+    }
   };
 
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
   };
 
-  const handleDelete = () => {
-    // Handle delete functionality
-    console.log("Delete post:", post.id);
+  const handleDelete = async () => {
+    try {
+      if (!scheduleId) {
+        console.error('No schedule ID provided');
+        if ((window as any).showNotification) {
+          (window as any).showNotification({
+            type: 'error',
+            title: 'Delete Failed',
+            message: 'No schedule ID found',
+            duration: 5000
+          });
+        }
+        return;
+      }
+      console.log('post.index', post,scheduleId)
+      const response = await apiService.deletePost(post.scheduleId, post.id.toString());
+      
+      if (response.success) {
+        if ((window as any).showNotification) {
+          (window as any).showNotification({
+            type: 'success',
+            title: 'Post Deleted',
+            message: 'Post has been deleted successfully!',
+            duration: 5000
+          });
+        }
+        
+        // Call the callback to refresh the posts list
+        if (onPostDeleted) {
+          onPostDeleted();
+        }
+      } else {
+        if ((window as any).showNotification) {
+          (window as any).showNotification({
+            type: 'error',
+            title: 'Delete Failed',
+            message: response.message || 'Failed to delete post',
+            duration: 5000
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      if ((window as any).showNotification) {
+        (window as any).showNotification({
+          type: 'error',
+          title: 'Network Error',
+          message: 'Failed to delete post. Please try again.',
+          duration: 5000
+        });
+      }
+    }
   };
+
 
   const handlePlatformSelect = (platform: string) => {
     setSelectedPlatform(platform);
     setIsDropdownOpen(false);
   };
+
+  // Get current caption for selected platform
+  const getCurrentCaption = () => {
+    // First check if user has edited this platform's caption
+    if (platformCaptions[selectedPlatform]) {
+      return platformCaptions[selectedPlatform];
+    }
+    
+    // If not edited, get from original post data
+    if (post.captions) {
+      const platformKey = selectedPlatform.toLowerCase() as keyof typeof post.captions;
+      const platformCaption = post.captions[platformKey];
+      if (platformCaption) {
+        return platformCaption;
+      }
+    }
+    
+    // Fallback to default caption
+    return post.captions?.instagram || "";
+  };
+
+  // Initialize platform captions when component mounts or post changes
+  useEffect(() => {
+    if (post.captions) {
+      const initialCaptions: {[key: string]: string} = {};
+      platformOptions.forEach(platform => {
+        const platformKey = platform.toLowerCase() as keyof typeof post.captions;
+        const platformCaption = post.captions![platformKey];
+        if (platformCaption) {
+          initialCaptions[platform] = platformCaption;
+        }
+      });
+      setPlatformCaptions(initialCaptions);
+    }
+  }, [post]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -152,18 +370,18 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
     <div className="bg-[#EEEEEE] rounded-xl p-4">
       {/* Top Row - Topic and Date */}
       <div className="flex justify-between items-center mb-2">
-        <span className="text-lg text-[#171717] font-medium">
-          {post.topic}
+        <span className="text-[18px] text-[#171717] font-medium">
+          {post.description}
         </span>
         <div className="flex items-center gap-2 text-sm text-[#171717]">
           <FaClock className="text-xs" />
-          <span>{post.date}</span>
+          <span className="text-xs">{formatDate(post.scheduledForLocal)}</span>
         </div>
       </div>
 
-      {/* Topic Title */}
-      <h3 className="text-xl !font-normal text-[#5F5F5F] mb-4">
-        {post.title}
+      {/* Keypoints */}
+      <h3 className="text-[20px] !font-normal text-[#5F5F5F] mb-4">
+        {post.keypoints}
       </h3>
 
       {/* Captions and Platform */}
@@ -176,16 +394,7 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
             className="flex items-center gap-3 px-3 bg-[#EEEEEE] rounded-[7px] cursor-pointer transition-colors"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            {selectedPlatform === "Youtube" ? (
-              <div className="w-5 h-5 bg-red-600 rounded flex items-center justify-center">
-                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="12" height="8" rx="1" fill="white"/>
-                  <path d="M4.5 2.5L7.5 4L4.5 5.5V2.5Z" fill="#FF0000"/>
-                </svg>
-              </div>
-            ) : (
-              getPlatformIcon(selectedPlatform)
-            )}
+            {getPlatformIcon(selectedPlatform)}
             <span className="text-base font-medium text-[#282828]">{selectedPlatform}</span>
             <FaChevronDown className={`text-xs text-[#858999] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
@@ -193,21 +402,6 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
           {/* Dropdown Menu */}
           {isDropdownOpen && (
             <div className="absolute right-0 top-full mt-2 bg-white border border-[#F1F1F4] rounded-lg shadow-lg z-10 min-w-[160px]">
-              <div
-                className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors text-[#282828]"
-                onClick={() => {
-                  handlePlatformSelect("Youtube");
-                  setIsDropdownOpen(false);
-                }}
-              >
-                <div className="w-5 h-5 bg-red-600 rounded flex items-center justify-center">
-                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="12" height="8" rx="1" fill="white"/>
-                    <path d="M4.5 2.5L7.5 4L4.5 5.5V2.5Z" fill="#FF0000"/>
-                  </svg>
-                </div>
-                <span className="font-medium">Youtube</span>
-              </div>
               {platformOptions.map((platform) => (
                 <div
                   key={platform}
@@ -230,13 +424,9 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
 
       {/* Caption Text Area */}
       <div className="mb-1">
-        <textarea
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder="This is the caption that will be posted on the"
-          className="w-full bg-[#FFFFFF] rounded-lg px-3 py-2 text-sm text-[#171717] placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:border-transparent transition-all"
-          rows={3}
-        />
+        <p className="w-full bg-[#FFFFFF] rounded-lg px-3 py-2 text-sm text-[#171717] min-h-[60px] flex items-start break-all overflow-wrap-anywhere whitespace-normal leading-relaxed">
+          {getCurrentCaption() || "This is the caption that will be posted on the"}
+        </p>
       </div>
 
       {/* Action Buttons */}
@@ -251,7 +441,7 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
 
         </button>
         <button 
-          onClick={handleEdit}
+          onClick={() => setIsEditModalOpen(true)}
           className="bg-[#5046E5] text-white px-[23px] py-[7px] rounded-full text-xs font-semibold hover:bg-transparent hover:text-[#5046E5] transition-all border-2 border-[#5046E5]"
         >
           Edit
@@ -263,11 +453,14 @@ export default function ScheduledPostCard({ post }: ScheduledPostCardProps) {
     <EditPostModal
       isOpen={isEditModalOpen}
       onClose={handleCloseEditModal}
+      onEdit={handleEdit}
       postData={{
-        date: post.date,
-        time: "10:00", // Default time, you can add this to your post interface
-        videoTopic: post.topic,
-        captions: post.caption,
+        ...post,
+        date: post.scheduledForLocal,
+        time: post.scheduledForLocal.includes('T') ? post.scheduledForLocal.split('T')[1]?.substring(0, 5) || "10:00" : 
+              post.scheduledForLocal.includes(' ') ? post.scheduledForLocal.split(' ')[1]?.substring(0, 5) || "10:00" : "10:00",
+        videoTopic: post.description,
+        captions: post.captions,
         platform: selectedPlatform
       }}
     />

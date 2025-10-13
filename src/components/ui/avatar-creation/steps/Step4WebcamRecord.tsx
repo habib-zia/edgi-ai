@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Camera, Mic, ArrowLeft, ArrowRight, Square, Play } from 'lucide-react'
+import { Camera, ArrowLeft, Square, Play } from 'lucide-react'
 
 interface AvatarData {
   name: string
@@ -86,11 +86,6 @@ export default function Step4WebcamRecord({ onNext, onBack, avatarData, setAvata
     }
   }
 
-  const handleCreate = () => {
-    if (avatarData.videoFile) {
-      onNext()
-    }
-  }
 
   return (
     <div className="space-y-6">

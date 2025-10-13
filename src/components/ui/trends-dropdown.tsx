@@ -87,9 +87,15 @@ export default function TrendsDropdown({
               </button>
             </div>
           ) : safeTrends.length === 0 ? (
-            <div className="px-4 py-3 text-center text-gray-500">
-              No trends available
-            </div>
+            <div className="px-4 py-3 text-center text-red-500">
+            <p className="text-sm">{trendsError}</p>
+            <button
+              onClick={onRetry}
+              className="mt-2 px-3 py-1 text-xs bg-[#5046E5] text-white rounded hover:bg-[#4338CA] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
           ) : (
             safeTrends.map((trend, index) => (
               <button

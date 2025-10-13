@@ -534,13 +534,26 @@ class ApiService {
   // Schedule Methods
   async getSchedule(): Promise<ApiResponse<any>> {
     try {
-      const response = await this.request<any>('/api/video-schedule/schedule', {
+      const response = await this.request<any>('/api/schedule', {
         method: 'GET',
       }, true);
       console.log('Schedule API Response:', JSON?.stringify(response))
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get schedule data';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async getScheduledPosts(): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>('/api/schedule', {
+        method: 'GET',
+      }, true);
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get scheduled posts';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
@@ -558,6 +571,119 @@ class ApiService {
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
+  }
+
+  async deletePost(scheduleId: string, postId: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>(`${API_CONFIG.ENDPOINTS.VIDEO_SCHEDULE.DELETE_POST}/${scheduleId}/post/${postId}`, {
+        method: 'DELETE',
+      }, true);
+      console.log('Delete Post API Response:', JSON?.stringify(response))
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete post';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async updatePost(scheduleId: string, postId: string, updateData: {
+    description?: string;
+    keypoints?: string;
+    captions?: {
+      instagram?: string;
+      facebook?: string;
+      linkedin?: string;
+      twitter?: string;
+      tiktok?: string;
+      youtube?: string;
+    };
+    scheduledFor?: string;
+  }): Promise<ApiResponse<any>> {
+    try {
+      console.log('Update Post API Request:', scheduleId, postId, updateData)
+      const response = await this.request<any>(`${API_CONFIG.ENDPOINTS.VIDEO_SCHEDULE.UPDATE_POST}/${scheduleId}/post/${postId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData)
+      }, true);
+      console.log('Update Post API Response:', JSON?.stringify(response))
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update post';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async updateScheduleConfig(scheduleId: string, configData: {
+    frequency: string;
+    days: string[];
+    times: string[];
+  }): Promise<ApiResponse<any>> {
+    try {
+      console.log('Update Schedule Config API Request:', scheduleId, configData);
+      
+      // Transform the data to match the new API structure
+      const requestBody: any = {
+        newFrequency: configData.frequency
+      };
+
+      // Add preferredTime for daily frequency
+      if (configData.frequency === 'daily' && configData.times.length > 0) {
+        requestBody.preferredTime = configData.times[0]; // Use first time for daily
+      }
+
+      // Add preferredDays and preferredTime for thrice-a-week
+      if (configData.frequency === 'thrice-a-week' || configData.frequency === 'three_week') {
+        requestBody.newFrequency = 'thrice-a-week';
+        requestBody.preferredDays = configData.days;
+        requestBody.preferredTime = configData.times;
+      }
+
+      // Add preferredDays and preferredTime for twice-a-week
+      if (configData.frequency === 'twice-a-week' || configData.frequency === 'twice_week') {
+        requestBody.newFrequency = 'twice-a-week';
+        requestBody.preferredDays = configData.days;
+        requestBody.preferredTime = configData.times;
+      }
+
+      // Add preferredDays and preferredTime for once-a-week
+      if (configData.frequency === 'once-a-week' || configData.frequency === 'once_week') {
+        requestBody.newFrequency = 'once-a-week';
+        requestBody.preferredDays = configData.days;
+        requestBody.preferredTime = configData.times;
+      }
+
+      console.log('Transformed request body:', requestBody);
+
+      const response = await this.request<any>(`/api/schedule/${scheduleId}/frequency`, {
+        method: 'PUT',
+        headers: {
+          'x-timezone': 'America/New_York' // You can make this configurable
+        },
+        body: JSON.stringify(requestBody)
+      }, true);
+      console.log('Update Schedule Config API Response:', JSON?.stringify(response));
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update schedule configuration';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+  async getPublishedPosts(): Promise<ApiResponse<any>> {
+      try {
+        const response = await this.request<any>('/api/socialbu/posts', {
+          method: 'POST',
+          body: JSON.stringify({ "type": "published" })
+        }, true);
+        console.log('Published Posts API Response:', JSON?.stringify(response))
+        return response;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to get published posts';
+        this.showNotification(errorMessage, 'error');
+        return { success: false, message: errorMessage, error: errorMessage };
+      }
   }
 
   async createPhotoAvatar(formData: FormData): Promise<ApiResponse<CreatePhotoAvatarResponse>> {

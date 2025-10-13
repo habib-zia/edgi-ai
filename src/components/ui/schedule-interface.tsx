@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import ScheduleDeleteModal from './schedule-delete-modal'
-import { apiService } from '@/lib/api-service'
+import { useSchedule } from '@/hooks/useSchedule'
 
 interface ScheduleInterfaceProps {
   onStartScheduling: () => void
@@ -53,8 +54,9 @@ const ScheduleItem: React.FC<ScheduleItemProps> = ({ label, value, hasIcon = fal
 }
 
 export default function ScheduleInterface({ onStartScheduling, autoScheduleData, onScheduleDeleted }: ScheduleInterfaceProps) {
-  console.log(autoScheduleData)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const { deleteSchedule } = useSchedule()
+  const router = useRouter()
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true)
@@ -62,45 +64,17 @@ export default function ScheduleInterface({ onStartScheduling, autoScheduleData,
 
   const handleDeleteConfirm = async () => {
     try {
-      const scheduleId = autoScheduleData?.scheduleId;
-      const response = await apiService.deleteSchedule(scheduleId)
-
-      if (response.success) {
-        if ((window as any).showNotification) {
-          (window as any).showNotification({
-            type: 'success',
-            title: 'Schedule Deleted',
-            message: 'Your schedule has been deleted successfully!',
-            duration: 5000
-          })
-        }
+      const scheduleId = autoScheduleData?.id
+      const success = await deleteSchedule(scheduleId)
+      
+      if (success) {
         // Call the callback to refresh schedule data
         if (onScheduleDeleted) {
           onScheduleDeleted()
         }
-      } else {
-        console.error('Failed to delete schedule:', response.message)
-        // Show error notification
-        if ((window as any).showNotification) {
-          (window as any).showNotification({
-            type: 'error',
-            title: 'Delete Failed',
-            message: response.message || 'Failed to delete schedule',
-            duration: 5000
-          })
-        }
       }
     } catch (error) {
-      console.error('Error deleting schedule:', error)
-      // Show error notification
-      if ((window as any).showNotification) {
-        (window as any).showNotification({
-          type: 'error',
-          title: 'Network Error',
-          message: 'Failed to delete schedule. Please try again.',
-          duration: 5000
-        })
-      }
+      console.error('Error in handleDeleteConfirm:', error)
     } finally {
       setShowDeleteModal(false)
     }
@@ -108,6 +82,10 @@ export default function ScheduleInterface({ onStartScheduling, autoScheduleData,
 
   const handleDeleteCancel = () => {
     setShowDeleteModal(false)
+  }
+
+  const handleReviewAndUpdate = () => {
+    router.push('/scheduled-post')
   }
   if (autoScheduleData) {
     return (
@@ -124,12 +102,12 @@ export default function ScheduleInterface({ onStartScheduling, autoScheduleData,
                 <div className="space-y-4 text-start">
                   <ScheduleItem
                     label="Frequency"
-                    value={autoScheduleData.frequency || 'Twice a Week'}
+                    value={autoScheduleData.scheduleInfo?.frequency || 'Twice a Week'}
                     hasIcon={true}
                   />
                   <ScheduleItem
                     label="Day"
-                    value={autoScheduleData.schedule?.days || autoScheduleData.days || 'Monday, Tuesday'}
+                    value={autoScheduleData.scheduleInfo?.days || autoScheduleData.days || 'Monday, Tuesday'}
                     hasIcon={true}
                   />
                 </div>
@@ -137,17 +115,17 @@ export default function ScheduleInterface({ onStartScheduling, autoScheduleData,
                 <div className="space-y-4 text-right">
                   <ScheduleItem
                     label="Start Date"
-                    value={autoScheduleData.startDate || 'Sep 15, 2025'}
+                    value={autoScheduleData?.scheduleInfo.startDate || 'Sep 15, 2025'}
                   />
                   <ScheduleItem
                     label="End Date"
-                    value={autoScheduleData.endDate || 'Oct 15, 2025'}
+                    value={autoScheduleData?.scheduleInfo?.endDate || 'Oct 15, 2025'}
                   />
                 </div>
               </div>
               <button
                 type="button"
-                onClick={onStartScheduling}
+                onClick={handleReviewAndUpdate}
                 className="w-full mt-6 px-4 py-2 bg-white border border-[#5046E5] text-[#5046E5] rounded-full font-medium hover:bg-[#5046E5] hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5]/20"
               >
                 Review & Update
