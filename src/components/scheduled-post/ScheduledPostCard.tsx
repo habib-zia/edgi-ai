@@ -249,60 +249,60 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     <>
     <div className="bg-[#EEEEEE] rounded-xl p-4 flex flex-col h-full">
       <div className="flex-1">
-        <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-center mb-2">
           <span className="text-[18px] text-[#171717] font-medium truncate">
             {post.description}
-          </span>
-          <div className="flex items-center gap-2 text-sm text-[#171717]">
-            <FaClock className="text-xs" />
+        </span>
+        <div className="flex items-center gap-2 text-sm text-[#171717]">
+          <FaClock className="text-xs" />
             <span className="text-xs">{formatDate(post.scheduledForLocal)}</span>
           </div>
-        </div>
+      </div>
 
         <h3 className="text-[20px] !font-normal text-[#5F5F5F] mb-4 truncate">
           {post.keypoints}
-        </h3>
+      </h3>
 
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-base text-[#282828] font-medium">
-            Captions
-          </span>
-          <div className="relative" ref={dropdownRef}>
-            <div 
-              className="flex items-center gap-3 px-3 bg-[#EEEEEE] rounded-[7px] cursor-pointer transition-colors"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
-              {getPlatformIcon(selectedPlatform)}
-              <span className="text-base font-medium text-[#282828]">{selectedPlatform}</span>
-              <FaChevronDown className={`text-xs text-[#858999] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </div>
-            
-            {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 bg-white border border-[#F1F1F4] rounded-lg shadow-lg z-10 min-w-[160px]">
-                {platformOptions.map((platform) => (
-                  <div
-                    key={platform}
-                    className={`flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors ${
-                      platform === selectedPlatform ? 'text-[#5046E5] bg-[#5046E510]' : 'text-[#282828]'
-                    }`}
-                    onClick={() => {
-                      handlePlatformSelect(platform);
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    {getPlatformIcon(platform)}
-                    <span className="font-medium">{platform}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-base text-[#282828] font-medium">
+          Captions
+        </span>
+        <div className="relative" ref={dropdownRef}>
+          <div 
+            className="flex items-center gap-3 px-3 bg-[#EEEEEE] rounded-[7px] cursor-pointer transition-colors"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            {getPlatformIcon(selectedPlatform)}
+            <span className="text-base font-medium text-[#282828]">{selectedPlatform}</span>
+            <FaChevronDown className={`text-xs text-[#858999] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
+          
+          {isDropdownOpen && (
+            <div className="absolute right-0 top-full mt-2 bg-white border border-[#F1F1F4] rounded-lg shadow-lg z-10 min-w-[160px]">
+              {platformOptions.map((platform) => (
+                <div
+                  key={platform}
+                  className={`flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors ${
+                    platform === selectedPlatform ? 'text-[#5046E5] bg-[#5046E510]' : 'text-[#282828]'
+                  }`}
+                  onClick={() => {
+                    handlePlatformSelect(platform);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {getPlatformIcon(platform)}
+                  <span className="font-medium">{platform}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      </div>
 
-        <div className="mb-1">
-          <p className="w-full bg-[#FFFFFF] rounded-lg px-3 py-2 text-sm text-[#171717] min-h-[60px] flex items-start break-all overflow-wrap-anywhere whitespace-normal leading-relaxed">
-            {getCurrentCaption() || "This is the caption that will be posted on the"}
-          </p>
+      <div className="mb-1">
+        <p className="w-full bg-[#FFFFFF] rounded-lg px-3 py-2 text-sm text-[#171717] min-h-[60px] flex items-start break-all overflow-wrap-anywhere whitespace-normal leading-relaxed">
+          {getCurrentCaption() || "This is the caption that will be posted on the"}
+        </p>
         </div>
       </div>
 

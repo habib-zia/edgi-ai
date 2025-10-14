@@ -24,6 +24,61 @@ const nextConfig: NextConfig = {
         hostname: "files2.heygen.ai",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "socialbu.nyc3.digitaloceanspaces.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "media.licdn.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "scontent.cdninstagram.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "scontent-*.cdninstagram.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "scontent-*.fbcdn.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "pbs.twimg.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "abs.twimg.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "cdninstagram.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "fbcdn.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "twimg.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "licdn.com",
+        pathname: "/**",
+      },
     ],
   },
 

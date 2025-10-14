@@ -45,7 +45,6 @@ export default function RecentPosts() {
   
   const fetchPublishedPosts = async () => {
     try {
-      console.log('🚀 Starting to fetch published posts...')
       setPublishedPostsLoading(true)
       setPublishedPostsError(null)
       
@@ -62,7 +61,6 @@ export default function RecentPosts() {
         
         setPublishedPostsError(null)
       } else {
-        console.log('❌ Failed to fetch published posts:', response.message)
         setPublishedPostsError(response.message || 'Failed to fetch published posts')
         setPublishedPosts([])
       }
@@ -139,7 +137,6 @@ export default function RecentPosts() {
             {/* Published Posts Section */}
             {publishedPosts.length > 0 && (
               <div>
-                <h2 className="text-2xl font-semibold text-[#171717] mb-6">Published Posts ({publishedPosts.length})</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {publishedPosts.map((post, index) => (
                     <PublishedPostCard
