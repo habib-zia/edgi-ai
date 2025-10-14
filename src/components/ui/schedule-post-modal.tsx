@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { X, AlertCircle } from 'lucide-react'
 import { useScheduleValidation } from '@/hooks/useScheduleValidation'
 import { type ScheduleData } from '@/types/post-types'
@@ -40,10 +40,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
   const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // Check if any day is selected to show banner
   const hasSelectedDays = posts.some(post => post.day)
   
-  // Get the earliest selected date for the banner
   const getEarliestDate = () => {
     const validPosts = posts.filter(post => post.date)
     if (validPosts.length === 0) return null
@@ -51,7 +49,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     const dates = validPosts.map(post => new Date(post.date))
     const earliestDate = new Date(Math.min(...dates.map(date => date.getTime())))
     
-    // Format as DD-MMM-YYYY
     const day = earliestDate.getDate().toString().padStart(2, '0')
     const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
         'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
@@ -72,7 +69,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     hasErrors 
   } = useScheduleValidation()
 
-  // Calculate number of posts based on frequency
   const getPostCount = (frequency: string) => {
     switch (frequency) {
       case 'Once a Week':
@@ -87,7 +83,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         return 1
     }
   }
-  // Update posts array when frequency changes
   React.useEffect(() => {
     const newPostCount = getPostCount(frequency)
     
@@ -96,8 +91,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         if (prevPosts.length !== 1) {
           const existingPost = prevPosts[0] || { day: '', date: '', time: '', _isNextWeek: false }
           return [{
-            day: '', // No day needed for Daily
-            date: '', // No date needed for Daily
+            day: '',
+            date: '',
             time: existingPost.time || '',
             _isNextWeek: false
           }]
@@ -122,12 +117,12 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
       const dayIndex = dayOptions.indexOf(value)
       if (dayIndex !== -1) {
         const today = new Date()
-        const currentDay = today.getDay() // 0 = Sunday, 1 = Monday, etc.
-        const targetDay = dayIndex === 6 ? 0 : dayIndex + 1 // Convert to Sunday = 0 format
+        const currentDay = today.getDay()
+        const targetDay = dayIndex === 6 ? 0 : dayIndex + 1
         
         let daysUntilTarget = targetDay - currentDay
         if (daysUntilTarget < 0) {
-          daysUntilTarget += 7 // Next week
+          daysUntilTarget += 7
         }
         
         const targetDate = new Date(today)
@@ -135,10 +130,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         
         newPosts[index].date = targetDate.toISOString().split('T')[0]
         
-        // Reset the next week flag when day changes
         newPosts[index]._isNextWeek = false
-        
-        // Recalculate if time is already set
         if (newPosts[index].time) {
           const selectedDay = newPosts[index].day
           const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1]
@@ -159,11 +151,10 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
       }
     }
     
-    // Check if user selects today and if time is valid
     if (field === 'time' && value && newPosts[index].day) {
       const selectedDay = newPosts[index].day
       const today = new Date()
-      const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1] // Convert to our day format
+      const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1]
       
       if (selectedDay === currentDayName) {
         const currentTime = new Date()
@@ -171,11 +162,9 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         const selectedTime = new Date()
         selectedTime.setHours(selectedHour, selectedMinute, 0, 0)
         
-        // Add 40 minutes to current time
         const minAllowedTime = new Date(currentTime.getTime() + 40 * 60 * 1000)
         
         if (selectedTime < minAllowedTime) {
-          // Time is too soon, will be scheduled for next week
           newPosts[index]._isNextWeek = true
         } else {
           newPosts[index]._isNextWeek = false
@@ -204,7 +193,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         }
       })
     }
-    // If a day is cleared, also clear the date and reset next week flag
     if (field === 'day' && !value) {
       newPosts[index].date = ''
       newPosts[index]._isNextWeek = false
@@ -212,14 +200,12 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     
     setPosts(newPosts)
     
-    // Clear validation errors for this field when user starts typing
     if (value.trim() !== '') {
       clearValidationErrors()
     }
   }
 
   const handleClose = () => {
-    // Reset form data when closing
     setFrequency('Once a Week')
     setPosts([
       { day: '', date: '', time: '', _isNextWeek: false },
@@ -252,7 +238,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     try {
       await onNext(scheduleData)
     } catch (error) {
-      console.error('Error submitting schedule:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -263,7 +248,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-30 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
           <button
@@ -274,12 +258,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Information Banner - Show only when days are selected */}
           {hasSelectedDays && <ScheduleInfoBanner startDate={startDate} />}
-
-          {/* Frequency of Posting */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               Frequency of Posting
@@ -324,7 +304,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
             </div>
           </div>
 
-          {/* Select Date & Time for each post */}
           <div className="space-y-4">
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-3">
@@ -360,7 +339,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                         >
                           <option value="">Select Day</option>
                           {dayOptions.map((day) => {
-                            // Check if this day is already selected in other fields
                             const isDaySelected = posts.some((otherPost, otherIndex) => 
                               otherIndex !== index && otherPost.day === day
                             )
@@ -414,6 +392,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                       type="time"
                       value={post.time}
                       onChange={(e) => handlePostChange(index, 'time', e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
                       className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
                         getFieldError(`time_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
                       }`}
@@ -442,7 +421,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
           </div>
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-gray-200">
           {hasErrors && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
