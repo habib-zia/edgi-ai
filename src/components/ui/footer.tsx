@@ -87,9 +87,9 @@ export default function Footer() {
                         {/* Right Section - Navigation Links */}
                         <div className="lg:justify-self-end">
                             <h3 className="text-[#282828] font-semibold text-[26px] mb-5">Links</h3>
-                            <div className="grid grid-cols-1 gap-24">
+                            <div className="grid grid-cols-1 gap-24 mb-3">
                                 {/* Column 1 */}
-                                <div className="space-y-3 flex gap-6 flex-wrap">
+                                <div className="space-y-3 flex gap-6 flex-wrap items-baseline">
                                     {navigationLinks.map((link, index) => (
                                         <Link
                                             key={index}
