@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { FaClock, FaChevronDown } from "react-icons/fa6";
 import EditPostModal from "./EditPostModal";
 import { apiService } from "@/lib/api-service";
+import { getPlatformIcon } from "@/utils/platformIcons";
 
 interface ScheduledPost {
   id: string;
@@ -43,27 +44,22 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     if (!dateString) return dateString;
     
     try {
-      // Handle different date formats
       let date: Date;
       
       if (dateString.includes('T')) {
-        // ISO format like "2025-10-10T21:11:00.000Z"
         date = new Date(dateString);
       } else if (dateString.includes(' ')) {
-        // Format like "2025-10-10 21:11:00"
         date = new Date(dateString.replace(' ', 'T'));
       } else if (dateString.includes(':')) {
-        // Time only format like "21:11"
         const today = new Date();
         const [hours, minutes] = dateString.split(':');
         date = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
       } else {
-        // Try to parse as is
         date = new Date(dateString);
       }
       
       if (isNaN(date.getTime())) {
-        return dateString; // Return original if parsing fails
+        return dateString;
       }
       
       return date.toLocaleDateString('en-US', {
@@ -79,114 +75,11 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     }
   };
 
-  const getPlatformIcon = (platform: string) => {
-    switch (platform) {
-      case 'Instagram':
-        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <g clipPath="url(#clip0_8552_3665)">
-        <path d="M10 20C4.478 20 0 15.522 0 10C0 4.478 4.478 0 10 0C15.522 0 20 4.478 20 10C20 15.522 15.522 20 10 20Z" fill="url(#paint0_linear_8552_3665)"/>
-        <path d="M9.99987 4.40395C11.8219 4.40395 12.0379 4.40995 12.7579 4.44395C13.4239 4.47395 13.7859 4.58595 14.0259 4.67995C14.3439 4.80395 14.5719 4.95195 14.8099 5.18995C15.0479 5.42795 15.1959 5.65595 15.3199 5.97395C15.4139 6.21395 15.5239 6.57595 15.5559 7.24195C15.5879 7.96195 15.5959 8.17795 15.5959 9.99995C15.5959 11.8219 15.5899 12.038 15.5559 12.7579C15.5259 13.424 15.4139 13.7859 15.3199 14.0259C15.1959 14.3439 15.0479 14.5719 14.8099 14.8099C14.5719 15.0479 14.3439 15.1959 14.0259 15.32C13.7859 15.4139 13.4239 15.5239 12.7579 15.5559C12.0379 15.5879 11.8219 15.5959 9.99987 15.5959C8.17787 15.5959 7.96187 15.5899 7.24187 15.5559C6.57588 15.5259 6.21388 15.4139 5.97388 15.32C5.65587 15.1959 5.42787 15.0479 5.18987 14.8099C4.95187 14.5719 4.80387 14.3439 4.67987 14.0259C4.58587 13.7859 4.47587 13.424 4.44387 12.7579C4.41187 12.038 4.40387 11.8219 4.40387 9.99995C4.40387 8.17795 4.40987 7.96195 4.44387 7.24195C4.47387 6.57595 4.58587 6.21395 4.67987 5.97395C4.80387 5.65595 4.95187 5.42795 5.18987 5.18995C5.42787 4.95195 5.65587 4.80395 5.97388 4.67995C6.21388 4.58595 6.57588 4.47595 7.24187 4.44395C7.96187 4.40995 8.17787 4.40395 9.99987 4.40395ZM9.99987 3.17395C8.14587 3.17395 7.91387 3.18195 7.18587 3.21595C6.45987 3.24995 5.96387 3.36395 5.52787 3.53395C5.07987 3.70595 4.69787 3.93995 4.31987 4.31995C3.93987 4.69995 3.70788 5.07995 3.53187 5.52995C3.36388 5.96395 3.24787 6.45995 3.21387 7.18795C3.17987 7.91595 3.17188 8.14795 3.17188 10.002C3.17188 11.856 3.17987 12.0879 3.21387 12.8159C3.24787 13.5419 3.36187 14.0379 3.53187 14.474C3.70587 14.9199 3.93987 15.3019 4.31987 15.6799C4.69987 16.0599 5.07987 16.292 5.52987 16.4679C5.96387 16.636 6.45987 16.7519 7.18787 16.7859C7.91587 16.8199 8.14787 16.828 10.0019 16.828C11.8559 16.828 12.0879 16.8199 12.8159 16.7859C13.5419 16.7519 14.0379 16.6379 14.4739 16.4679C14.9199 16.294 15.3019 16.0599 15.6799 15.6799C16.0599 15.2999 16.2919 14.9199 16.4679 14.4699C16.6359 14.0359 16.7519 13.5399 16.7859 12.8119C16.8199 12.0839 16.8279 11.852 16.8279 9.99795C16.8279 8.14395 16.8199 7.91195 16.7859 7.18395C16.7519 6.45795 16.6379 5.96195 16.4679 5.52595C16.2939 5.07995 16.0599 4.69795 15.6799 4.31995C15.2999 3.93995 14.9199 3.70795 14.4699 3.53195C14.0359 3.36395 13.5399 3.24795 12.8119 3.21395C12.0859 3.18195 11.8539 3.17395 9.99987 3.17395Z" fill="white"/>
-        <path d="M10.0001 6.4939C8.06414 6.4939 6.49414 8.0639 6.49414 9.9999C6.49414 11.9359 8.06414 13.5059 10.0001 13.5059C11.9361 13.5059 13.5061 11.9359 13.5061 9.9999C13.5061 8.0639 11.9361 6.4939 10.0001 6.4939ZM10.0001 12.2759C8.74414 12.2759 7.72414 11.2579 7.72414 9.9999C7.72414 8.7419 8.74414 7.7239 10.0001 7.7239C11.2561 7.7239 12.2761 8.7419 12.2761 9.9999C12.2761 11.2579 11.2561 12.2759 10.0001 12.2759Z" fill="white"/>
-        <path d="M13.6442 7.17601C14.0971 7.17601 14.4642 6.80888 14.4642 6.35601C14.4642 5.90314 14.0971 5.53601 13.6442 5.53601C13.1913 5.53601 12.8242 5.90314 12.8242 6.35601C12.8242 6.80888 13.1913 7.17601 13.6442 7.17601Z" fill="white"/>
-        </g>
-        <defs>
-        <linearGradient id="paint0_linear_8552_3665" x1="2.92893" y1="17.0711" x2="17.0711" y2="2.92893" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FFD521"/>
-        <stop offset="0.0551048" stopColor="#FFD020"/>
-        <stop offset="0.1241" stopColor="#FEC01E"/>
-        <stop offset="0.2004" stopColor="#FCA71B"/>
-        <stop offset="0.2821" stopColor="#FA8316"/>
-        <stop offset="0.3681" stopColor="#F85510"/>
-        <stop offset="0.4563" stopColor="#F51E09"/>
-        <stop offset="0.5" stopColor="#F30005"/>
-        <stop offset="0.5035" stopColor="#F20007"/>
-        <stop offset="0.5966" stopColor="#E1003B"/>
-        <stop offset="0.6879" stopColor="#D30067"/>
-        <stop offset="0.7757" stopColor="#C70088"/>
-        <stop offset="0.8589" stopColor="#BF00A0"/>
-        <stop offset="0.9357" stopColor="#BB00AF"/>
-        <stop offset="1" stopColor="#B900B4"/>
-        </linearGradient>
-        <clipPath id="clip0_8552_3665">
-        <rect width="20" height="20" fill="white"/>
-        </clipPath>
-        </defs>
-        </svg>;
-      case 'Facebook':
-        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <g clipPath="url(#clip0_8552_3653)">
-        <path fillRule="evenodd" clipRule="evenodd" d="M17.5565 0C18.9051 0 20 1.09492 20 2.44352V17.5565C20 18.9051 18.9051 20 17.5565 20H13.3976V12.4643H15.9991L16.4941 9.23688H13.3976V7.14246C13.3976 6.25953 13.8301 5.39887 15.2171 5.39887H16.625V2.65121C16.625 2.65121 15.3473 2.43316 14.1257 2.43316C11.5754 2.43316 9.90852 3.97883 9.90852 6.77707V9.23688H7.07363V12.4643H9.90852V20H2.44352C1.09492 20 0 18.9051 0 17.5565V2.44352C0 1.09492 1.09488 0 2.44352 0L17.5565 0Z" fill="#1777F2"/>
-        </g>
-        <defs>
-        <clipPath id="clip0_8552_3653">
-        <rect width="20" height="20" rx="1" fill="white"/>
-        </clipPath>
-        </defs>
-        </svg>;
-      case 'Twitter':
-        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <g clipPath="url(#clip0_8552_3659)">
-        <path d="M11.7459 8.59711L18.5716 0.833374H16.9544L11.0249 7.57311L6.29252 0.833374H0.833008L7.99091 11.026L0.833008 19.1667H2.45027L8.70808 12.0477L13.7068 19.1667H19.1663L11.7459 8.59711ZM9.53011 11.1154L8.80376 10.0998L3.0335 2.02638H5.51795L10.1761 8.54434L10.8994 9.55993L16.9536 18.0318H14.4692L9.53011 11.1154Z" fill="black"/>
-        </g>
-        <defs>
-        <clipPath id="clip0_8552_3659">
-        <rect width="20" height="20" fill="white"/>
-        </clipPath>
-        </defs>
-        </svg>;
-      case 'LinkedIn':
-        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M18.5195 0H1.47656C0.661719 0 0 0.644531 0 1.44141V18.5547C0 19.3516 0.661719 20 1.47656 20H18.5195C19.3398 20 20 19.3555 20 18.5547V1.44141C20 0.644531 19.3398 0 18.5195 0ZM5.93359 17.043H2.96484V7.49609H5.93359V17.043ZM4.44922 6.19531C3.49609 6.19531 2.72656 5.42578 2.72656 4.47656C2.72656 3.52734 3.49609 2.75781 4.44922 2.75781C5.39844 2.75781 6.16797 3.52734 6.16797 4.47656C6.16797 5.42188 5.39844 6.19531 4.44922 6.19531ZM17.043 17.043H14.0781V12.4023C14.0781 11.2969 14.0586 9.87109 12.5352 9.87109C10.9922 9.87109 10.7578 11.0781 10.7578 12.3203V17.043H7.79688V7.49609H10.6406V8.80078H10.6797C11.0742 8.05078 12.043 7.25781 13.4844 7.25781C16.4883 7.25781 17.043 9.23438 17.043 11.8047V17.043Z" fill="#0077B5"/>
-        </svg>;
-      case 'TikTok':
-        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-1.356-.145 6.33 6.33 0 0 0-6.33 6.33 6.33 6.33 0 0 0 6.33 6.33 6.33 6.33 0 0 0 6.33-6.33V8.108a8.252 8.252 0 0 0 4.6 1.392v-3.401a4.805 4.805 0 0 1-.771-.413z" fill="#000000"/>
-        </svg>;
-      case 'Youtube':
-        return <div className="w-5 h-5 bg-red-600 rounded flex items-center justify-center">
-          <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="12" height="8" rx="1" fill="white"/>
-            <path d="M4.5 2.5L7.5 4L4.5 5.5V2.5Z" fill="#FF0000"/>
-          </svg>
-        </div>;
-      default:
-        return <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <g clipPath="url(#clip0_8552_3665)">
-        <path d="M10 20C4.478 20 0 15.522 0 10C0 4.478 4.478 0 10 0C15.522 0 20 4.478 20 10C20 15.522 15.522 20 10 20Z" fill="url(#paint0_linear_8552_3665)"/>
-        <path d="M9.99987 4.40395C11.8219 4.40395 12.0379 4.40995 12.7579 4.44395C13.4239 4.47395 13.7859 4.58595 14.0259 4.67995C14.3439 4.80395 14.5719 4.95195 14.8099 5.18995C15.0479 5.42795 15.1959 5.65595 15.3199 5.97395C15.4139 6.21395 15.5239 6.57595 15.5559 7.24195C15.5879 7.96195 15.5959 8.17795 15.5959 9.99995C15.5959 11.8219 15.5899 12.038 15.5559 12.7579C15.5259 13.424 15.4139 13.7859 15.3199 14.0259C15.1959 14.3439 15.0479 14.5719 14.8099 14.8099C14.5719 15.0479 14.3439 15.1959 14.0259 15.32C13.7859 15.4139 13.4239 15.5239 12.7579 15.5559C12.0379 15.5879 11.8219 15.5959 9.99987 15.5959C8.17787 15.5959 7.96187 15.5899 7.24187 15.5559C6.57588 15.5259 6.21388 15.4139 5.97388 15.32C5.65587 15.1959 5.42787 15.0479 5.18987 14.8099C4.95187 14.5719 4.80387 14.3439 4.67987 14.0259C4.58587 13.7859 4.47587 13.424 4.44387 12.7579C4.41187 12.038 4.40387 11.8219 4.40387 9.99995C4.40387 8.17795 4.40987 7.96195 4.44387 7.24195C4.47387 6.57595 4.58587 6.21395 4.67987 5.97395C4.80387 5.65595 4.95187 5.42795 5.18987 5.18995C5.42787 4.95195 5.65587 4.80395 5.97388 4.67995C6.21388 4.58595 6.57588 4.47595 7.24187 4.44395C7.96187 4.40995 8.17787 4.40395 9.99987 4.40395ZM9.99987 3.17395C8.14587 3.17395 7.91387 3.18195 7.18587 3.21595C6.45987 3.24995 5.96387 3.36395 5.52787 3.53395C5.07987 3.70595 4.69787 3.93995 4.31987 4.31995C3.93987 4.69995 3.70788 5.07995 3.53187 5.52995C3.36388 5.96395 3.24787 6.45995 3.21387 7.18795C3.17987 7.91595 3.17188 8.14795 3.17188 10.002C3.17188 11.856 3.17987 12.0879 3.21387 12.8159C3.24787 13.5419 3.36187 14.0379 3.53187 14.474C3.70587 14.9199 3.93987 15.3019 4.31987 15.6799C4.69987 16.0599 5.07987 16.292 5.52987 16.4679C5.96387 16.636 6.45987 16.7519 7.18787 16.7859C7.91587 16.8199 8.14787 16.828 10.0019 16.828C11.8559 16.828 12.0879 16.8199 12.8159 16.7859C13.5419 16.7519 14.0379 16.6379 14.4739 16.4679C14.9199 16.294 15.3019 16.0599 15.6799 15.6799C16.0599 15.2999 16.2919 14.9199 16.4679 14.4699C16.6359 14.0359 16.7519 13.5399 16.7859 12.8119C16.8199 12.0839 16.8279 11.852 16.8279 9.99795C16.8279 8.14395 16.8199 7.91195 16.7859 7.18395C16.7519 6.45795 16.6379 5.96195 16.4679 5.52595C16.2939 5.07995 16.0599 4.69795 15.6799 4.31995C15.2999 3.93995 14.9199 3.70795 14.4699 3.53195C14.0359 3.36395 13.5399 3.24795 12.8119 3.21395C12.0859 3.18195 11.8539 3.17395 9.99987 3.17395Z" fill="white"/>
-        <path d="M10.0001 6.4939C8.06414 6.4939 6.49414 8.0639 6.49414 9.9999C6.49414 11.9359 8.06414 13.5059 10.0001 13.5059C11.9361 13.5059 13.5061 11.9359 13.5061 9.9999C13.5061 8.0639 11.9361 6.4939 10.0001 6.4939ZM10.0001 12.2759C8.74414 12.2759 7.72414 11.2579 7.72414 9.9999C7.72414 8.7419 8.74414 7.7239 10.0001 7.7239C11.2561 7.7239 12.2761 8.7419 12.2761 9.9999C12.2761 11.2579 11.2561 12.2759 10.0001 12.2759Z" fill="white"/>
-        <path d="M13.6442 7.17601C14.0971 7.17601 14.4642 6.80888 14.4642 6.35601C14.4642 5.90314 14.0971 5.53601 13.6442 5.53601C13.1913 5.53601 12.8242 5.90314 12.8242 6.35601C12.8242 6.80888 13.1913 7.17601 13.6442 7.17601Z" fill="white"/>
-        </g>
-        <defs>
-        <linearGradient id="paint0_linear_8552_3665" x1="2.92893" y1="17.0711" x2="17.0711" y2="2.92893" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#FFD521"/>
-        <stop offset="0.0551048" stopColor="#FFD020"/>
-        <stop offset="0.1241" stopColor="#FEC01E"/>
-        <stop offset="0.2004" stopColor="#FCA71B"/>
-        <stop offset="0.2821" stopColor="#FA8316"/>
-        <stop offset="0.3681" stopColor="#F85510"/>
-        <stop offset="0.4563" stopColor="#F51E09"/>
-        <stop offset="0.5" stopColor="#F30005"/>
-        <stop offset="0.5035" stopColor="#F20007"/>
-        <stop offset="0.5966" stopColor="#E1003B"/>
-        <stop offset="0.6879" stopColor="#D30067"/>
-        <stop offset="0.7757" stopColor="#C70088"/>
-        <stop offset="0.8589" stopColor="#BF00A0"/>
-        <stop offset="0.9357" stopColor="#BB00AF"/>
-        <stop offset="1" stopColor="#B900B4"/>
-        </linearGradient>
-        <clipPath id="clip0_8552_3665">
-        <rect width="20" height="20" fill="white"/>
-        </clipPath>
-        </defs>
-        </svg>;
-    }
-  };
+
 
   const handleEdit = async (updateData?: any) => {
     try {
       if (!scheduleId) {
-        console.error('No schedule ID provided');
         if ((window as any).showNotification) {
           (window as any).showNotification({
             type: 'error',
@@ -198,7 +91,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         return;
       }
 
-      // Use provided updateData or prepare default data
       const dataToUpdate = updateData || {
         description: post.description,
         keypoints: post.keypoints || '',
@@ -225,7 +117,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
           });
         }
         
-        // Call the callback to refresh the posts list
         if (onPostUpdated) {
           onPostUpdated();
         }
@@ -240,7 +131,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         }
       }
     } catch (error) {
-      console.error('Error updating post:', error);
       if ((window as any).showNotification) {
         (window as any).showNotification({
           type: 'error',
@@ -259,7 +149,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
   const handleDelete = async () => {
     try {
       if (!scheduleId) {
-        console.error('No schedule ID provided');
         if ((window as any).showNotification) {
           (window as any).showNotification({
             type: 'error',
@@ -270,7 +159,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         }
         return;
       }
-      console.log('post.index', post,scheduleId)
       const response = await apiService.deletePost(post.scheduleId, post.id.toString());
       
       if (response.success) {
@@ -283,7 +171,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
           });
         }
         
-        // Call the callback to refresh the posts list
         if (onPostDeleted) {
           onPostDeleted();
         }
@@ -298,7 +185,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         }
       }
     } catch (error) {
-      console.error('Error deleting post:', error);
       if ((window as any).showNotification) {
         (window as any).showNotification({
           type: 'error',
@@ -316,14 +202,11 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     setIsDropdownOpen(false);
   };
 
-  // Get current caption for selected platform
   const getCurrentCaption = () => {
-    // First check if user has edited this platform's caption
     if (platformCaptions[selectedPlatform]) {
       return platformCaptions[selectedPlatform];
     }
     
-    // If not edited, get from original post data
     if (post.captions) {
       const platformKey = selectedPlatform.toLowerCase() as keyof typeof post.captions;
       const platformCaption = post.captions[platformKey];
@@ -332,11 +215,9 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
       }
     }
     
-    // Fallback to default caption
     return post.captions?.instagram || "";
   };
 
-  // Initialize platform captions when component mounts or post changes
   useEffect(() => {
     if (post.captions) {
       const initialCaptions: {[key: string]: string} = {};
@@ -351,7 +232,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     }
   }, [post]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -367,70 +247,66 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
 
   return (
     <>
-    <div className="bg-[#EEEEEE] rounded-xl p-4">
-      {/* Top Row - Topic and Date */}
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[18px] text-[#171717] font-medium">
-          {post.description}
-        </span>
-        <div className="flex items-center gap-2 text-sm text-[#171717]">
-          <FaClock className="text-xs" />
-          <span className="text-xs">{formatDate(post.scheduledForLocal)}</span>
-        </div>
-      </div>
-
-      {/* Keypoints */}
-      <h3 className="text-[20px] !font-normal text-[#5F5F5F] mb-4">
-        {post.keypoints}
-      </h3>
-
-      {/* Captions and Platform */}
-      <div className="flex justify-between items-center mb-3">
-        <span className="text-base text-[#282828] font-medium">
-          Captions
-        </span>
-        <div className="relative" ref={dropdownRef}>
-          <div 
-            className="flex items-center gap-3 px-3 bg-[#EEEEEE] rounded-[7px] cursor-pointer transition-colors"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            {getPlatformIcon(selectedPlatform)}
-            <span className="text-base font-medium text-[#282828]">{selectedPlatform}</span>
-            <FaChevronDown className={`text-xs text-[#858999] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+    <div className="bg-[#EEEEEE] rounded-xl p-4 flex flex-col h-full">
+      <div className="flex-1">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-[18px] text-[#171717] font-medium truncate">
+            {post.description}
+          </span>
+          <div className="flex items-center gap-2 text-sm text-[#171717]">
+            <FaClock className="text-xs" />
+            <span className="text-xs">{formatDate(post.scheduledForLocal)}</span>
           </div>
-          
-          {/* Dropdown Menu */}
-          {isDropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 bg-white border border-[#F1F1F4] rounded-lg shadow-lg z-10 min-w-[160px]">
-              {platformOptions.map((platform) => (
-                <div
-                  key={platform}
-                  className={`flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors ${
-                    platform === selectedPlatform ? 'text-[#5046E5] bg-[#5046E510]' : 'text-[#282828]'
-                  }`}
-                  onClick={() => {
-                    handlePlatformSelect(platform);
-                    setIsDropdownOpen(false);
-                  }}
-                >
-                  {getPlatformIcon(platform)}
-                  <span className="font-medium">{platform}</span>
-                </div>
-              ))}
+        </div>
+
+        <h3 className="text-[20px] !font-normal text-[#5F5F5F] mb-4 truncate">
+          {post.keypoints}
+        </h3>
+
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-base text-[#282828] font-medium">
+            Captions
+          </span>
+          <div className="relative" ref={dropdownRef}>
+            <div 
+              className="flex items-center gap-3 px-3 bg-[#EEEEEE] rounded-[7px] cursor-pointer transition-colors"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              {getPlatformIcon(selectedPlatform)}
+              <span className="text-base font-medium text-[#282828]">{selectedPlatform}</span>
+              <FaChevronDown className={`text-xs text-[#858999] transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
-          )}
+            
+            {isDropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 bg-white border border-[#F1F1F4] rounded-lg shadow-lg z-10 min-w-[160px]">
+                {platformOptions.map((platform) => (
+                  <div
+                    key={platform}
+                    className={`flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors ${
+                      platform === selectedPlatform ? 'text-[#5046E5] bg-[#5046E510]' : 'text-[#282828]'
+                    }`}
+                    onClick={() => {
+                      handlePlatformSelect(platform);
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    {getPlatformIcon(platform)}
+                    <span className="font-medium">{platform}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-1">
+          <p className="w-full bg-[#FFFFFF] rounded-lg px-3 py-2 text-sm text-[#171717] min-h-[60px] flex items-start break-all overflow-wrap-anywhere whitespace-normal leading-relaxed">
+            {getCurrentCaption() || "This is the caption that will be posted on the"}
+          </p>
         </div>
       </div>
 
-      {/* Caption Text Area */}
-      <div className="mb-1">
-        <p className="w-full bg-[#FFFFFF] rounded-lg px-3 py-2 text-sm text-[#171717] min-h-[60px] flex items-start break-all overflow-wrap-anywhere whitespace-normal leading-relaxed">
-          {getCurrentCaption() || "This is the caption that will be posted on the"}
-        </p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end items-center gap-3">
+      <div className="flex justify-end items-center gap-3 mt-auto">
         <button 
           onClick={handleDelete}
           className="text-[#5F5F5F] hover:text-red-500 transition-colors p-2 bg-[#F9DFDF] rounded-full px-3 py-[6px] hover:bg-[#F9DFDF]/50"
@@ -448,8 +324,6 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         </button>
       </div>
     </div>
-
-    {/* Edit Post Modal */}
     <EditPostModal
       isOpen={isEditModalOpen}
       onClose={handleCloseEditModal}
