@@ -87,33 +87,32 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         return 1
     }
   }
-  const setDailyTime = () => {
-    const existingPost = posts[0] || { day: '', date: '', time: '', _isNextWeek: false }
-    const newPosts = [{
-      day: '', // No day needed for Daily
-      date: '', // No date needed for Daily
-      time: existingPost.time || '',
-      _isNextWeek: false
-    }]
-    setPosts(newPosts)
-  }
-
-
   // Update posts array when frequency changes
   React.useEffect(() => {
     const newPostCount = getPostCount(frequency)
     
     if (frequency === 'Daily') {
-      if (posts.length !== 1) {
-        setDailyTime()
-      }
+      setPosts(prevPosts => {
+        if (prevPosts.length !== 1) {
+          const existingPost = prevPosts[0] || { day: '', date: '', time: '', _isNextWeek: false }
+          return [{
+            day: '', // No day needed for Daily
+            date: '', // No date needed for Daily
+            time: existingPost.time || '',
+            _isNextWeek: false
+          }]
+        }
+        return prevPosts
+      })
     } else {
-      const newPosts = Array.from({ length: newPostCount }, (_, index) => 
-        posts[index] || { day: '', date: '', time: '', _isNextWeek: false }
-      )
-      setPosts(newPosts)
+      setPosts(prevPosts => {
+        const newPosts = Array.from({ length: newPostCount }, (_, index) => 
+          prevPosts[index] || { day: '', date: '', time: '', _isNextWeek: false }
+        )
+        return newPosts
+      })
     }
-  }, [frequency, posts, setDailyTime])
+  }, [frequency])
 
   const handlePostChange = (index: number, field: 'day' | 'date' | 'time', value: string) => {
     const newPosts = [...posts]
