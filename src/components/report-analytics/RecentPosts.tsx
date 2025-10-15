@@ -198,8 +198,6 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
           <h1 className="text-3xl md:text-[40px] font-semibold text-[#171717]">Recent Posts</h1>
-
-          {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleAccountsClick}
@@ -221,7 +219,6 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
             </button>}
           </div>
         </div>
-        {/* Loading State */}
         {publishedPostsLoading && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5]"></div>
@@ -229,7 +226,6 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
           </div>
         )}
 
-        {/* Error State */}
         {publishedPostsError && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="text-center max-w-md">

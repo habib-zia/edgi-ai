@@ -104,20 +104,16 @@ export default function TrendsDropdown({
                 onMouseDown={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  console.log('🎯 Trend option mousedown:', trend.description)
                 }}
                 onMouseUp={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  console.log('🎯 Trend option mouseup:', trend.description)
                 }}
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  console.log('🎯 Trend option clicked:', trend.description)
                   
                   if (isSelecting) {
-                    console.log('🎯 Already selecting, ignoring click')
                     return
                   }
                   

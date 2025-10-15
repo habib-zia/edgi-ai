@@ -4,16 +4,11 @@ import { useState, useCallback } from 'react'
 import { apiService } from '@/lib/api-service'
 
 interface UseScheduleReturn {
-  // State
   scheduleData: any
   scheduleLoading: boolean
   scheduleError: string | null
-  
-  // Actions
   fetchSchedule: () => Promise<void>
   deleteSchedule: (scheduleId: string) => Promise<boolean>
-  
-  // Utilities
   clearScheduleData: () => void
 }
 
@@ -51,9 +46,6 @@ export const useSchedule = (): UseScheduleReturn => {
     try {
       setScheduleLoading(true)
       setScheduleError(null)
-      
-      console.log('Deleting schedule with ID:', scheduleId)
-      
       const response = await apiService.deleteSchedule(scheduleId)
       
       if (response.success) {
