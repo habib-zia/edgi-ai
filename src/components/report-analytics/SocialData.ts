@@ -47,7 +47,7 @@ export const recentPostsData = [
                     shares: 15
                 }
             },
-            Twitter: {
+            X: {
                 performanceData: [
                     { day: 'Mon', value: 35000 },
                     { day: 'Tue', value: 60000 },
@@ -66,6 +66,69 @@ export const recentPostsData = [
                     likes: 1200,
                     comments: 250,
                     shares: 5
+                }
+            },
+            LinkedIn: {
+                performanceData: [
+                    { day: 'Mon', value: 25000 },
+                    { day: 'Tue', value: 35000 },
+                    { day: 'Wed', value: 30000 },
+                    { day: 'Thu', value: 45000 },
+                    { day: 'Fri', value: 55000 },
+                    { day: 'Sat', value: 40000 },
+                    { day: 'Sun', value: 60000 }
+                ],
+                metrics: {
+                    reach: { value: 1800, change: 15 },
+                    impression: { value: 1800, change: 18 },
+                    engagement: { value: 1800, change: 8 }
+                },
+                engagement: {
+                    likes: 850,
+                    comments: 180,
+                    shares: 25
+                }
+            },
+            TikTok: {
+                performanceData: [
+                    { day: 'Mon', value: 80000 },
+                    { day: 'Tue', value: 120000 },
+                    { day: 'Wed', value: 100000 },
+                    { day: 'Thu', value: 150000 },
+                    { day: 'Fri', value: 200000 },
+                    { day: 'Sat', value: 180000 },
+                    { day: 'Sun', value: 250000 }
+                ],
+                metrics: {
+                    reach: { value: 5500, change: 35 },
+                    impression: { value: 5500, change: 42 },
+                    engagement: { value: 5500, change: 28 }
+                },
+                engagement: {
+                    likes: 3200,
+                    comments: 680,
+                    shares: 45
+                }
+            },
+            YouTube: {
+                performanceData: [
+                    { day: 'Mon', value: 30000 },
+                    { day: 'Tue', value: 45000 },
+                    { day: 'Wed', value: 40000 },
+                    { day: 'Thu', value: 60000 },
+                    { day: 'Fri', value: 75000 },
+                    { day: 'Sat', value: 65000 },
+                    { day: 'Sun', value: 90000 }
+                ],
+                metrics: {
+                    reach: { value: 2200, change: 12 },
+                    impression: { value: 2200, change: 16 },
+                    engagement: { value: 2200, change: 5 }
+                },
+                engagement: {
+                    likes: 950,
+                    comments: 120,
+                    shares: 8
                 }
             }
         }
@@ -118,7 +181,7 @@ export const recentPostsData = [
                     shares: 18
                 }
             },
-            Twitter: {
+            X: {
                 performanceData: [
                     { day: 'Mon', value: 40000 },
                     { day: 'Tue', value: 65000 },
@@ -137,6 +200,69 @@ export const recentPostsData = [
                     likes: 1350,
                     comments: 280,
                     shares: 6
+                }
+            },
+            LinkedIn: {
+                performanceData: [
+                    { day: 'Mon', value: 28000 },
+                    { day: 'Tue', value: 38000 },
+                    { day: 'Wed', value: 32000 },
+                    { day: 'Thu', value: 48000 },
+                    { day: 'Fri', value: 58000 },
+                    { day: 'Sat', value: 42000 },
+                    { day: 'Sun', value: 65000 }
+                ],
+                metrics: {
+                    reach: { value: 1950, change: 18 },
+                    impression: { value: 1950, change: 22 },
+                    engagement: { value: 1950, change: 12 }
+                },
+                engagement: {
+                    likes: 920,
+                    comments: 195,
+                    shares: 28
+                }
+            },
+            TikTok: {
+                performanceData: [
+                    { day: 'Mon', value: 85000 },
+                    { day: 'Tue', value: 125000 },
+                    { day: 'Wed', value: 105000 },
+                    { day: 'Thu', value: 155000 },
+                    { day: 'Fri', value: 210000 },
+                    { day: 'Sat', value: 185000 },
+                    { day: 'Sun', value: 260000 }
+                ],
+                metrics: {
+                    reach: { value: 5800, change: 38 },
+                    impression: { value: 5800, change: 45 },
+                    engagement: { value: 5800, change: 32 }
+                },
+                engagement: {
+                    likes: 3400,
+                    comments: 720,
+                    shares: 52
+                }
+            },
+            YouTube: {
+                performanceData: [
+                    { day: 'Mon', value: 32000 },
+                    { day: 'Tue', value: 48000 },
+                    { day: 'Wed', value: 42000 },
+                    { day: 'Thu', value: 63000 },
+                    { day: 'Fri', value: 78000 },
+                    { day: 'Sat', value: 68000 },
+                    { day: 'Sun', value: 95000 }
+                ],
+                metrics: {
+                    reach: { value: 2350, change: 15 },
+                    impression: { value: 2350, change: 19 },
+                    engagement: { value: 2350, change: 8 }
+                },
+                engagement: {
+                    likes: 1020,
+                    comments: 135,
+                    shares: 12
                 }
             }
         }
@@ -189,7 +315,7 @@ export const recentPostsData = [
                     shares: 20
                 }
             },
-            Twitter: {
+            X: {
                 performanceData: [
                     { day: 'Mon', value: 38000 },
                     { day: 'Tue', value: 62000 },
@@ -208,6 +334,69 @@ export const recentPostsData = [
                     likes: 1280,
                     comments: 260,
                     shares: 7
+                }
+            },
+            LinkedIn: {
+                performanceData: [
+                    { day: 'Mon', value: 26000 },
+                    { day: 'Tue', value: 36000 },
+                    { day: 'Wed', value: 31000 },
+                    { day: 'Thu', value: 46000 },
+                    { day: 'Fri', value: 56000 },
+                    { day: 'Sat', value: 41000 },
+                    { day: 'Sun', value: 62000 }
+                ],
+                metrics: {
+                    reach: { value: 1900, change: 16 },
+                    impression: { value: 1900, change: 20 },
+                    engagement: { value: 1900, change: 10 }
+                },
+                engagement: {
+                    likes: 880,
+                    comments: 190,
+                    shares: 26
+                }
+            },
+            TikTok: {
+                performanceData: [
+                    { day: 'Mon', value: 82000 },
+                    { day: 'Tue', value: 118000 },
+                    { day: 'Wed', value: 98000 },
+                    { day: 'Thu', value: 148000 },
+                    { day: 'Fri', value: 195000 },
+                    { day: 'Sat', value: 172000 },
+                    { day: 'Sun', value: 240000 }
+                ],
+                metrics: {
+                    reach: { value: 5200, change: 32 },
+                    impression: { value: 5200, change: 38 },
+                    engagement: { value: 5200, change: 25 }
+                },
+                engagement: {
+                    likes: 3000,
+                    comments: 640,
+                    shares: 48
+                }
+            },
+            YouTube: {
+                performanceData: [
+                    { day: 'Mon', value: 31000 },
+                    { day: 'Tue', value: 46000 },
+                    { day: 'Wed', value: 41000 },
+                    { day: 'Thu', value: 61000 },
+                    { day: 'Fri', value: 76000 },
+                    { day: 'Sat', value: 66000 },
+                    { day: 'Sun', value: 92000 }
+                ],
+                metrics: {
+                    reach: { value: 2100, change: 10 },
+                    impression: { value: 2100, change: 14 },
+                    engagement: { value: 2100, change: 3 }
+                },
+                engagement: {
+                    likes: 880,
+                    comments: 110,
+                    shares: 9
                 }
             }
         }

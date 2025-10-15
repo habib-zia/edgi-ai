@@ -1,57 +1,115 @@
 import React, { useState } from 'react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot } from 'recharts';
-
-// Mock data for follower growth
-const followersData = [
-  { month: 'January', followers: 50000 },
-  { month: 'February', followers: 75000 },
-  { month: 'March', followers: 65000 },
-  { month: 'April', followers: 110000 },
-  { month: 'May', followers: 150000 },
-  { month: 'June', followers: 130000 },
-  { month: 'July', followers: 220000 }
-];
-
-// Empty data for empty state - just to show the grid structure
-const emptyData = [
-  { month: 'January', followers: 0 },
-  { month: 'February', followers: 0 },
-  { month: 'March', followers: 0 },
-  { month: 'April', followers: 0 },
-  { month: 'May', followers: 0 },
-  { month: 'June', followers: 0 },
-  { month: 'July', followers: 0 }
-];
+import { getPlatformIcon, emptyData } from './PlatformIcon';
 
 interface FollowersChartProps {
   isEmptyState?: boolean;
+  selectedPlatform: string;
+  postsData?: any[];
+  totalLikes?: number;
+  topPostData?: any;
+  insightsData?: any;
 }
 
-const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false }) => {
-  const [selectedPoint, setSelectedPoint] = useState({ month: 'May', followers: 150000 });
+const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false, selectedPlatform, totalLikes = 0, topPostData, insightsData }) => {
+  const [selectedPoint, setSelectedPoint] = useState({ day: 'Saturday', likes: 600 });
+
+  const getCurrentData = () => {
+    
+    if (isEmptyState) {
+      return emptyData;
+    }
+
+      if (insightsData && insightsData.posts && insightsData.posts.length > 0) {
+      const hasEngagementData = insightsData.posts.some((post: any) => 
+        post.insights && post.insights.length > 0
+      );
+      
+      if (hasEngagementData) {
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const baseValue = Math.floor(insightsData.totalLikes / 7);
+        const remainder = insightsData.totalLikes % 7;
+        
+        return days.map((day, index) => {
+          let dayLikes = baseValue;
+          if (index < remainder) {
+            dayLikes += 1;
+          }
+          const variation = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+          dayLikes = Math.max(0, dayLikes + variation);
+          
+          return {
+            day: day,
+            likes: dayLikes
+          };
+        });
+      } else {
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        return days.map((day) => ({
+          day: day,
+          likes: 0
+        }));
+      }
+    }
+
+    if (topPostData && topPostData.platforms && topPostData.platforms[selectedPlatform] && topPostData.platforms[selectedPlatform].performanceData) {
+      const performanceData = topPostData.platforms[selectedPlatform].performanceData;
+      
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      
+      return performanceData.map((data: any, index: number) => ({
+        day: days[index] || data.day,
+        likes: data.value || 0
+      }));
+    }
+
+    return emptyData;
+  };
+
+  const currentData = getCurrentData(); 
+  const getSelectedPointData = () => {
+    const pointData = currentData.find((item: any) => item.day === selectedPoint.day);
+    return pointData || { day: selectedPoint.day, likes: selectedPoint.likes };
+  };
+
+  const selectedPointData = getSelectedPointData();
 
   const handleChartClick = (data: any) => {
-    console.log('Chart clicked:', data); // Debug log
     if (data && data.activePayload && data.activePayload[0]) {
       const clickedData = data.activePayload[0].payload;
-      setSelectedPoint({ month: clickedData.month, followers: clickedData.followers });
+      setSelectedPoint({ day: clickedData.day, likes: clickedData.likes });
     } else if (data && data.activeLabel) {
-      // Handle direct chart area clicks
-      const monthIndex = followersData.findIndex(item => item.month === data.activeLabel);
-      if (monthIndex !== -1) {
-        setSelectedPoint({ month: data.activeLabel, followers: followersData[monthIndex].followers });
+      const dayIndex = currentData.findIndex((item: any) => item.day === data.activeLabel);
+      if (dayIndex !== -1) {
+        setSelectedPoint({ day: data.activeLabel, likes: currentData[dayIndex].likes });
       }
     }
   };
 
   return (
     <div className="w-full flex-col border border-[#F1F1F4] items-center bg-white justify-center py-4 pl-4 pr-4 rounded-[10px]" style={{ boxShadow: "0px 5px 20px 0px #0000000D" }}>
-        {/* Chart Title */}
-        <h2 className="text-lg font-medium text-[#282828] mb-4">Followers</h2>
+        <div className="w-full flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-[#282828]">
+            {insightsData ? 'Insights Performance' : (topPostData ? 'Top Post Performance' : (selectedPlatform === 'All' ? 'Total Likes in this Week' : `${selectedPlatform} Likes in this Week`))}
+          </h2>
+          
+          {!isEmptyState && totalLikes > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#EEEEEE] rounded-[7px]">
+              {selectedPlatform === 'All' ? (
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="10" cy="10" r="8" fill="#5046E5"/>
+                  <path d="M6 10L8.5 12.5L14 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                getPlatformIcon(selectedPlatform)
+              )}
+              <span className="text-base font-medium text-[#282828]">{selectedPlatform}</span>
+            </div>
+          )}
+        </div>
         
-        {/* Chart Container */}
         <div className="w-full h-[278px]">
-          {isEmptyState ? (
+          {isEmptyState || totalLikes === 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={emptyData}
@@ -68,7 +126,7 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                 
                 {/* X-Axis */}
                 <XAxis 
-                  dataKey="month" 
+                  dataKey="day" 
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#849AA9', fontSize: 11 }}
@@ -80,16 +138,15 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#849AA9', fontSize: 11 }}
-                  domain={[0, 250000]}
-                  ticks={[50000, 100000, 150000, 200000, 250000]}
-                  tickFormatter={(value) => `${value / 1000}K`}
+                   domain={[0, Math.max(totalLikes, 10)]}
+                   tickFormatter={(value) => value.toString()}
                   dx={-10}
                 />
                 
                 {/* Invisible line to force Y-axis rendering */}
                 <Line
                   type="monotone"
-                  dataKey="followers"
+                  dataKey="likes"
                   stroke="transparent"
                   strokeWidth={0}
                   dot={false}
@@ -100,14 +157,14 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
-                data={followersData}
+                data={currentData}
                 margin={{ top: 6, right: 10, left: 0, bottom: 0 }}
                 onClick={handleChartClick}
                 onMouseDown={handleChartClick}
               >
                 {/* Gradient Definition */}
                 <defs>
-                  <linearGradient id="followerGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="likesGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="rgba(79, 70, 229, 0.0)" />
                     <stop offset="100%" stopColor="rgba(79, 70, 229, 0.15)" />
                   </linearGradient>
@@ -124,7 +181,7 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                 
                 {/* X-Axis */}
                 <XAxis 
-                  dataKey="month" 
+                  dataKey="day" 
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#849AA9', fontSize: 11 }}
@@ -136,9 +193,8 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#849AA9', fontSize: 11 }}
-                  domain={[0, 250000]}
-                  ticks={[50000, 100000, 150000, 200000, 250000]}
-                  tickFormatter={(value) => `${value / 1000}K`}
+                   domain={[0, Math.max(totalLikes, 10)]}
+                   tickFormatter={(value) => value.toString()}
                   dx={-10}
                 />
                 
@@ -151,12 +207,12 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                     color: '#282828'
                   }}
-                  formatter={(value: number) => [`${(value / 1000).toFixed(0)}K`, 'Followers']}
+                  formatter={(value: number) => [value.toString(), 'Likes']}
                 />
                 
                 {/* Vertical Dashed Line at Selected Point */}
                 <ReferenceLine 
-                  x={selectedPoint.month} 
+                  x={selectedPointData.day} 
                   stroke="#5046E5" 
                   strokeDasharray="4 4"
                   strokeWidth={2}
@@ -165,9 +221,9 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                 {/* Area with Gradient Fill */}
                 <Area
                   type="monotone"
-                  dataKey="followers"
+                  dataKey="likes"
                   stroke="none"
-                  fill="url(#followerGradient)"
+                  fill="url(#likesGradient)"
                   isAnimationActive={true}
                   animationDuration={1500}
                   animationBegin={0}
@@ -176,7 +232,7 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                 {/* Smooth Curved Line */}
                 <Line
                   type="monotone"
-                  dataKey="followers"
+                  dataKey="likes"
                   stroke="#5046E5"
                   strokeWidth={3}
                   dot={false}
@@ -188,8 +244,8 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false })
                 
                 {/* Highlight Dot at Selected Point */}
                 <ReferenceDot
-                  x={selectedPoint.month}
-                  y={selectedPoint.followers}
+                  x={selectedPointData.day}
+                  y={selectedPointData.likes}
                   r={8}
                   fill="#5046E5"
                   stroke="white"
