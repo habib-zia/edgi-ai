@@ -82,11 +82,8 @@ export default function RecentPosts() {
   return (
     <div className="w-full bg-white/90 py-14 px-2 md:px-8">
       <div className="max-w-[1260px] w-full mx-auto">
-        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <h1 className="text-3xl md:text-[40px] font-semibold text-[#171717]">Recent Posts</h1>
-
-          {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
             <button
               onClick={handleAccountsClick}
@@ -108,7 +105,6 @@ export default function RecentPosts() {
             </button>}
           </div>
         </div>
-        {/* Loading State */}
         {publishedPostsLoading && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5]"></div>
@@ -116,7 +112,6 @@ export default function RecentPosts() {
           </div>
         )}
 
-        {/* Error State */}
         {publishedPostsError && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="text-center max-w-md">
@@ -134,7 +129,6 @@ export default function RecentPosts() {
         )}
         {!publishedPostsLoading && !publishedPostsError && (
           <div className="space-y-8">
-            {/* Published Posts Section */}
             {publishedPosts.length > 0 && (
               <div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
