@@ -8,7 +8,6 @@ import { apiService } from "@/lib/api-service";
 export default function ScheduledPostsGrid() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Use the scheduled posts hook
   const {
     scheduledPostsDurationData,
     scheduledPosts,
@@ -19,7 +18,6 @@ export default function ScheduledPostsGrid() {
     refreshScheduledPosts
   } = useScheduledPosts();
 
-  // Fetch scheduled posts on component mount
   useEffect(() => {
     fetchScheduledPosts();
   }, [fetchScheduledPosts]);
@@ -48,13 +46,11 @@ export default function ScheduledPostsGrid() {
         return;
       }
 
-      // Convert frequency from display format to API format
       const apiFrequency = scheduleData.frequency === "Daily" ? "daily" :
         scheduleData.frequency === "Twice a Week" ? "twice-a-week" :
           scheduleData.frequency === "Once a Week" ? "weekly" :
             scheduleData.frequency === "Three Times a Week" ? "thrice-a-week" : "daily";
 
-      // Extract days and times from posts
       const days = scheduleData.posts.map((post: any) => post.day).filter((day: string) => day);
       const times = scheduleData.posts.map((post: any) => post.time).filter((time: string) => time);
 
@@ -77,7 +73,6 @@ export default function ScheduledPostsGrid() {
           });
         }
 
-        // Refresh the scheduled posts data
         await refreshScheduledPosts();
         setIsModalOpen(false);
       } else {
@@ -104,14 +99,11 @@ export default function ScheduledPostsGrid() {
   };
   return (
     <div>
-      {/* Section Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h2 className="text-2xl !font-semibold md:text-[40px] text-[#171717]">
           Scheduled Posts
         </h2>
-
-        {/* Modify Schedule Button */}
-        {scheduledPosts.length > 0 && <button
+        {/* {scheduledPosts.length > 0 && <button
           onClick={handleModifySchedule}
           className="flex items-center gap-2 px-4 py-[8px] border-2 border-[#5046E5] text-[#5046E5] rounded-full text-xl font-semibold hover:bg-[#5046E5]
          hover:text-white transition-colors duration-300">
@@ -120,9 +112,8 @@ export default function ScheduledPostsGrid() {
           </svg>
 
           Modify Schedule
-        </button>}
+        </button>} */}
       </div>
-      {/* Posts Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5]"></div>
@@ -154,8 +145,6 @@ export default function ScheduledPostsGrid() {
           ))}
         </div>
       )}
-
-      {/* Update Schedule Modal */}
       <UpdateScheduleModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -163,8 +152,8 @@ export default function ScheduledPostsGrid() {
         existingScheduleData={scheduledPostsDurationData ? {
           frequency: scheduledPostsDurationData.scheduleInfo?.frequency || 'daily',
           schedule: {
-            days: [], // This would need to be extracted from the schedule data
-            times: [] // This would need to be extracted from the schedule data
+            days: [],
+            times: []
           },
           startDate: scheduledPostsDurationData.scheduleInfo?.startDate || new Date().toISOString()
         } : undefined}
