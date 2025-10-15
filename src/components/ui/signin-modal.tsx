@@ -806,7 +806,7 @@ export default function SigninModal({ isOpen, onClose, onOpenSignup, onOpenForgo
             <form onSubmit={(e) => { e.preventDefault(); handleSignin(); }}>
 
               {/* Form Fields */}
-              <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-baseline">
                 {/* Email */}
                 <div className="w-full mb-[10px]">
                   <label htmlFor="email" className="block text-base font-normal text-[#5F5F5F] mb-1">

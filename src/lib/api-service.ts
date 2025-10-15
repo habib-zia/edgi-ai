@@ -677,7 +677,6 @@ class ApiService {
           method: 'POST',
           body: JSON.stringify({ "type": "published" })
         }, true);
-        console.log('Published Posts API Response:', JSON?.stringify(response))
         return response;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to get published posts';
@@ -685,6 +684,27 @@ class ApiService {
         return { success: false, message: errorMessage, error: errorMessage };
       }
   }
+
+  async getTopPostsInsights(startDate: string, endDate: string, postType: string = 'reel'): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>('/api/socialbu/top/posts', {
+        method: 'POST',
+        body: JSON.stringify({
+          start: startDate,
+          end: endDate,
+          metrics: "like_count,comments_count,impressions,reach,saved,plays,shares,total_interactions",
+          post_type: postType
+        })
+      }, true);
+      console.log('Top Posts Insights API Response:', JSON?.stringify(response))
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get top posts insights';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+  
 
   async createPhotoAvatar(formData: FormData): Promise<ApiResponse<CreatePhotoAvatarResponse>> {
     try {

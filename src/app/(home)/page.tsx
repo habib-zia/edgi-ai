@@ -19,10 +19,12 @@ import { smoothScrollTo } from "@/lib/utils";
 import SigninModal from "@/components/ui/signin-modal";
 import { useState } from "react";
 import { useAppSelector } from "@/store/hooks";
+import { useNotificationStore } from "@/components/ui/global-notification";
 
 function HomePageContent() {
   const [isSigninModalOpen, setIsSigninModalOpen] = useState(false);
   const { isAuthenticated } = useAppSelector((state) => state.user);
+  const { showNotification } = useNotificationStore();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -66,6 +68,14 @@ function HomePageContent() {
     }
   };
 
+  const handleReportAnalyticsClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated)
+    {
+      e.preventDefault();
+      showNotification('Please sign in to view report analytics', 'info');
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <section data-aos="fade-up" className="relative pt-14 lg:pt-20 px-3" id="getting-started">
@@ -81,18 +91,28 @@ function HomePageContent() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
 
               {isAuthenticated ? (
-                <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                  Get Started
-                </Link>
+                <>
+                  <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                    Get Started
+                  </Link>
+                  <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                    Report Analytics
+                  </Link>
+                </>
               ) : (
-                <button
-                  onClick={handleGetStartedClick}
-                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
-                >
-                  Get Started
-                </button>
+                <>
+                  <button
+                    onClick={handleGetStartedClick}
+                    className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
+                  >
+                    Get Started
+                  </button>
+                  <button onClick={handleReportAnalyticsClick} className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                    Report Analytics
+                  </button>
+                </>
               )}
-            </div>
+            </div>  
           </div>
         </div>
         <Image src="/images/Background.png" alt="Background" className="w-full h-full absolute lg:-bottom-24 bottom-0 left-0 z-0 object-contain" width={1440} height={1000} />

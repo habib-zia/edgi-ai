@@ -28,6 +28,10 @@ interface UseRecentPostsReturn {
   handleDaySelect: (postId: number, day: string) => void
   handlePlatformSelect: (postId: number, platform: string) => void
   
+  // Helper functions
+  getDefaultDay: (postId: number) => string
+  getDefaultPlatform: (postId: number, availablePlatforms?: string[]) => string
+  
   // Utilities
   setShowDeleteModal: (show: boolean) => void
   setShowConnectAccountsModal: (show: boolean) => void
@@ -41,18 +45,9 @@ export const useRecentPosts = (): UseRecentPostsReturn => {
   // Use schedule hook
   const { scheduleData, scheduleLoading, fetchSchedule, deleteSchedule } = useSchedule()
 
-  // Post selection states
-  const [selectedDays, setSelectedDays] = useState<{ [key: number]: string }>({
-    1: 'Fri',
-    2: 'Fri',
-    3: 'Fri'
-  })
-
-  const [selectedPlatforms, setSelectedPlatforms] = useState<{ [key: number]: string }>({
-    1: 'Instagram',
-    2: 'Instagram',
-    3: 'Instagram'
-  })
+  // Post selection states - now supports dynamic IDs from API
+  const [selectedDays, setSelectedDays] = useState<{ [key: number]: string }>({})
+  const [selectedPlatforms, setSelectedPlatforms] = useState<{ [key: number]: string }>({})
 
   // Fetch schedule data on component mount
   useEffect(() => {
@@ -73,6 +68,15 @@ export const useRecentPosts = (): UseRecentPostsReturn => {
       [postId]: platform
     }))
   }
+
+  // Helper function to get default values for posts
+  const getDefaultDay = (postId: number) => {
+    return selectedDays[postId] || 'Fri';
+  };
+
+  const getDefaultPlatform = (postId: number, availablePlatforms: string[] = []) => {
+    return selectedPlatforms[postId] || availablePlatforms[0] || 'Instagram';
+  };
 
   // Schedule delete handlers
   const handleDeleteClick = () => {
@@ -146,6 +150,10 @@ export const useRecentPosts = (): UseRecentPostsReturn => {
     // Post selection handlers
     handleDaySelect,
     handlePlatformSelect,
+    
+    // Helper functions
+    getDefaultDay,
+    getDefaultPlatform,
     
     // Utilities
     setShowDeleteModal,
