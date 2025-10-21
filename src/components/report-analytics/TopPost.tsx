@@ -8,6 +8,7 @@ import {
 	FaRegShareSquare,
 	FaPlayCircle,
 } from "react-icons/fa";
+import { getPlatformIcon } from "./PlatformIcon";
 
 interface TopPostProps {
 	topPost: any;
@@ -19,6 +20,25 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const videoRef = useRef<HTMLVideoElement>(null);
 
+	const getPlatformName = (accountType: string) => {
+		if (!accountType) return "Unknown";
+		
+		const platformMap: { [key: string]: string } = {
+			"Instagram Business": "Instagram",
+			"Instagram Personal": "Instagram", 
+			"Facebook Page": "Facebook",
+			"Facebook Profile": "Facebook",
+			"X (Twitter) Account": "X",
+			"LinkedIn Company": "LinkedIn",
+			"LinkedIn Personal": "LinkedIn",
+			"TikTok Business": "TikTok",
+			"TikTok Personal": "TikTok",
+			"YouTube Channel": "YouTube"
+		};
+		
+		return platformMap[accountType] || accountType;
+	};
+
 	const handleVideoPlay = () => {
 		setIsPlaying(true);
 		if (videoRef.current) {
@@ -26,22 +46,16 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 		}
 	};
 
-	// Generate thumbnail for iOS compatibility using video poster
 	React.useEffect(() => {
 		const generateThumbnail = () => {
 			if (videoRef.current && topPost) {
 				const video = videoRef.current;
 				
-				// For iOS, we'll use the video element's built-in thumbnail generation
-				// by setting currentTime to show a frame
 				video.addEventListener('loadedmetadata', () => {
-					// Set currentTime to generate a thumbnail frame
 					video.currentTime = 1;
 				});
 				
 				video.addEventListener('seeked', () => {
-					// The video element will now show the frame at 1 second
-					// This works better on iOS than canvas manipulation
 				});
 			}
 		};
@@ -60,8 +74,16 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 		>
 			<h2 className="text-lg font-medium text-[#282828] mb-[13px]">Top Post</h2>
 			
-			{/* Post Image/Video */}
-			<div className="w-full rounded-[8px] overflow-hidden mb-3 bg-gray-100">
+			<div className="w-full rounded-[8px] overflow-hidden mb-3 bg-gray-100 relative">
+				{topPost?.account_type && (
+					<div className="absolute top-2 right-2 z-30 bg-black bg-opacity-70 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
+						{getPlatformIcon(getPlatformName(topPost.account_type))}
+						<span className="text-white text-xs font-medium">
+							{getPlatformName(topPost.account_type)}
+						</span>
+					</div>
+				)}
+				
 				{(topPost?.type === 'video' && topPost?.attachments?.[0]?.url) || 
 				 (topPost?.image && (topPost.image.includes('.mp4') || topPost.image.includes('.mov') || topPost.image.includes('.avi') || topPost.image.includes('.webm'))) ? (
 					<div className="relative rounded-[8px] h-[155px] w-full overflow-hidden">
@@ -79,7 +101,6 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 							onError={() => {}}
 							onLoadStart={() => {}}
 							onLoadedMetadata={() => {
-								// Set video to show first frame for thumbnail on iOS
 								if (videoRef.current) {
 									videoRef.current.currentTime = 1;
 								}
@@ -114,12 +135,10 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 				)}
 			</div>
 			
-			{/* Post Title */}
 			<div className="text-lg font-semibold text-[#171717] mb-2">
 				{topPost && topPost.content ? topPost.content.substring(0, 25) + (topPost.content.length > 25 ? "..." : "") : "--"}
 			</div>
 			
-			{/* Date */}
 			<div className="flex items-center gap-2 text-sm text-[#171717] mb-4 font-medium">
 				<span>
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -141,10 +160,8 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 				</span>
 			</div>
 
-			{/* Separator */}
 			<div className="w-full h-[1px] bg-[#AFAFAF] mb-4"></div>
 			
-			{/* Engagement Metrics */}
 			<div className="flex justify-between w-full">
 				<div className="flex flex-col items-center gap-0">
 					<span className="text-[10px] text-[#858999] font-medium">Likes</span>

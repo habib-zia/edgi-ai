@@ -6,6 +6,8 @@ import { useScheduleValidation } from '@/hooks/useScheduleValidation'
 import { type ScheduleData } from '@/types/post-types'
 import ScheduleInfoBanner from './schedule-info-banner'
 import SubmitButton from './submit-button'
+import DatePicker from '../scheduled-post/DatePicker'
+import TimePicker from '../scheduled-post/TimePicker'
 
 interface UpdateScheduleModalProps {
   isOpen: boolean
@@ -286,7 +288,7 @@ export default function UpdateScheduleModal({ isOpen, onClose, onUpdate, existin
               <button
                 type="button"
                 onClick={() => setShowFrequencyDropdown(!showFrequencyDropdown)}
-                className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-left transition-colors duration-200 flex items-center justify-between cursor-pointer"
+                className="w-full px-4 py-3 bg-[#EEEEEE] border-0 rounded-lg text-left transition-colors duration-200 flex items-center justify-between cursor-pointer"
               >
                 <span className="text-gray-800">{frequency}</span>
                 <svg
@@ -361,7 +363,7 @@ export default function UpdateScheduleModal({ isOpen, onClose, onUpdate, existin
                         <select
                           value={post.day}
                           onChange={(e) => handlePostChange(index, 'day', e.target.value)}
-                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                          className={`w-full px-4 py-3 bg-[#EEEEEE] border-0 rounded-lg text-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 ${
                             getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
                           }`}
                         >
@@ -388,17 +390,9 @@ export default function UpdateScheduleModal({ isOpen, onClose, onUpdate, existin
                           })}
                         </select>
                       ) : (
-                        <input
-                          type="date"
+                        <DatePicker
                           value={post.date}
-                          onChange={(e) => handlePostChange(index, 'date', e.target.value)}
-                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
-                            getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
-                          }`}
-                          style={{
-                            WebkitAppearance: 'none',
-                            MozAppearance: 'textfield'
-                          }}
+                          onChange={(value) => handlePostChange(index, 'date', value)}
                           placeholder="Select Date"
                         />
                       )}
@@ -417,17 +411,9 @@ export default function UpdateScheduleModal({ isOpen, onClose, onUpdate, existin
                     {frequency === 'Daily' ? `Time for Day ${index + 1}` : `Time ${index + 1}`}
                   </label>
                   <div className="relative">
-                    <input
-                      type="time"
+                    <TimePicker
                       value={post.time}
-                      onChange={(e) => handlePostChange(index, 'time', e.target.value)}
-                      className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
-                        getFieldError(`time_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
-                      }`}
-                      style={{
-                        WebkitAppearance: 'none',
-                        MozAppearance: 'textfield'
-                      }}
+                      onChange={(value) => handlePostChange(index, 'time', value)}
                       placeholder="Select Time"
                     />
                   </div>

@@ -36,6 +36,8 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
   const [selectedPlatform, setSelectedPlatform] = useState("Instagram");
   const [platformCaptions, setPlatformCaptions] = useState<{[key: string]: string}>({});
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const platformOptions = ['Instagram', 'Facebook', 'LinkedIn', 'X', 'TikTok', 'YouTube'];
@@ -146,7 +148,12 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     setIsEditModalOpen(false);
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
     try {
       if (!scheduleId) {
         if ((window as any).showNotification) {
@@ -159,7 +166,7 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         }
         return;
       }
-      const response = await apiService.deletePost(post.scheduleId, post.id.toString());
+      const response = await apiService.deletePost(scheduleId, post.id.toString());
       
       if (response.success) {
         if ((window as any).showNotification) {
@@ -174,6 +181,7 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         if (onPostDeleted) {
           onPostDeleted();
         }
+        setIsDeleteModalOpen(false);
       } else {
         if ((window as any).showNotification) {
           (window as any).showNotification({
@@ -193,7 +201,13 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
           duration: 5000
         });
       }
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
   };
 
 
@@ -308,7 +322,7 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
 
       <div className="flex justify-end items-center gap-3 mt-auto">
         <button 
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           className="text-[#5F5F5F] hover:text-red-500 transition-colors p-2 bg-[#F9DFDF] rounded-full px-3 py-[6px] hover:bg-[#F9DFDF]/50"
         >
           <svg width="21" height="20" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -344,6 +358,52 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         };
       })()}
     />
+
+    {/* Delete Confirmation Modal */}
+    {isDeleteModalOpen && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
+        <div className="bg-white rounded-xl max-w-md w-full">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Delete Post</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this scheduled post? This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={isDeleting}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Post'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

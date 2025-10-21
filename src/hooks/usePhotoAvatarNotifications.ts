@@ -48,9 +48,54 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
   // Track processed events to prevent duplicates
   const processedEvents = useRef(new Set<string>())
 
+  // Load notifications from localStorage on mount
+  useEffect(() => {
+    if (userId && typeof window !== 'undefined') {
+      try {
+        const savedNotifications = localStorage.getItem(`avatar-notifications-${userId}`)
+        if (savedNotifications) {
+          const parsed = JSON.parse(savedNotifications)
+          // Only restore if notifications are recent (within last 24 hours)
+          const recentNotifications = parsed.filter((notif: PhotoAvatarUpdate) => {
+            const notificationTime = new Date(notif.timestamp).getTime()
+            const now = Date.now()
+            return (now - notificationTime) < 24 * 60 * 60 * 1000 // 24 hours
+          })
+          if (recentNotifications.length > 0) {
+            setNotifications(recentNotifications)
+            console.log('📸 Restored notifications from localStorage:', recentNotifications)
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load notifications from localStorage:', error)
+      }
+    }
+  }, [userId])
+
+  // Save notifications to localStorage whenever they change
+  useEffect(() => {
+    if (userId && notifications.length > 0 && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`avatar-notifications-${userId}`, JSON.stringify(notifications))
+        console.log('📸 Saved notifications to localStorage:', notifications)
+      } catch (error) {
+        console.warn('Failed to save notifications to localStorage:', error)
+      }
+    }
+  }, [notifications, userId])
+
   const clearNotifications = useCallback(() => {
     setNotifications([])
-  }, [])
+    // Also clear from localStorage
+    if (userId && typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`avatar-notifications-${userId}`)
+        console.log('📸 Cleared notifications from localStorage')
+      } catch (error) {
+        console.warn('Failed to clear notifications from localStorage:', error)
+      }
+    }
+  }, [userId])
 
   const clearVideoNotifications = useCallback(() => {
     setVideoNotifications([])
@@ -69,6 +114,15 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
       setVideoNotifications([])
       // Clear processed events to prevent memory leaks
       processedEvents.current.clear()
+      // Clear localStorage notifications
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(`avatar-notifications-${userId}`)
+          console.log('🧹 Cleared avatar notifications from localStorage on logout')
+        } catch (error) {
+          console.warn('Failed to clear localStorage on logout:', error)
+        }
+      }
       console.log('🧹 User logged out - cleared all notifications and socket connection')
       return
     }
@@ -157,6 +211,18 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
       
       console.log('📸 Current notifications before update:', notifications)
       setNotifications(prev => {
+        // Check if this exact notification already exists to prevent duplicates
+        const exists = prev.some(notif => 
+          notif.step === update.step && 
+          notif.timestamp === update.timestamp &&
+          notif.status === update.status
+        )
+        
+        if (exists) {
+          console.log('📸 Notification already exists, skipping:', update)
+          return prev
+        }
+        
         const newNotifications = [...prev, update]
         console.log('📸 New notifications after update:', newNotifications)
         return newNotifications
@@ -189,7 +255,22 @@ export const usePhotoAvatarNotifications = (userId: string | null): UsePhotoAvat
         },
         timestamp: timestamp
       }
-      setNotifications(prev => [...prev, completionUpdate])
+      
+      setNotifications(prev => {
+        // Check if this completion notification already exists
+        const exists = prev.some(notif => 
+          notif.step === 'complete' && 
+          notif.status === 'success' &&
+          notif.data?.avatarId === data.avatarId
+        )
+        
+        if (exists) {
+          console.log('📸 Completion notification already exists, skipping:', completionUpdate)
+          return prev
+        }
+        
+        return [...prev, completionUpdate]
+      })
     })
 
     // Listen for video download updates
