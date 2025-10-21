@@ -1,6 +1,6 @@
 "use client";
-import React from "react";
-import { MobileTimePicker } from "@mui/x-date-pickers/MobileTimePicker";
+import React, { useState } from "react";
+import { DesktopTimePicker } from "@mui/x-date-pickers/DesktopTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
@@ -12,6 +12,8 @@ interface TimePickerProps {
 }
 
 export default function TimePicker({ value, onChange, placeholder = "Select Time" }: TimePickerProps) {
+  const [open, setOpen] = useState(false);
+
   const handleChange = (newValue: Dayjs | null) => {
     if (newValue) {
       onChange(newValue.format('HH:mm'));
@@ -22,13 +24,17 @@ export default function TimePicker({ value, onChange, placeholder = "Select Time
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <MobileTimePicker
+      <DesktopTimePicker
         value={value ? dayjs(`2000-01-01 ${value}`) : null}
         onChange={handleChange}
+        open={open}
+        onOpen={() => setOpen(true)}
+        onClose={() => setOpen(false)}
         slotProps={{
           textField: {
             placeholder: placeholder,
             fullWidth: true,
+            onClick: () => setOpen(true),
             sx: {
               backgroundColor: '#EEEEEE',
               borderRadius: '8px',
@@ -45,6 +51,7 @@ export default function TimePicker({ value, onChange, placeholder = "Select Time
                 padding: '10px 16px',
                 fontSize: '18px',
                 color: '#11101066',
+                cursor: 'pointer',
                 '&::placeholder': {
                   color: '#11101066',
                   opacity: 1,

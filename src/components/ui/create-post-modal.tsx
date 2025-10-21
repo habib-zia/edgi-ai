@@ -33,7 +33,7 @@ export default function CreatePostModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[600px] overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-md w-full max-h-[600px] h-full overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-black">Create Post</h2>
           <button
@@ -54,6 +54,7 @@ export default function CreatePostModal({
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
                   min={minDate}
                   disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:border-transparent bg-gray-50 text-black disabled:opacity-50 disabled:cursor-not-allowed"
@@ -70,6 +71,7 @@ export default function CreatePostModal({
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
                   min={date === minDate ? minTime : undefined}
                   disabled={isSubmitting}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:border-transparent bg-gray-50 text-black disabled:opacity-50 disabled:cursor-not-allowed"

@@ -20,7 +20,7 @@ export default function FormLoadingOverlay({
   if (!isDataLoading) return null
 
   return (
-    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex items-center justify-center">
+    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-30 flex items-center justify-center">
       <div className="bg-white rounded-xl p-8 shadow-2xl max-w-md w-full mx-4">
         <div className="text-center">
           {/* Main spinner */}
@@ -73,7 +73,7 @@ export default function FormLoadingOverlay({
           
           {/* Loading message */}
           <div className="mt-6 text-sm text-gray-600">
-            {autoFilling ? 'Auto-filling form with your saved settings...' : 'Please wait while we prepare everything for you'}
+            {autoFilling ? '' : 'Please wait while we prepare everything for you'}
           </div>
         </div>
       </div>

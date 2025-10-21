@@ -40,8 +40,8 @@ export default function ProfileInfoSection({ data, errors, onChange, isEmailVeri
   const [toastType, setToastType] = useState<'success' | 'error'>('success')
 
   const handleInputChange = (field: keyof ProfileFormData, value: string) => {
-    const processedValue = value.trim()
-    onChange(field, processedValue)
+    // const processedValue = value.trim() 
+    onChange(field, value)
   }
 
   const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {

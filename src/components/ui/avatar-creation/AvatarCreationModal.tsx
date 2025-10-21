@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Step2ChooseType from './steps/Step2ChooseType'
 import Step5QRCode from './steps/Step5QRCode'
 import Step6PhotoInstructions from './steps/Step6PhotoInstructions'
@@ -45,6 +45,20 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     photoFiles: [],
     avatarType: null
   })
+
+    // Prevent body scroll when modal is open
+    useEffect(() => {
+      if (isOpen) {
+        document.body.style.overflow = 'hidden'
+      } else {
+        document.body.style.overflow = 'unset'
+      }
+  
+      // Cleanup function to reset overflow when component unmounts
+      return () => {
+        document.body.style.overflow = 'unset'
+      }
+    }, [isOpen])
 
   const handleNext = () => {
     // For digital-twin: Normal progression through steps 3 -> 4 -> 8

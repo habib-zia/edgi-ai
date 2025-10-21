@@ -126,6 +126,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
     }
   };
 
+  // Generate thumbnail for iOS compatibility using video poster
+  React.useEffect(() => {
+    const generateThumbnail = () => {
+      if (videoRef.current && post) {
+        const video = videoRef.current;
+        
+        // For iOS, we'll use the video element's built-in thumbnail generation
+        // by setting currentTime to show a frame
+        video.addEventListener('loadedmetadata', () => {
+          // Set currentTime to generate a thumbnail frame
+          video.currentTime = 1;
+        });
+        
+        video.addEventListener('seeked', () => {
+          // The video element will now show the frame at 1 second
+          // This works better on iOS than canvas manipulation
+        });
+      }
+    };
+
+    generateThumbnail();
+  }, [post]);
   return (
     <motion.div
       className="bg-white hover:bg-gray-100 transition-all duration-300 rounded-[10px] border border-[#F1F1F4] overflow-visible p-4"
@@ -150,8 +172,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
               preload="metadata"
               controls={isVideoPlaying}
               poster=""
+              webkit-playsinline="true"
               onError={() => {}}
               onLoadStart={() => {}}
+              onLoadedMetadata={() => {
+                // Set video to show first frame for thumbnail on iOS
+                if (videoRef.current) {
+                  videoRef.current.currentTime = 1;
+                }
+              }}
             />
             {!isVideoPlaying && (
               <div 

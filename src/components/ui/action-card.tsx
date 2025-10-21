@@ -29,8 +29,8 @@ export default function ActionCard(){
                     <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                         {/* Left side - Heading */}
                         <div className="flex-1">
-                            <h2 className="text-white text-3xl md:text-4xl lg:text-[56px] font-semibold leading-tight">
-                                Ready to see<br />Ai in Action?
+                            <h2 className="text-white text-3xl md:text-4xl lg:text-[56px] font-semibold !leading-[120%]">
+                                Ready to see<br />AI in Action?
                             </h2>
                         </div>
                         

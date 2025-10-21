@@ -120,7 +120,6 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 
 	const currentMetrics = getPlatformMetrics();
 
-	// Get top performing post
 	const getTopPost = () => {
 		
 		if (topPostsData && !insightsLoading && topPostsData.posts && topPostsData.posts.length > 0) {
@@ -154,45 +153,23 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 			return null;
 		}
 
-		const filteredPosts = postsData.filter(post => {
-			if (selectedPlatform === 'All') {
-				return post.platforms && Object.keys(post.platforms).length > 0;
-			}
-			
-			if (post.platforms && post.platforms[selectedPlatform]) {
-				return true;
-			}
-			return false;
-		});
-
 		let topPost: any = null;
 		let maxEngagement = 0;
 
-		filteredPosts.forEach(post => {
+		postsData.forEach(post => {
 			let totalEngagement = 0;
 			
-			if (selectedPlatform === 'All') {
-				if (post.platforms) {
-					Object.values(post.platforms).forEach((platformData: any) => {
-						if (platformData.engagement) {
-							totalEngagement += (platformData.engagement.likes || 0) + 
-											  (platformData.engagement.comments || 0) + 
-											  (platformData.engagement.shares || 0);
-						}
-					});
-				}
-			} else {
-				if (post.platforms && post.platforms[selectedPlatform]) {
-					const platformData = post.platforms[selectedPlatform];
+			if (post.platforms) {
+				Object.values(post.platforms).forEach((platformData: any) => {
 					if (platformData.engagement) {
 						totalEngagement += (platformData.engagement.likes || 0) + 
 										  (platformData.engagement.comments || 0) + 
 										  (platformData.engagement.shares || 0);
 					}
-				}
+				});
 			}
 			
-			if (post.insights && Array.isArray(post.insights) && (!post.platforms || Object.keys(post.platforms).length === 0)) {
+			if (post.insights && Array.isArray(post.insights)) {
 				post.insights.forEach((insight: any) => {
 					totalEngagement += insight.value || 0;
 				});
@@ -209,11 +186,28 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 	const topPost = getTopPost();
 	
 	const getTopPostPlatform = () => {
-		if (!topPost) return selectedPlatform;
-		if (selectedPlatform === 'All') {
-			return Object.keys(topPost.platforms || {})[0] || selectedPlatform;
+		if (!topPost) return 'All';
+		
+		if (topPost.platforms && Object.keys(topPost.platforms).length > 0) {
+			let bestPlatform = 'All';
+			let maxEngagement = 0;
+			
+			Object.entries(topPost.platforms).forEach(([platform, platformData]: [string, any]) => {
+				if (platformData.engagement) {
+					const engagement = (platformData.engagement.likes || 0) + 
+									 (platformData.engagement.comments || 0) + 
+									 (platformData.engagement.shares || 0);
+					if (engagement > maxEngagement) {
+						maxEngagement = engagement;
+						bestPlatform = platform;
+					}
+				}
+			});
+			
+			return bestPlatform;
 		}
-		return selectedPlatform;
+		
+		return Object.keys(topPost.platforms || {})[0] || 'All';
 	};
 	
 	const topPostPlatform = getTopPostPlatform();
@@ -296,7 +290,6 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 					</div>
 				)}
 				
-				{/* Show empty state design when no posts */}
 				{isEmptyState ? (
 					<div className="flex flex-col items-center justify-center py-20">
 						<div className="text-center max-w-md">
@@ -327,7 +320,6 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 				{/* Summary Cards */}
 				<div className="grid grid-cols-1 lg:grid-cols-4 md:grid-cols-2 justify-center gap-4 mb-8">
 					{summary.map((item, i) => {
-						// Get the appropriate value based on the item label
 						let displayValue = item.value;
 						if (item.label === "Total Posts") displayValue = currentMetrics.posts;
 						else if (item.label === "Total Likes") displayValue = currentMetrics.likes;
@@ -337,7 +329,7 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 						return (
 						<motion.div
 							key={item.label}
-								className="bg-white rounded-[10px] p-[13px] flex justify-between items-center border border-[#F1F1F4] lg:max-w-[303px] max-w-full w-full"
+								className="bg-white rounded-[10px] p-[13px] grid grid-cols-12 justify-between items-center border border-[#F1F1F4] lg:max-w-[303px] max-w-full w-full"
 							custom={i}
 							initial="hidden"
 							whileInView="visible"
@@ -345,33 +337,28 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 							variants={cardVariants}
 							style={{ boxShadow: "0px 5px 20px 0px #0000000D" }}
 						>
-							<div className="flex flex-col items-start w-full gap-2">
+							<div className="flex flex-col items-start w-full gap-2 col-span-9">
 									<span className="text-base font-normal text-[#5F5F5F]">
 										{selectedPlatform === 'All' ? item.label : `${selectedPlatform} ${item.label.replace('Total ', '')}`}
 									</span>
 									<div className="text-xl md:text-[24px] font-medium text-[#282828]">{isEmptyState ? "--" : displayValue}</div>
 							</div>
-							<div className="flex items-center justify-end w-full gap-2">
+							<div className="flex items-center justify-end w-full gap-2 col-span-3">
 								<div className="flex items-center gap-2 text-gray-400 mb-2 bg-[#5046E51A] w-[40px] h-[40px] rounded-[4px] justify-center">{item.icon}</div>
 							</div>
 						</motion.div>
 						);
 					})}
 				</div>
-				{/* Main Content Grid */}
 				<div className="grid grid-cols-12 gap-4">
 					<div className="lg:col-span-9 col-span-12">
-					{/* Followers Chart */}
 					    <FollowersChart 
-					    	isEmptyState={isEmptyState} 
-					    	selectedPlatform={selectedPlatform} 
 					    	totalLikes={topPostsData ? topPostsData.totalLikes : (parseInt(currentMetrics.likes.replace(/,/g, '')) || 0)}
 					    	topPostData={topPost}
 					    	insightsData={topPostsData}
 					    />
 					</div>
 					<div className="flex md:flex-row flex-col gap-2 lg:col-span-3 col-span-12">
-						{/* Top Post Component */}
 						<TopPost 
 							topPost={topPost}
 							topPostPlatform={topPostPlatform}

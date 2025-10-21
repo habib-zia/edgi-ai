@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { DatePicker as MuiDatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -12,6 +12,8 @@ interface DatePickerProps {
 }
 
 export default function DatePicker({ value, onChange, placeholder = "Select Day" }: DatePickerProps) {
+  const [open, setOpen] = useState(false);
+
   const handleChange = (newValue: Dayjs | null) => {
     if (newValue) {
       onChange(newValue.format('YYYY-MM-DD'));
@@ -25,10 +27,14 @@ export default function DatePicker({ value, onChange, placeholder = "Select Day"
       <MuiDatePicker
         value={value ? dayjs(value) : null}
         onChange={handleChange}
+        open={open}
+        onOpen={() => setOpen(true)}
+        onClose={() => setOpen(false)}
         slotProps={{
           textField: {
             placeholder: placeholder,
             fullWidth: true,
+            onClick: () => setOpen(true),
             sx: {
               backgroundColor: '#EEEEEE',
               borderRadius: '8px',
@@ -45,6 +51,7 @@ export default function DatePicker({ value, onChange, placeholder = "Select Day"
                 padding: '10px 16px',
                 fontSize: '18px',
                 color: '#11101066',
+                cursor: 'pointer',
                 '&::placeholder': {
                   color: '#11101066',
                   opacity: 1,

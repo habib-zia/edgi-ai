@@ -1,10 +1,9 @@
 
 "use client";
 import React, { useEffect, useState } from "react";
-import { FaLink, FaClock, FaTrash } from "react-icons/fa6";
+import { FaLink, FaClock } from "react-icons/fa6";
 import PostCard from "./PostCard";
 import Link from "next/link";
-import ScheduleDeleteModal from "../ui/schedule-delete-modal";
 import ConnectAccountsModal from "../ui/connect-accounts-modal";
 import { useRecentPosts } from "@/hooks/useRecentPosts";
 import { recentPostsData } from "./SocialData";
@@ -20,13 +19,7 @@ interface RecentPostsProps {
 export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDataChange }: RecentPostsProps) {
 
   const {
-    showDeleteModal,
     showConnectAccountsModal,
-    scheduleData,
-    scheduleLoading,
-    handleDeleteClick,
-    handleDeleteConfirm,
-    handleDeleteCancel,
     handleAccountsClick,
     handleConnectAccountsClose,
     handleConnectAccountsNext,
@@ -210,13 +203,6 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
               <FaClock className="text-sm" />
               Scheduled Post
             </Link>
-            {scheduleData && <button
-              onClick={handleDeleteClick}
-              className="flex items-center gap-2 px-4 py-[8px] border-2 border-[#FF3131] text-[#FF3131] bg-[#FF313110] rounded-full text-lg font-medium hover:bg-[#FF3131] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FaTrash className="text-sm" />
-              {scheduleLoading ? 'Loading...' : 'Schedule Delete'}
-            </button>}
           </div>
         </div>
         {publishedPostsLoading && (
@@ -232,12 +218,6 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
               <p className="text-lg text-red-600 leading-relaxed mb-4">
                 Error loading posts: {publishedPostsError}
               </p>
-              <button
-                onClick={fetchPublishedPosts}
-                className="px-6 py-2 bg-[#5046E5] text-white rounded-full hover:bg-[#4338CA] transition-colors"
-              >
-                Try Again
-              </button>
             </div>
           </div>
         )}
@@ -298,11 +278,6 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
           </div>
         )}
       </div>
-      <ScheduleDeleteModal
-        isOpen={showDeleteModal}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-      />
       <ConnectAccountsModal
         isOpen={showConnectAccountsModal}
         onClose={handleConnectAccountsClose}

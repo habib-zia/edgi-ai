@@ -25,7 +25,25 @@ interface Step7PhotoUploadProps {
 export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatarData }: Step7PhotoUploadProps) {
   const [dragActive, setDragActive] = useState(false)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('')
+  const [error, setError] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // File validation function
+  const validateFile = (file: File): { isValid: boolean; error?: string } => {
+    const maxSize = 200 * 1024 * 1024; // 200MB
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/heic', 'image/webp'];
+    
+    if (file.size > maxSize) {
+      return { isValid: false, error: 'File size must be less than 200MB' };
+    }
+    
+    if (!allowedTypes.includes(file.type)) {
+      return { isValid: false, error: 'Only PNG, JPG, HEIC, and WebP files are supported' };
+    }
+    
+    return { isValid: true };
+  };
 
   // Function to create preview URL for uploaded file
   const createPreviewUrl = (file: File) => {
@@ -33,6 +51,32 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
     setImagePreviewUrl(url)
     return url
   }
+
+  // Process file with validation
+  const processFile = async (file: File) => {
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      const validation = validateFile(file);
+      
+      if (!validation.isValid) {
+        setError(validation.error || 'Invalid file');
+        return;
+      }
+      
+      createPreviewUrl(file);
+      setAvatarData({
+        ...avatarData,
+        photoFiles: [file]
+      });
+    } catch (error) {
+      console.error('File processing error:', error);
+      setError('Failed to process file');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Effect to restore image preview when component mounts with existing photo files
   useEffect(() => {
@@ -75,11 +119,7 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
       if (newFiles.length > 0) {
         // Only take the first file
         const file = newFiles[0]
-        createPreviewUrl(file)
-        setAvatarData({
-          ...avatarData,
-          photoFiles: [file] // Replace with single file
-        })
+        processFile(file)
       }
     }
   }
@@ -92,11 +132,7 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
       if (newFiles.length > 0) {
         // Only take the first file
         const file = newFiles[0]
-        createPreviewUrl(file)
-        setAvatarData({
-          ...avatarData,
-          photoFiles: [file] // Replace with single file
-        })
+        processFile(file)
       }
     }
   }
@@ -109,6 +145,7 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
     
     setAvatarData({ ...avatarData, photoFiles: [] })
     setImagePreviewUrl('')
+    setError(null)
   }
 
   const handleUpload = () => {
@@ -158,18 +195,35 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/jpg,image/heic,image/webp"
           onChange={handleFileSelect}
           className="hidden"
         />
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Processing Indicator */}
+      {isProcessing && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <p className="text-blue-600 text-sm">Processing file...</p>
+          </div>
+        </div>
+      )}
 
 
       {/* Uploaded Photo */}
       {avatarData.photoFiles.length > 0 && (
         <div className="space-y-4">
           <div className="flex justify-center">
-            <div className="relative group max-w-[200px]">
+            <div className="relative group max-w-[200px] w-full">
               <div className="w-full h-[250px] rounded-[12px] overflow-hidden">
                 {imagePreviewUrl ? (
                   <Image
@@ -177,20 +231,25 @@ export default function Step7PhotoUpload({ onNext, onBack, avatarData, setAvatar
                     alt="Preview"
                     width={200}
                     height={250}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain bg-gray-100"
+                    style={{
+                      // Fix iOS image stretching issues
+                      objectFit: 'contain',
+                      objectPosition: 'center'
+                    }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
                     <span className="text-[#98A2B3] text-xs">Photo Preview</span>
                   </div>
                 )}
               </div>
               <button
                 onClick={removePhoto}
-                className="absolute -top-2 -right-2 w-6 h-6 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg"
               >
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20.0002 3.3335C29.2168 3.3335 36.6668 10.7835 36.6668 20.0002C36.6668 29.2168 29.2168 36.6668 20.0002 36.6668C10.7835 36.6668 3.3335 29.2168 3.3335 20.0002C3.3335 10.7835 10.7835 3.3335 20.0002 3.3335ZM25.9835 11.6668L20.0002 17.6502L14.0168 11.6668L11.6668 14.0168L17.6502 20.0002L11.6668 25.9835L14.0168 28.3335L20.0002 22.3502L25.9835 28.3335L28.3335 25.9835L22.3502 20.0002L28.3335 14.0168L25.9835 11.6668Z" fill="#282828"/>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
               <p className="text-[12px] text-[#667085] text-center mt-2 truncate">

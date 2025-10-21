@@ -56,7 +56,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
       )
 
       if (!response.ok) {
-        console.error('Failed to fetch user settings:', await response.text())
+        // console.error('Failed to fetch user settings:', await response.text())
         return
       }
 
@@ -187,10 +187,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
               }
             }
         console.log('Form populated with user settings')
-        setTimeout(() => {
-          trigger()
-          console.log('Form refreshed and validated')
-        }, 100)
+        // Note: Removed automatic validation trigger to prevent validation errors on empty fields
       }
     } catch (error) {
       console.error('Error fetching user settings:', error)

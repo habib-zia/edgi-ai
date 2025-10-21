@@ -1,26 +1,22 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, AlertCircle, RefreshCw, CheckCircle, Clock } from 'lucide-react'
+import { Check, AlertCircle } from 'lucide-react'
 import ScheduleInterface from './schedule-interface'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { setVideoLoading, setVideoError, createVideoRequest, clearVideoError, VideoRequest } from '@/store/slices/videoSlice'
 import CreateVideoModal from './create-video-modal'
 import { apiService } from '@/lib/api-service'
-import Image from 'next/image'
-// ...existing code...
-import { IoMdArrowDropdown } from "react-icons/io";
 import { useSearchParams } from 'next/navigation'
 import { Avatar, Trend } from '@/lib/api-service'
 import { useAvatarStorage, type SelectedAvatars } from '@/hooks/useAvatarStorage'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useUserSettings } from '@/hooks/useUserSettings'
 import { useSchedule } from '@/hooks/useSchedule'
-import TrendsDropdown from './trends-dropdown'
+import HybridTopicInput from './hybrid-topic-input'
 import FormInput from './form-input'
 import FormHeader from './form-header'
 import FormFieldRow from './form-field-row'
@@ -447,7 +443,23 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     trigger
   } = useForm<CreateVideoFormData>({
     resolver: zodResolver(createVideoSchema),
-    mode: 'onChange'
+    mode: 'onSubmit',
+    defaultValues: {
+      prompt: '',
+      avatar: '',
+      name: '',
+      position: '',
+      companyName: '',
+      license: '',
+      tailoredFit: '',
+      socialHandles: '',
+      videoTopic: '',
+      topicKeyPoints: '',
+      city: '',
+      preferredTone: '',
+      callToAction: '',
+      email: ''
+    }
   })
   // User settings hook
   const { fetchUserSettings, saveUserSettings } = useUserSettings({
@@ -661,12 +673,36 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }, 50)
   }
 
+  // Handle manual input for custom topics
+  const handleManualInput = (field: keyof CreateVideoFormData, value: string) => {
+    console.log('🎯 handleManualInput called:', { field, value })
+    
+    // Close dropdown first
+    setOpenDropdown(null)
+    
+    // Use setTimeout to ensure the dropdown closes before setting values
+    setTimeout(() => {
+      if (field === 'videoTopic') {
+        console.log('🎯 Setting custom videoTopic value:', value)
+        setValue('videoTopic', value)
+        
+        // For custom topics, clear the key points field to allow manual input
+        setValue('topicKeyPoints', '')
+        console.log('🎯 Cleared topicKeyPoints for custom input - user can enter manually')
+      } else {
+      setValue(field, value)
+    }
+      trigger(field)
+    }, 50)
+  }
   const handleDropdownToggle = (field: keyof CreateVideoFormData) => {
     const isOpen = openDropdown === field
     
     if (isOpen) {
       const currentValue = watch(field)
       if (!currentValue || currentValue.trim() === '') {
+        // Just trigger validation without clearing the field
+        trigger(field)
         setValue(field, '', { shouldValidate: true })
       }
     }
@@ -694,7 +730,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         errors={errors}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
-        onBlur={(field) => setValue(field, '', { shouldValidate: true })}
+        onBlur={(field) => trigger(field)}
         // Avatar-specific props
         isAvatarField={field === 'avatar'}
         isFromDefaultAvatar={isFromDefaultAvatar}
@@ -732,7 +768,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     
 
     return (
-      <TrendsDropdown
+      <HybridTopicInput
         field={field}
         placeholder={placeholder}
         currentValue={currentValue}
@@ -744,8 +780,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         safeTrends={safeTrends}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
-        onBlur={(field) => setValue(field, '', { shouldValidate: true })}
+        onBlur={(field) => trigger(field)}
         onRetry={fetchTrends}
+        onManualInput={handleManualInput}
       />
     )
   }
@@ -861,14 +898,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Video Topic <span className="text-red-500">*</span>
             </label>
-            {renderTrendsDropdown('videoTopic', 'Select a trend')}
+            {renderTrendsDropdown('videoTopic', 'Enter a topic or select a trend')}
           </div>
 
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Topic Key Points <span className="text-red-500">*</span>
             </label>
-            {renderInput('topicKeyPoints', 'Key points will auto-fill when topic is selected', 'text')}
+            {(() => {
+              const videoTopicValue = watch('videoTopic')
+              const selectedTrend = safeTrends.find(trend => trend.description === videoTopicValue)
+              const isCustomTopic = videoTopicValue && videoTopicValue.trim() && !selectedTrend
+              const placeholder = isCustomTopic ? 'Enter topic key points' : 'Key points will auto-fill when topic is selected'
+              return renderInput('topicKeyPoints', placeholder, 'text')
+            })()}
           </div>
         </div>
         <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
@@ -886,8 +929,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           onClick={() => {
             const currentValue = watch(openDropdown as keyof CreateVideoFormData)
             if (!currentValue || currentValue.trim() === '') {
-              // Trigger validation for this field only if no value is selected
-              setValue(openDropdown as keyof CreateVideoFormData, '', { shouldValidate: true })
+              // Just trigger validation without clearing the field
+              trigger(openDropdown as keyof CreateVideoFormData)
             }
             setOpenDropdown(null)
           }}

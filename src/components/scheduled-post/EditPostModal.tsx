@@ -34,8 +34,20 @@ interface EditPostModalProps {
 }
 
 export default function EditPostModal({ isOpen, onClose, onEdit, postData }: EditPostModalProps) {
+  const getCleanDate = (dateString?: string) => {
+    if (!dateString) return "";
+  
+    if (dateString.includes('T')) {
+      return dateString.split('T')[0];
+    } else if (dateString.includes(' ')) {
+      return dateString.split(' ')[0];
+    } else {
+      return dateString;
+    }
+  };
+
   const [formData, setFormData] = useState({
-    date: postData?.date || "",
+    date: getCleanDate(postData?.date),
     time: postData?.time || "",
     videoTopic: postData?.videoTopic || "",
     captions: postData?.captions || "",
@@ -53,16 +65,14 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
     keypoints: postData?.keypoints || ""
   });
 
-  // Update formData when postData changes
   useEffect(() => {
     if (postData) {
       setFormData({
-        date: postData.date || "",
+        date: getCleanDate(postData.date),
         time: postData.time || "",
         videoTopic: postData.videoTopic || "",
         captions: postData.captions || "",
         platform: postData.platform || "Youtube",
-        // Platform-specific captions
         instagram: typeof postData.captions === 'object' ? postData.captions?.instagram || "" : "",
         facebook: typeof postData.captions === 'object' ? postData.captions?.facebook || "" : "",
         linkedin: typeof postData.captions === 'object' ? postData.captions?.linkedin || "" : "",
@@ -116,7 +126,6 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prepare the data in the format expected by handleEdit
     const updateData = {
       description: formData.videoTopic,
       keypoints: formData.keypoints || '',
@@ -128,8 +137,9 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
         tiktok: formData.tiktok || '',
         youtube: formData.youtube || ''
       },
-      scheduledFor: `${formData.date.split('T')[0]} ${formData.time}:00` // Combine date and time
+      scheduledFor: `${getCleanDate(formData.date)} ${formData.time}:00`
     };
+    
     if (onEdit) {
       try {
         await onEdit(updateData);
