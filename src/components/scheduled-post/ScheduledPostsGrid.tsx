@@ -137,7 +137,7 @@ export default function ScheduledPostsGrid() {
           </svg>
 
           Modify Schedule
-        </button>} */}
+        </button>}
       </div>
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -187,8 +187,6 @@ export default function ScheduledPostsGrid() {
         existingScheduleData={scheduledPostsDurationData ? {
           frequency: scheduledPostsDurationData.scheduleInfo?.frequency || 'daily',
           schedule: {
-            days: [],
-            times: []
             days: [],
             times: []
           },
