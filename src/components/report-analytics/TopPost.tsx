@@ -1,11 +1,12 @@
 "use client";
-import React from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
 	FaRegCommentDots,
 	FaRegThumbsUp,
 	FaRegShareSquare,
+	FaPlayCircle,
 } from "react-icons/fa";
 
 interface TopPostProps {
@@ -15,6 +16,39 @@ interface TopPostProps {
 }
 
 export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
+	const [isPlaying, setIsPlaying] = useState(false);
+	const videoRef = useRef<HTMLVideoElement>(null);
+
+	const handleVideoPlay = () => {
+		setIsPlaying(true);
+		if (videoRef.current) {
+			videoRef.current.play();
+		}
+	};
+
+	// Generate thumbnail for iOS compatibility using video poster
+	React.useEffect(() => {
+		const generateThumbnail = () => {
+			if (videoRef.current && topPost) {
+				const video = videoRef.current;
+				
+				// For iOS, we'll use the video element's built-in thumbnail generation
+				// by setting currentTime to show a frame
+				video.addEventListener('loadedmetadata', () => {
+					// Set currentTime to generate a thumbnail frame
+					video.currentTime = 1;
+				});
+				
+				video.addEventListener('seeked', () => {
+					// The video element will now show the frame at 1 second
+					// This works better on iOS than canvas manipulation
+				});
+			}
+		};
+
+		generateThumbnail();
+	}, [topPost]);
+
 	return (
 		<motion.div
 			className="bg-white rounded-[10px] h-fit px-[13px] py-[15px] flex flex-col items-start border border-[#F1F1F4] md:max-w-[303px] max-w-full w-full"
@@ -32,29 +66,35 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 				 (topPost?.image && (topPost.image.includes('.mp4') || topPost.image.includes('.mov') || topPost.image.includes('.avi') || topPost.image.includes('.webm'))) ? (
 					<div className="relative rounded-[8px] h-[155px] w-full overflow-hidden">
 						<video
+							ref={videoRef}
 							src={topPost.attachments?.[0]?.url || topPost.image}
-							className="w-full h-full object-cover"
-							poster=""
+							className="absolute inset-0 w-full h-full object-cover rounded-[8px]"
+							muted
+							loop
+							playsInline
 							preload="metadata"
-							onClick={(e) => {
-								const video = e.currentTarget;
-								if (video.paused) {
-									video.play();
-									video.controls = true;
-								} else {
-									video.pause();
-									video.controls = false;
+							controls={isPlaying}
+							poster=""
+							webkit-playsinline="true"
+							onError={() => {}}
+							onLoadStart={() => {}}
+							onLoadedMetadata={() => {
+								// Set video to show first frame for thumbnail on iOS
+								if (videoRef.current) {
+									videoRef.current.currentTime = 1;
 								}
 							}}
 						/>
-						{/* Play Button Overlay */}
-						<div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-300 cursor-pointer">
-							<div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
-								<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-									<path d="M8 5V19L19 12L8 5Z" fill="#282828"/>
-								</svg>
+						{!isPlaying && (
+							<div 
+								className="absolute inset-0 flex items-center justify-center z-20 cursor-pointer hover:bg-black hover:bg-opacity-20 transition-all duration-200"
+								onClick={handleVideoPlay}
+							>
+								<div className="w-16 h-16 bg-black bg-opacity-80 rounded-full flex items-center justify-center">
+									<FaPlayCircle className="text-white text-2xl" />
+								</div>
 							</div>
-						</div>
+						)}
 					</div>
 				) : topPost && topPost.attachments && topPost.attachments[0] ? (
 					<Image 

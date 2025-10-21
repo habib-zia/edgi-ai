@@ -7,9 +7,13 @@ export function useActiveSection(sectionIds: string[], offset: number = 100) {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       const windowHeight = window.innerHeight;
+      const viewportTop = scrollPosition;
+      const viewportBottom = scrollPosition + windowHeight;
+      const viewportCenter = scrollPosition + (windowHeight / 2);
         
-      // Find which section is currently centered in the viewport
-      let currentSection = '';
+      // Find which section is most prominently visible in the viewport
+      let bestSection = '';
+      let bestScore = -1;
       
       for (let i = 0; i < sectionIds.length; i++) {
         const sectionId = sectionIds[i];
@@ -17,20 +21,30 @@ export function useActiveSection(sectionIds: string[], offset: number = 100) {
         
         if (element) {
           const elementTop = element.offsetTop;
-          // const elementBottom = elementTop + element.offsetHeight;
+          const elementBottom = elementTop + element.offsetHeight;
           const elementCenter = elementTop + (element.offsetHeight / 2);
           
-          // Check if the section is actually visible in the viewport
-          // A section is considered visible if its center is within the viewport
-          if (elementCenter >= scrollPosition && elementCenter <= scrollPosition + windowHeight) {
-            currentSection = sectionId;
-            break;
+          // Calculate how much of this section is visible in the viewport
+          const visibleTop = Math.max(elementTop, viewportTop);
+          const visibleBottom = Math.min(elementBottom, viewportBottom);
+          const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+          
+          // Calculate a score based on visibility and proximity to viewport center
+          const visibilityRatio = visibleHeight / element.offsetHeight;
+          const distanceFromCenter = Math.abs(elementCenter - viewportCenter);
+          const score = visibilityRatio - (distanceFromCenter / windowHeight) * 0.1;
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestSection = sectionId;
           }
         }
       }
       
-      // Only set active section if we found a section that's actually visible
-      setActiveSection(currentSection);
+      // Only set active section if we found a section with reasonable visibility
+      if (bestScore > 0.1) {
+        setActiveSection(bestSection);
+      }
     };
 
     // Initial check

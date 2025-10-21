@@ -1,26 +1,27 @@
 import React, { useState } from 'react';
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot } from 'recharts';
-import { getPlatformIcon, emptyData } from './PlatformIcon';
+import { emptyData } from './PlatformIcon';
 
 interface FollowersChartProps {
-  isEmptyState?: boolean;
-  selectedPlatform: string;
+  selectedPlatform?: string;
   postsData?: any[];
   totalLikes?: number;
   topPostData?: any;
   insightsData?: any;
 }
 
-const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false, selectedPlatform, totalLikes = 0, topPostData, insightsData }) => {
+const FollowersChart: React.FC<FollowersChartProps> = ({ totalLikes = 0, topPostData, insightsData }) => {
   const [selectedPoint, setSelectedPoint] = useState({ day: 'Saturday', likes: 600 });
 
   const getCurrentData = () => {
     
-    if (isEmptyState) {
-      return emptyData;
-    }
-
-      if (insightsData && insightsData.posts && insightsData.posts.length > 0) {
+    console.log('FollowersChart - getCurrentData called with:', {
+      insightsData: insightsData ? { posts: insightsData.posts?.length, totalLikes: insightsData.totalLikes } : null,
+      topPostData: topPostData ? { hasPlatforms: !!topPostData.platforms, platforms: Object.keys(topPostData.platforms || {}) } : null,
+      totalLikes
+    });
+    
+    if (insightsData && insightsData.posts && insightsData.posts.length > 0) {
       const hasEngagementData = insightsData.posts.some((post: any) => 
         post.insights && post.insights.length > 0
       );
@@ -52,15 +53,25 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false, s
       }
     }
 
-    if (topPostData && topPostData.platforms && topPostData.platforms[selectedPlatform] && topPostData.platforms[selectedPlatform].performanceData) {
-      const performanceData = topPostData.platforms[selectedPlatform].performanceData;
+    if (topPostData && topPostData.platforms) {
+      let bestPlatformData: any[] | null = null;
       
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      for (const [, platformData] of Object.entries(topPostData.platforms)) {
+        const data = platformData as any;
+        if (data && data.performanceData && Array.isArray(data.performanceData)) {
+          bestPlatformData = data.performanceData;
+          break;
+        }
+      }
       
-      return performanceData.map((data: any, index: number) => ({
-        day: days[index] || data.day,
-        likes: data.value || 0
-      }));
+      if (bestPlatformData) {
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        
+        return bestPlatformData.map((data: any, index: number) => ({
+          day: days[index] || data.day,
+          likes: data.value || 0
+        }));
+      }
     }
 
     return emptyData;
@@ -90,26 +101,22 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ isEmptyState = false, s
     <div className="w-full flex-col border border-[#F1F1F4] items-center bg-white justify-center py-4 pl-4 pr-4 rounded-[10px]" style={{ boxShadow: "0px 5px 20px 0px #0000000D" }}>
         <div className="w-full flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-[#282828]">
-            {insightsData ? 'Insights Performance' : (topPostData ? 'Top Post Performance' : (selectedPlatform === 'All' ? 'Total Likes in this Week' : `${selectedPlatform} Likes in this Week`))}
+            {insightsData ? 'Insights Performance' : (topPostData ? 'Top Post Performance' : 'Total Likes in this Week')}
           </h2>
           
-          {!isEmptyState && totalLikes > 0 && (
+          {(totalLikes > 0 || insightsData || topPostData) && (
             <div className="flex items-center gap-2 px-3 py-2 bg-[#EEEEEE] rounded-[7px]">
-              {selectedPlatform === 'All' ? (
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="10" cy="10" r="8" fill="#5046E5"/>
-                  <path d="M6 10L8.5 12.5L14 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : (
-                getPlatformIcon(selectedPlatform)
-              )}
-              <span className="text-base font-medium text-[#282828]">{selectedPlatform}</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="8" fill="#5046E5"/>
+                <path d="M6 10L8.5 12.5L14 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-base font-medium text-[#282828]">All</span>
             </div>
           )}
         </div>
         
         <div className="w-full h-[278px]">
-          {isEmptyState || totalLikes === 0 ? (
+          {totalLikes === 0 && !insightsData && !topPostData ? (
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={emptyData}

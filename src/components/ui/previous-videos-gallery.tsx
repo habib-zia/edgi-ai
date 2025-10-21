@@ -420,7 +420,17 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                       className="w-full h-[200px] object-cover rounded-[6px]"
                       preload="metadata"
                       poster=""
+                      muted
+                      loop
+                      playsInline
+                      webkit-playsinline="true"
                       onError={(e) => console.error('Video load error:', e)}
+                      onLoadedMetadata={(e) => {
+                        const videoElement = e.currentTarget;
+                        if (videoElement) {
+                          videoElement.currentTime = 1;
+                        }
+                      }}
                     >
                       Your browser does not support the video tag.
                     </video>

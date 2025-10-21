@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { FaClock, FaChevronDown } from "react-icons/fa6";
 import EditPostModal from "./EditPostModal";
 import { apiService } from "@/lib/api-service";
-import { getPlatformIcon } from "@/utils/platformIcons";
+import { getPlatformIcon } from "../report-analytics/PlatformIcon";
 
 interface ScheduledPost {
   id: string;
@@ -38,7 +38,7 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const platformOptions = ['Instagram', 'Facebook', 'LinkedIn', 'Twitter', 'TikTok', 'Youtube'];
+  const platformOptions = ['Instagram', 'Facebook', 'LinkedIn', 'X', 'TikTok', 'YouTube'];
 
   const formatDate = (dateString: string) => {
     if (!dateString) return dateString;
@@ -98,9 +98,9 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
           instagram: platformCaptions['Instagram'] || post.captions?.instagram || '',
           facebook: platformCaptions['Facebook'] || post.captions?.facebook || '',
           linkedin: platformCaptions['LinkedIn'] || post.captions?.linkedin || '',
-          twitter: platformCaptions['Twitter'] || post.captions?.twitter || '',
+          twitter: platformCaptions['X'] || post.captions?.twitter || '',
           tiktok: platformCaptions['TikTok'] || post.captions?.tiktok || '',
-          youtube: platformCaptions['Youtube'] || post.captions?.youtube || ''
+          youtube: platformCaptions['YouTube'] || post.captions?.youtube || ''
         },
         scheduledFor: post.scheduledFor
       };
@@ -328,15 +328,21 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
       isOpen={isEditModalOpen}
       onClose={handleCloseEditModal}
       onEdit={handleEdit}
-      postData={{
-        ...post,
-        date: post.scheduledForLocal,
-        time: post.scheduledForLocal.includes('T') ? post.scheduledForLocal.split('T')[1]?.substring(0, 5) || "10:00" : 
-              post.scheduledForLocal.includes(' ') ? post.scheduledForLocal.split(' ')[1]?.substring(0, 5) || "10:00" : "10:00",
-        videoTopic: post.description,
-        captions: post.captions,
-        platform: selectedPlatform
-      }}
+      postData={(() => {
+        const cleanDate = post.scheduledForLocal.includes('T') ? post.scheduledForLocal.split('T')[0] : 
+                         post.scheduledForLocal.includes(' ') ? post.scheduledForLocal.split(' ')[0] : post.scheduledForLocal;
+        const cleanTime = post.scheduledForLocal.includes('T') ? post.scheduledForLocal.split('T')[1]?.substring(0, 5) || "10:00" : 
+                         post.scheduledForLocal.includes(' ') ? post.scheduledForLocal.split(' ')[1]?.substring(0, 5) || "10:00" : "10:00";
+        
+        return {
+          ...post,
+          date: cleanDate,
+          time: cleanTime,
+          videoTopic: post.description,
+          captions: post.captions,
+          platform: selectedPlatform
+        };
+      })()}
     />
     </>
   );

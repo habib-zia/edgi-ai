@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { SLIDER_ITEMS, REVIEW_SLIDER_ITEMS } from "@/lib/constants";
 import { Slider } from "@/components/ui/slider";
@@ -20,9 +20,12 @@ import SigninModal from "@/components/ui/signin-modal";
 import { useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { useNotificationStore } from "@/components/ui/global-notification";
+import { apiService } from "@/lib/api-service";
 
 function HomePageContent() {
   const [isSigninModalOpen, setIsSigninModalOpen] = useState(false);
+  const [hasPosts, setHasPosts] = useState(false);
+  const [postsLoading, setPostsLoading] = useState(false);
   const { isAuthenticated } = useAppSelector((state) => state.user);
   const { showNotification } = useNotificationStore();
   const searchParams = useSearchParams();
@@ -38,7 +41,6 @@ function HomePageContent() {
     }
   }, []);
 
-  // Check for showLogin parameter to automatically open login modal
   useEffect(() => {
     const showLogin = searchParams.get('showLogin');
     if (showLogin === 'true')
@@ -47,15 +49,38 @@ function HomePageContent() {
     }
   }, [searchParams]);
 
-  // Check for email verification success
   useEffect(() => {
     const verified = searchParams.get('verified');
     if (verified === 'true')
     {
-      // You could show a toast notification here
       console.log('Email verified successfully!');
     }
   }, [searchParams]);
+
+  const checkForPosts = useCallback(async () => {
+    if (isAuthenticated) {
+      setPostsLoading(true);
+      try {
+        const response = await apiService.getPublishedPosts();
+        if (response.success && response.data && response.data.posts) {
+          setHasPosts(response.data.posts.length > 0);
+        } else {
+          setHasPosts(false);
+        }
+      } catch (error) {
+        console.error('Error checking for posts:', error);
+        setHasPosts(false);
+      } finally {
+        setPostsLoading(false);
+      }
+    } else {
+      setHasPosts(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    checkForPosts();
+  }, [checkForPosts]);
 
   const handleGetStartedClick = (e: React.MouseEvent) => {
     if (isAuthenticated)
@@ -92,11 +117,19 @@ function HomePageContent() {
 
               {isAuthenticated ? (
                 <>
-                  <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Get Started
+                  <Link href="/create-video/new" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                    Create Video
                   </Link>
-                  <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Report Analytics
+                  { hasPosts ? (
+                    <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                      Report Analytics
+                    </Link>
+                  ) : null}
+                  <Link href="/scheduled-post" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                    Schedule Post
+                  </Link>
+                  <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                    Gallery
                   </Link>
                 </>
               ) : (
@@ -107,9 +140,9 @@ function HomePageContent() {
                   >
                     Get Started
                   </button>
-                  <button onClick={handleReportAnalyticsClick} className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                  {/* <button onClick={handleReportAnalyticsClick} className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
                     Report Analytics
-                  </button>
+                  </button> */}
                 </>
               )}
             </div>  
@@ -137,7 +170,6 @@ function HomePageContent() {
         <ProcessSteps />
       </section>
 
-
       <section id="benefits" data-aos="fade-up">
         <FeaturesSection />
       </section>
@@ -145,7 +177,6 @@ function HomePageContent() {
       <section id="pricing" data-aos="fade-up">
         <PricingSection />
       </section>
-
 
       <ReviewSlider
         items={REVIEW_SLIDER_ITEMS}
@@ -156,9 +187,7 @@ function HomePageContent() {
         className="mb-0"
       />
 
-
-
-      <section data-aos="fade-up">
+      <section id="faq" data-aos="fade-up">
         <FAQSection />
       </section>
 

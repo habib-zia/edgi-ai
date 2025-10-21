@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { X, ExternalLink, Trash2 } from 'lucide-react'
+import { X, ExternalLink, Trash2, CheckCircle } from 'lucide-react'
 import { useSocialAccounts } from '@/hooks/useSocialAccounts'
 import { getAccountTypeIcon } from '@/utils/socialMediaIcons'
 import { ConnectedAccount, VideoData } from '@/types/post-types'
@@ -188,9 +188,9 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[600px] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[600px] xl:h-fit md:h-full overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between md:p-6 p-4 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-black">Connect accounts</h2>
           <button
             onClick={onClose}
@@ -201,7 +201,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
         </div>
 
         {/* Social Media Accounts */}
-        <div className="p-6 space-y-4">
+        <div className="md:p-6 p-4 space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5]"></div>
@@ -222,7 +222,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
               const connectedAccount = getConnectedAccount(platform.type)
               
               return (
-                <div key={platform.id} className="flex items-center gap-4">
+                <div key={platform.id} className="flex items-center md:gap-4 gap-1">
                   {/* Social Media Icon */}
                   {getAccountTypeIcon(platform.type)}
                   
@@ -231,13 +231,13 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
                     {isConnected && connectedAccount ? (
                       // Show connected account info
                       <div className="px-3 py-2">
-                        <p className="text-gray-800 font-medium">{connectedAccount.name}</p>
+                        <p className="text-gray-800 font-medium break-all leading-[120%]">{connectedAccount.name}</p>
                         {/* <p className="text-sm text-gray-500">{connectedAccount._type}</p> */}
                       </div>
                     ) : (
                       // Show platform name for unconnected
                       <div className="px-3 py-2">
-                        <p className="text-gray-800 font-medium">{platform.name}</p>
+                        <p className="text-gray-800 font-medium break-all leading-[120%]">{platform.name}</p>
                         {/* <p className="text-sm text-gray-500">{platform._type}</p> */}
                       </div>
                     )}
@@ -247,7 +247,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
                   <div className="flex gap-2">
                     {isConnected ? (
                       <>
-                        <button
+                        {/* <button
                           onClick={() => connectedAccount && handleDisconnectAccount(connectedAccount.id, connectedAccount.name)}
                           disabled={disconnecting === connectedAccount?.id}
                           className="px-3 py-2 rounded-lg font-medium text-sm bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors duration-200 flex items-center gap-2 disabled:opacity-50"
@@ -260,13 +260,17 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
                               Disconnect
                             </>
                           )}
-                        </button>
+                        </button> */}
+                        <div className="px-3 py-[8px] bg-green-100 rounded-lg flex items-center gap-2">
+                          <CheckCircle className="w-[14px] h-[14px] text-green-700" />
+                          <p className="text-green-700 font-medium text-sm">Connected</p>
+                        </div>
                       </>
                     ) : (
                       /* Connect Button */
                       <button
                         onClick={() => connectPlatform(platform.id)}
-                        className="px-4 py-2 rounded-lg font-medium text-sm bg-[#5046E5] text-white hover:bg-[#4338CA] cursor-pointer transition-colors duration-200 flex items-center gap-2"
+                        className="px-5 py-2 rounded-lg font-medium text-sm bg-[#5046E5] text-white hover:bg-[#4338CA] cursor-pointer transition-colors duration-200 flex items-center gap-2"
                       >
                         Connect
                         <ExternalLink className="w-4 h-4" />

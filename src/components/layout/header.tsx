@@ -141,17 +141,32 @@ export function Header() {
                     aria-label={`${item.label}${isActive ? " (current page)" : ""}`}
                     onClick={(e) => {
                       if (isHomePage) {
-                        // If we're on home page, handle smooth scrolling
-                        if (handleAnchorClick(item.href)) {
+                        // If we're on home page, handle smooth scrolling for anchor links
+                        if (item.href.startsWith('#')) {
+                          if (handleAnchorClick(item.href)) {
+                            e.preventDefault();
+                            trackNavigation(pathname, item.href, "click");
+                          }
+                        } else {
+                          // For non-anchor links on home page, navigate normally
                           e.preventDefault();
                           trackNavigation(pathname, item.href, "click");
+                          window.location.href = item.href;
                         }
                       } else {
-                        // If we're on a different page, navigate to home page with hash
+                        // If we're on a different page
                         e.preventDefault();
-                        const homeUrl = `/${item.href}`;
-                        trackNavigation(pathname, homeUrl, "click");
-                        window.location.href = homeUrl;
+                        
+                        if (item.href.startsWith('#')) {
+                          // For anchor links, navigate to home page with hash
+                          const homeUrl = `/${item.href}`;
+                          trackNavigation(pathname, homeUrl, "click");
+                          window.location.href = homeUrl;
+                        } else {
+                          // For page links, navigate directly
+                          trackNavigation(pathname, item.href, "click");
+                          window.location.href = item.href;
+                        }
                       }
                     }}
                   >

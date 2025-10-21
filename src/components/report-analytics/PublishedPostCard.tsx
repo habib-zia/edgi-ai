@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { FaRegThumbsUp, FaRegCommentDots, FaRegShareSquare, FaClock, FaPlay } from "react-icons/fa";
-import { getPlatformIcon } from "../../utils/platformIcons";
+import { getPlatformIcon } from "./PlatformIcon";
 
 interface PublishedPost {
   id: number;

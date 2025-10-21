@@ -667,7 +667,7 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
         <div
           ref={modalRef}
-          className="bg-white rounded-[12px] md:px-[55px] px-4 pt-10 pb-10 max-w-[820px] w-full max-h-[726px] flex flex-col relative"
+          className="bg-white rounded-[12px] xl:h-fit h-full md:px-[55px] px-4 pt-10 pb-10 max-w-[820px] w-full max-h-[726px] flex flex-col relative"
           role="dialog"
           aria-modal="true"
           aria-labelledby="signup-modal-title"

@@ -541,7 +541,7 @@ class ApiService {
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get schedule data';
-      this.showNotification(errorMessage, 'error');
+      // this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
   }

@@ -4,11 +4,12 @@ import ScheduledPostCard from "./ScheduledPostCard";
 import UpdateScheduleModal from "../ui/update-schedule-modal";
 import { useScheduledPosts } from "@/hooks/useScheduledPosts";
 import { apiService } from "@/lib/api-service";
+import { noActiveScheduleIcon } from "../report-analytics/PlatformIcon";
+import Link from "next/link";
 
 export default function ScheduledPostsGrid() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Use the scheduled posts hook
   const {
     scheduledPostsDurationData,
     scheduledPosts,
@@ -19,7 +20,6 @@ export default function ScheduledPostsGrid() {
     refreshScheduledPosts
   } = useScheduledPosts();
 
-  // Fetch scheduled posts on component mount
   useEffect(() => {
     fetchScheduledPosts();
   }, [fetchScheduledPosts]);
@@ -48,13 +48,11 @@ export default function ScheduledPostsGrid() {
         return;
       }
 
-      // Convert frequency from display format to API format
       const apiFrequency = scheduleData.frequency === "Daily" ? "daily" :
         scheduleData.frequency === "Twice a Week" ? "twice-a-week" :
           scheduleData.frequency === "Once a Week" ? "weekly" :
             scheduleData.frequency === "Three Times a Week" ? "thrice-a-week" : "daily";
 
-      // Extract days and times from posts
       const days = scheduleData.posts.map((post: any) => post.day).filter((day: string) => day);
       const times = scheduleData.posts.map((post: any) => post.time).filter((time: string) => time);
 
@@ -77,7 +75,6 @@ export default function ScheduledPostsGrid() {
           });
         }
 
-        // Refresh the scheduled posts data
         await refreshScheduledPosts();
         setIsModalOpen(false);
       } else {
@@ -103,12 +100,32 @@ export default function ScheduledPostsGrid() {
     }
   };
   return (
-    <div>
+    <div className={`${scheduledPosts.length > 0 ? 'mt-0' : 'mt-0'}`}>
+      {scheduledPosts.length > 0 &&  (
+        <>  
+          {/* Scheduled Posts Header */}
+          <div className="text-center">
+            <h1 className="text-3xl md:text-[42px] font-semibold text-[#171717] mb-4">
+                Scheduled Post
+            </h1>
+            <p className="text-xl text-[#5F5F5F] mb-6 mx-auto leading-[24px]">
+            Your content is queued and will be <br /> published automatically at the set time
+            </p>
+          </div>
+          <div className="bg-[#EF99431A] rounded-lg px-5 py-[10px] max-w-fit mx-auto mb-24">
+            <p className="text-center text-[#EF9943] text-xl font-normal">
+              Your content is lined up and will go live within the week
+            </p>
+          </div>
+        </>
+      )}
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+      <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4 mb-6">
+        {/* {scheduledPosts.length > 0 && (
         <h2 className="text-2xl !font-semibold md:text-[40px] text-[#171717]">
           Scheduled Posts
         </h2>
+        )} */}
 
         {/* Modify Schedule Button */}
         {scheduledPosts.length > 0 && <button
@@ -129,30 +146,40 @@ export default function ScheduledPostsGrid() {
         </div>
       ) : error ? (
         <div className="text-center py-20">
-          <p className="text-red-500 mb-4">{error}</p>
-          <button
-            onClick={refreshScheduledPosts}
-            className="bg-[#5046E5] text-white px-6 py-3 rounded-lg hover:bg-[#4338CA] transition-colors"
-          >
-            Try Again
-          </button>
+          <div className="flex items-center justify-center mb-3">
+            <div className="flex items-center justify-center bg-[#5046E533] rounded-full h-[96px] w-[96px]">
+              {noActiveScheduleIcon}
+            </div>
+          </div>
+          <p className="text-[#171717] mb-2 md:text-[42px] text-[30px] font-semibold tracking-[0%]">No Active Schedule Yet</p>
+          <p className="text-[#5F5F5F] text-xl font-normal tracking-[0%] leading-[24px] max-w-[500px] mx-auto mb-7">Create and schedule your social media posts to be published automatically at your preferred times.</p>
+          <Link href="/create-video/new" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
         </div>
       ) : scheduledPosts.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 text-lg">No scheduled posts found</p>
-        </div>
+          <div className="text-center py-20">
+          <div className="flex items-center justify-center mb-3">
+            <div className="flex items-center justify-center bg-[#5046E533] rounded-full h-[96px] w-[96px]">
+              {noActiveScheduleIcon}
+            </div>
+          </div>
+            <p className="text-[#171717] mb-2 md:text-[42px] text-[30px] font-semibold tracking-[0%]">No Active Schedule Yet</p>
+            <p className="text-[#5F5F5F] text-xl font-normal tracking-[0%] leading-[24px] max-w-[500px] mx-auto mb-7">Create and schedule your social media posts to be published automatically at your preferred times.</p>
+            <Link href="/create-video/new" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
+          </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {scheduledPosts.map((post) => (
-            <ScheduledPostCard
-              key={post.id}
-              post={post}
-              scheduleId={scheduleId || undefined}
-              onPostDeleted={refreshScheduledPosts}
-              onPostUpdated={refreshScheduledPosts}
-            />
-          ))}
-        </div>
+        <>          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {scheduledPosts.map((post) => (
+              <ScheduledPostCard
+                key={post.id}
+                post={post}
+                scheduleId={scheduleId || undefined}
+                onPostDeleted={refreshScheduledPosts}
+                onPostUpdated={refreshScheduledPosts}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {/* Update Schedule Modal */}
@@ -163,8 +190,8 @@ export default function ScheduledPostsGrid() {
         existingScheduleData={scheduledPostsDurationData ? {
           frequency: scheduledPostsDurationData.scheduleInfo?.frequency || 'daily',
           schedule: {
-            days: [], // This would need to be extracted from the schedule data
-            times: [] // This would need to be extracted from the schedule data
+            days: [],
+            times: []
           },
           startDate: scheduledPostsDurationData.scheduleInfo?.startDate || new Date().toISOString()
         } : undefined}

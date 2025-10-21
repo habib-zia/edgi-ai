@@ -9,12 +9,81 @@ import { apiService } from '@/lib/api-service'
 
 // Zod validation schema
 const contactFormSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  position: z.string().min(2, 'Position must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  phone: z.string().min(3, 'Phone number must be at least 3 digits').regex(/^\d+$/, 'Phone number must contain only digits'),
-  question: z.string().min(10, 'Question must be at least 10 characters')
+  fullName: z
+    .string()
+    .min(2, 'Full name must be at least 2 characters')
+    .max(100, 'Full name must not exceed 100 characters')
+    .regex(
+      /^[a-zA-Z\s'-]+$/,
+      'Full name can only contain letters, spaces, hyphens, and apostrophes'
+    )
+    .refine(
+      (val) => val.trim().split(/\s+/).length >= 2,
+      'Please enter both first and last name'
+    )
+    .transform((val) => val.trim()),
+
+  position: z
+    .string()
+    .min(2, 'Position must be at least 2 characters')
+    .max(100, 'Position must not exceed 100 characters')
+    .regex(
+      /^[a-zA-Z0-9\s.,-/&()]+$/,
+      'Position contains invalid characters'
+    )
+    .transform((val) => val.trim()),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .max(254, 'Email must not exceed 254 characters') // RFC 5321 standard
+    .email('Please enter a valid email address')
+    .regex(
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      'Please enter a valid email format'
+    )
+    .refine(
+      (val) => !val.includes('..'),
+      'Email cannot contain consecutive dots'
+    )
+    .refine(
+      (val) => !val.startsWith('.') && !val.includes('@.'),
+      'Invalid email format'
+    )
+    .transform((val) => val.toLowerCase().trim()),
+
+  phone: z
+    .string()
+    .min(7, 'Phone number must be at least 7 characters')
+    .max(20, 'Phone number must not exceed 20 characters')
+    .regex(
+      /^[\d\s\-()+-]+$/,
+      'Phone number can only contain digits, spaces, hyphens, parentheses, and plus sign'
+    )
+    .refine(
+      (val) => {
+        // Remove all non-digit characters and check length
+        const digitsOnly = val.replace(/\D/g, '')
+        return digitsOnly.length >= 7 && digitsOnly.length <= 15
+      },
+      'Phone number must contain between 7 and 15 digits'
+    )
+    .transform((val) => val.trim()),
+
+  question: z
+    .string()
+    .min(20, 'Question must be at least 20 characters for a meaningful inquiry')
+    .max(2000, 'Question must not exceed 2000 characters')
+    .refine(
+      (val) => val.trim().split(/\s+/).length >= 3,
+      'Please provide at least 3 words in your question'
+    )
+    .refine(
+      (val) => /[a-zA-Z]/.test(val),
+      'Question must contain at least some letters'
+    )
+    .transform((val) => val.trim())
 })
+
 
 type ContactFormData = z.infer<typeof contactFormSchema>
 
@@ -153,15 +222,14 @@ export default function ContactForm() {
                   )}
                 </div>
                 <div>
-                  <input
+                <input
                     {...register('phone')}
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="tel"
                     placeholder="Phone Number"
                     onKeyPress={(e) => {
-                      // Allow only numbers and backspace
-                      if (!/[0-9]/.test(e.key) && e.key !== 'Backspace')
+                      // Allow numbers, +, -, (, ), and spaces
+                      if (!/[0-9+\-() ]/.test(e.key))
                       {
                         e.preventDefault();
                       }
@@ -209,12 +277,6 @@ export default function ContactForm() {
 
               {/* Buttons */}
               <div className="flex flex-col md:flex-row lg:flex-wrap lg:flex-row gap-4 pt-2 justify-end">
-                {/* <button
-                  type="button"
-                  className="py-[11.2px] xl:max-w-[303px] max-w-full w-full bg-transparent border-2 border-[#5046E5] text-[#5046E5] rounded-full font-semibold text-[20px] leading-[32px] hover:bg-[#5046E5] hover:text-white px-2 transition-all duration-300 focus:outline-none cursor-pointer"
-                >
-                  Email Response Preferred
-                </button> */}
                 <button
                   type="submit"
                   disabled={isSubmitting}

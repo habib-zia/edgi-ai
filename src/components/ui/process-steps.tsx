@@ -186,11 +186,12 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
               backgroundSize: "cover",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
-              maxHeight: "45vh",
+              minHeight: "45vh",
+              // maxHeight: "40vh",
               height: "100%",
               width: "100%",
             }}>
-              <div className="flex flex-col items-start justify-start h-full w-full px-12 py-11">
+              <div className="flex flex-col items-start justify-center h-full w-full px-12 py-11">
                 <div className="h-[40px] w-[40px] bg-white/40 rounded-full flex items-center justify-center mb-4">
                   <span className="text-white text-[18px] font-semibold">1</span>
                 </div>
@@ -199,7 +200,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
                   <p className="text-white text-[18px] mt-2 font-medium leading-[24px] max-w-[280px]">Send a quick 5-minute video of yourself speaking, then fill out a 1-page prompt with your video topic and key details.</p>
                 </div>
               </div>
-              <div className="flex flex-col items-start justify-start h-full w-full px-12 py-11">
+              <div className="flex flex-col items-start justify-center h-full w-full px-12 py-11">
                 <div className="h-[40px] w-[40px] bg-white/40 rounded-full flex items-center justify-center mb-4">
                   <span className="text-white text-[18px] font-semibold">2</span>
                 </div>
@@ -208,7 +209,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
                   <p className="text-white text-[18px] mt-2 font-medium leading-[24px] max-w-[300px]">Submit your prompt, let AI script it, you approve, and we deliver a fully edited video with your avatar, voice, captions, and music.</p>
                 </div>
               </div>
-              <div className="flex flex-col items-start justify-start h-full w-full px-4 py-11">
+              <div className="flex flex-col items-start justify-center h-full w-full px-4 py-11">
                 <div className="h-[40px] w-[40px] bg-white/40 rounded-full flex items-center justify-center mb-4">
                   <span className="text-white text-[18px] font-semibold">3</span>
                 </div>
@@ -263,7 +264,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
             Have More Questions? See our FAQ
           </Link> */}
           <button 
-            onClick={handleCustomVideoClickTest}
+            onClick={handleCustomAvatarClick}
             className="inline-flex md:w-fit w-full items-center gap-3 bg-transparent border-2 border-[#5046E5] text-[#5046E5] hover:bg-[#5046E5] hover:text-white py-[7.4px] rounded-full text-[20px] font-semibold transition-colors duration-300 group md:max-w-[192px] max-w-full text-center justify-center px-4"
           >
             Custom Avatar

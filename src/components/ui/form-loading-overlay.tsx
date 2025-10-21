@@ -73,7 +73,7 @@ export default function FormLoadingOverlay({
           
           {/* Loading message */}
           <div className="mt-6 text-sm text-gray-600">
-            {autoFilling ? 'Auto-filling form with your saved settings...' : 'Please wait while we prepare everything for you'}
+            {autoFilling ? '' : 'Please wait while we prepare everything for you'}
           </div>
         </div>
       </div>

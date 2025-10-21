@@ -467,7 +467,7 @@ export default function SigninModal({ isOpen, onClose, onOpenSignup, onOpenForgo
 
         // Show success message
         const welcomeMessage = data.data.user
-          ? `Welcome to EdgeAi, ${data.data.user.firstName} ${data.data.user.lastName}!`
+          ? `Welcome back to EdgeAi, ${data.data.user.firstName} ${data.data.user.lastName}!`
           : 'Welcome to EdgeAi!'
         showNotification(welcomeMessage, 'success')
 
@@ -703,7 +703,7 @@ export default function SigninModal({ isOpen, onClose, onOpenSignup, onOpenForgo
       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
         <div
           ref={modalRef}
-          className="bg-white rounded-[12px] md:px-[55px] px-4 pt-10 pb-10 max-w-[820px] w-full md:max-h-[615px] max-h-[700px] flex flex-col relative"
+          className="bg-white rounded-[12px] xl:h-fit h-full md:px-[55px] px-4 pt-10 pb-10 max-w-[820px] w-full md:max-h-[615px] max-h-[700px] flex flex-col relative"
           role="dialog"
           aria-modal="true"
           aria-labelledby="signin-modal-title"
