@@ -158,7 +158,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setTrendsError(null)
       const response = await apiService.getRealEstateTrends()
       if (response.success && response.data) {
-        // Extract trends array from response.data.trends
         const trendsData = response.data.trends || []
         
         if (Array.isArray(trendsData)) {
@@ -214,17 +213,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setAvatarsLoading(false)
     }
   }, [])
-
-
-  // Fetch avatars, trends, and schedule when component mounts
   useEffect(() => {
     fetchAvatars()
     fetchTrends()
     fetchSchedule()
   }, [fetchSchedule])
 
-
-  // Auto-refresh avatars when WebSocket notification shows avatar is ready
   useEffect(() => {
     if (latestAvatarUpdate) {
       const isAvatarComplete = (latestAvatarUpdate.step === 'complete' || latestAvatarUpdate.step === 'ready') &&
@@ -467,18 +461,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       email: ''
     }
   })
-
-  // Monitor form values for debugging
-  const videoTopicValue = watch('videoTopic')
-  const topicKeyPointsValue = watch('topicKeyPoints')
-  
-  useEffect(() => {
-    console.log('📝 Form values changed:', {
-      videoTopic: videoTopicValue,
-      topicKeyPoints: topicKeyPointsValue
-    })
-  }, [videoTopicValue, topicKeyPointsValue])
-
   // User settings hook
   const { fetchUserSettings, saveUserSettings } = useUserSettings({
     userEmail: user?.email,
@@ -491,7 +473,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   // Auto-fill form when avatars are loaded and user has settings
   useEffect(() => {
     if (!avatarsLoading && (avatars.custom.length > 0 || avatars.default.length > 0) && user?.email) {
-      console.log('🎯 Avatars loaded, auto-filling form with user settings...')
       setAutoFilling(true)
       fetchUserSettings().finally(() => {
         setAutoFilling(false)
@@ -651,18 +632,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         email: data.email
       }
 
-      console.log('💾 Storing user settings with all avatar IDs:', {
-        avatar_array: [
-          selectedAvatars.title?.avatar_id || '',
-          selectedAvatars.body?.avatar_id || '',
-          selectedAvatars.conclusion?.avatar_id || ''
-        ].filter(id => id !== ''),
-        titleAvatar: selectedAvatars.title?.avatar_id || 'none',
-        bodyAvatar: selectedAvatars.body?.avatar_id || 'none', 
-        conclusionAvatar: selectedAvatars.conclusion?.avatar_id || 'none',
-        formAvatar: data.avatar
-      })
-
       const userSettingsResult = await saveUserSettings(userSettingsPayload)
       if (!userSettingsResult.success) {
         console.error('Failed to store user settings:', userSettingsResult.error)
@@ -685,33 +654,22 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }
 
   const handleDropdownSelect = (field: keyof CreateVideoFormData, value: string) => {
-    console.log('🎯 handleDropdownSelect called:', { field, value })
-    
-    // Close dropdown first
     setOpenDropdown(null)
-    
-    // Use setTimeout to ensure the dropdown closes before setting values
     setTimeout(() => {
       if (field === 'avatar') {
         setValue('avatar', '')
       setValue('avatar', value)
       } else if (field === 'videoTopic') {
-        console.log('🎯 Setting videoTopic value:', value)
       setValue('videoTopic', value)
       
       const selectedTrend = safeTrends.find(trend => trend.description === value)
-        console.log('🎯 Found selected trend:', selectedTrend)
       if (selectedTrend) {
-          console.log('🎯 Setting topicKeyPoints:', selectedTrend.keypoints)
         setValue('topicKeyPoints', selectedTrend.keypoints)
       }
       } else {
       setValue(field, value)
     }
-
-      // Trigger validation after setting values
       trigger(field)
-      console.log('🎯 Values set and field triggered')
     }, 50)
   }
 
@@ -732,25 +690,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         setValue('topicKeyPoints', '')
         console.log('🎯 Cleared topicKeyPoints for custom input - user can enter manually')
       } else {
-        setValue(field, value)
-      }
-
-      // Trigger validation after setting values
+      setValue(field, value)
+    }
       trigger(field)
-      console.log('🎯 Manual input values set and field triggered')
     }, 50)
   }
-
   const handleDropdownToggle = (field: keyof CreateVideoFormData) => {
     const isOpen = openDropdown === field
-    console.log('🔄 Dropdown toggle:', { field, isOpen, currentOpen: openDropdown })
     
     if (isOpen) {
-      // If closing dropdown without selection, trigger validation
       const currentValue = watch(field)
       if (!currentValue || currentValue.trim() === '') {
         // Just trigger validation without clearing the field
         trigger(field)
+        setValue(field, '', { shouldValidate: true })
       }
     }
     setOpenDropdown(isOpen ? null : field)
@@ -909,21 +862,18 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             </label>
             {renderDropdown('prompt', promptOptions, 'Select Option')}
           </div>
-
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Avatar <span className="text-red-500">*</span>
             </label>
             {renderDropdown('avatar', avatarOptions, 'Select Option')}
           </div>
-
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Name <span className="text-red-500">*</span>
             </label>
             {renderInput('name', 'e.g. John Smith', 'text', 'name')}
           </div>
-
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Position <span className="text-red-500">*</span>
@@ -973,12 +923,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         />
       </form>
       )}
-
       {openDropdown && (
         <div
           className="fixed inset-0 z-40"
           onClick={() => {
-            // If closing dropdown without selection, trigger validation
             const currentValue = watch(openDropdown as keyof CreateVideoFormData)
             if (!currentValue || currentValue.trim() === '') {
               // Just trigger validation without clearing the field
@@ -1006,8 +954,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           console.log('User wants to upgrade subscription')
         }}
       />
-
-      {/* Pending Payment Toast */}
       <PendingPaymentToast
         isVisible={showPendingPaymentToast}
         message={pendingPaymentMessage}
@@ -1042,7 +988,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           window.location.href = '/#pricing'
         }}
       />
-
       <SchedulePostModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
@@ -1053,7 +998,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           setShowConnectAccountsModal(true)
         }}
       />
-
       <ConnectAccountsModal
         isOpen={showConnectAccountsModal}
         onClose={() => setShowConnectAccountsModal(false)}

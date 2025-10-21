@@ -137,9 +137,8 @@ export default function ScheduledPostsGrid() {
           </svg>
 
           Modify Schedule
-        </button>}
+        </button>} */}
       </div>
-      {/* Posts Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5]"></div>
@@ -181,8 +180,6 @@ export default function ScheduledPostsGrid() {
           </div>
         </>
       )}
-
-      {/* Update Schedule Modal */}
       <UpdateScheduleModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -190,6 +187,8 @@ export default function ScheduledPostsGrid() {
         existingScheduleData={scheduledPostsDurationData ? {
           frequency: scheduledPostsDurationData.scheduleInfo?.frequency || 'daily',
           schedule: {
+            days: [],
+            times: []
             days: [],
             times: []
           },
