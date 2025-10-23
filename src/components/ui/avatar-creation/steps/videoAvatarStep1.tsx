@@ -1,7 +1,9 @@
 'use client'
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { X, CheckCircle, AlertCircle } from "lucide-react";
+import { useVideoUpload } from "../../../../hooks/useVideoUpload";
+import { apiService } from "../../../../lib/api-service";
 
 interface AvatarData {
   name: string
@@ -20,286 +22,322 @@ interface VideoAvatarStep1Props {
   setAvatarData: (data: AvatarData) => void
 }
 
-interface ValidationError {
-  type: string;
-  message: string;
-}
+
 
 export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: VideoAvatarStep1Props) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
-  const [isValid, setIsValid] = useState(false);
+  const [avatarName, setAvatarName] = useState(avatarData.name || '');
+  const [isCreating, setIsCreating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const validateVideo = (file: File): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const errors: ValidationError[] = [];
-      
-      // Check file format
-      if (file.type !== 'video/mp4') {
-        errors.push({
-          type: 'format',
-          message: 'Only MP4 format is supported'
-        });
-      }
+  // Debug error message changes
+  console.log('🔍 Current error message:', errorMessage);
 
-      // Create video element to check duration and resolution
-      const video = document.createElement('video');
-      video.preload = 'metadata';
+  const consentUpload = useVideoUpload();
+  const trainingUpload = useVideoUpload();
 
-      video.onloadedmetadata = () => {
-        window.URL.revokeObjectURL(video.src);
-        
-        // Check duration (minimum 2 minutes = 120 seconds)
-        if (video.duration < 120) {
-          errors.push({
-            type: 'duration',
-            message: `Video is too short (${Math.round(video.duration)}s). Minimum duration is 2 minutes`
-          });
-        }
-
-        // Check resolution (minimum 720p)
-        if (video.videoHeight < 720) {
-          errors.push({
-            type: 'quality',
-            message: `Video quality is too low (${video.videoWidth}x${video.videoHeight}). Minimum height is 720px`
-          });
-        }
-
-        setValidationErrors(errors);
-        
-        if (errors.length === 0) {
-          setIsValid(true);
-          resolve(true);
-        } else {
-          setIsValid(false);
-          resolve(false);
-        }
-        
-        setIsValidating(false);
-      };
-
-      video.onerror = () => {
-        errors.push({
-          type: 'error',
-          message: 'Failed to load video file'
-        });
-        setValidationErrors(errors);
-        setIsValid(false);
-        setIsValidating(false);
-        resolve(false);
-      };
-
-      video.src = URL.createObjectURL(file);
-    });
+  const handleAvatarNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setAvatarName(name);
+    setAvatarData({ ...avatarData, name });
   };
 
-  const handleFileSelect = async (file: File) => {
-    setIsValidating(true);
-    setValidationErrors([]);
-    setIsValid(false);
-    
-    // Create preview
-    const preview = URL.createObjectURL(file);
-    setVideoPreview(preview);
+  const handleConsentFileSelect = async (file: File) => {
+    await consentUpload.handleFileSelect(file, 'consent');
+    setAvatarData({ ...avatarData, consentVideoFile: file });
+  };
+
+  const handleTrainingFileSelect = async (file: File) => {
+    await trainingUpload.handleFileSelect(file, 'training');
     setAvatarData({ ...avatarData, videoFile: file });
-
-    // Validate video
-    await validateVideo(file);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleConsentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    consentUpload.handleInputChange(e, 'consent');
     if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
+      setAvatarData({ ...avatarData, consentVideoFile: e.target.files[0] });
     }
   };
 
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleFileSelect(files[0]);
+  const handleTrainingInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    trainingUpload.handleInputChange(e, 'training');
+    if (e.target.files && e.target.files[0]) {
+      setAvatarData({ ...avatarData, videoFile: e.target.files[0] });
     }
   };
 
-  const clearSelection = () => {
+  const clearConsentSelection = () => {
+    consentUpload.clearSelection();
+    setAvatarData({ ...avatarData, consentVideoFile: null });
+  };
+
+  const clearTrainingSelection = () => {
+    trainingUpload.clearSelection();
     setAvatarData({ ...avatarData, videoFile: null });
-    setVideoPreview(null);
-    setValidationErrors([]);
-    setIsValid(false);
-    setIsValidating(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  };
+
+  const handleContinue = async () => {
+    if (!avatarData.consentVideoFile || !avatarData.videoFile) {
+      return;
+    }
+
+    setIsCreating(true);
+    setErrorMessage(null);
+    
+    try {
+      const response = await apiService.createVideoAvatar(
+        avatarData.videoFile,
+        avatarData.consentVideoFile,
+        avatarName
+      );
+
+      if (response.success) {
+        console.log('✅ Video avatar created successfully:', response.data);
+        onNext();
+      } else {
+        console.error('❌ Failed to create video avatar:', response.message);
+        console.log('🔍 Setting error message:', response.message);
+        setErrorMessage(response.message || 'Failed to create video avatar');
+      }
+    } catch (error) {
+      console.error('❌ Error creating video avatar:', error);
+      setErrorMessage('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const canProceed = avatarData.videoFile && isValid && !isValidating;
+  const canProceed = avatarData.consentVideoFile && avatarData.videoFile && consentUpload.uploadState.isValid && trainingUpload.uploadState.isValid && !consentUpload.uploadState.isValidating && !trainingUpload.uploadState.isValidating && avatarName.trim().length > 0;
 
   return (
     <div className="bg-white flex flex-col h-full">
-      {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {/* Title Section */}
         <div className="text-center mb-10">
           <h2 className="text-[24px] font-semibold text-[#101010] mb-6 tracking-[-2%] leading-[120%]">
-            Upload your footage
+            Upload your videos
           </h2>
           <p className="text-[18px] text-[#5F5F5F] max-w-[710px] mx-auto leading-[24px]">
-          For optimal, most test realistic results, we recommend uploading a 2min video recorded with a high-resolution camera or smartphone.If you&apos;re just testing the product, feel free to submit a 30s recording using your webcam.
+            Upload both a consent video (max 20 seconds) and a training video (2-3 minutes) for optimal avatar creation.
           </p>
         </div>
 
-        {/* Upload Area */}
+        <div className="w-full max-w-md mb-8">
+          <label htmlFor="avatarName" className="block text-[14px] font-medium text-[#101010] mb-2">
+            Avatar Name
+          </label>
+          <input
+            id="avatarName"
+            type="text"
+            value={avatarName}
+            onChange={handleAvatarNameChange}
+            placeholder="Enter your avatar name"
+            className="w-full px-4 py-3 border border-[#D1D5DB] rounded-lg text-[14px] text-[#101010] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:border-transparent transition-all duration-200"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl">
+          <div className="space-y-4">
+            <h3 className="text-[18px] font-semibold text-[#101010]">Consent Video</h3>
         <div 
-          className={`border-[2px] rounded-[8px] p-8 max-w-full w-full border-dashed transition-all min-h-[240px] duration-300 ${
-            isDragging 
-              ? 'border-[#6366F1] bg-[#6366F1]/5 border-2' 
-              : validationErrors.length > 0 && !isValidating
-              ? 'border-red-500'
-              : isValid && !isValidating
-              ? 'border-green-500'
-              : 'border-[#D1D5DB]'
-          }`}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          {!avatarData.videoFile ? (
-            <div className="flex flex-col items-center justify-between gap-4 h-full">
-              <h1 className="text-[20px] font-semibold text-[#101010] leading-[120%]">
-                Drag and drop video, or click to upload
-              </h1>
-              <p className="text-[14px] text-[#5F5F5F] max-w-[432px] mx-auto text-center leading-[18px]">
-                MP4 format only, minimum 720p resolution, minimum 2 minutes duration
+              className={`border-[2px] rounded-[8px] p-6 border-dashed transition-all min-h-[200px] duration-300 ${consentUpload.getBorderClasses('consent')}`}
+              onDragEnter={(e) => consentUpload.handleDragEnter(e, 'consent')}
+              onDragLeave={consentUpload.handleDragLeave}
+              onDragOver={consentUpload.handleDragOver}
+              onDrop={(e) => consentUpload.handleDrop(e, 'consent')}
+            >
+              {!avatarData.consentVideoFile ? (
+                <div className="flex flex-col items-center justify-center gap-4 h-full">
+                  <h4 className="text-[16px] font-semibold text-[#101010]">
+                    Drag and drop consent video
+                  </h4>
+                  <p className="text-[12px] text-[#5F5F5F] text-center">
+                    MP4 or MOV format, max 20 seconds, minimum 720p
               </p>
               <button 
-                onClick={() => fileInputRef.current?.click()} 
+                    onClick={() => consentUpload.fileInputRef.current?.click()}
                 className="text-[#6366F1] font-normal transition-colors duration-300 hover:text-[#5046E5] text-[14px]"
               >
-                Browse local files
+                    Browse files
               </button>
               <input
-                ref={fileInputRef}
+                    ref={consentUpload.fileInputRef}
                 type="file"
-                accept="video/mp4"
-                onChange={handleInputChange}
+                    accept="video/mp4,video/quicktime,.mp4,.mov"
+                    onChange={handleConsentInputChange}
                 className="hidden"
               />
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              {/* Video Preview */}
-              {videoPreview && (
+                <div className="flex flex-col gap-3">
+                  {consentUpload.uploadState.preview && (
                 <div className="relative rounded-lg overflow-hidden bg-black">
                   <video
-                    ref={videoRef}
-                    src={videoPreview}
+                        ref={consentUpload.videoRef}
+                        src={consentUpload.uploadState.preview}
                     controls
-                    className="w-full max-h-[300px] object-contain"
+                        className="w-full max-h-[150px] object-contain"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-[14px] font-medium text-[#101010] truncate">
+                          {avatarData.consentVideoFile.name}
+                        </p>
+                        {consentUpload.uploadState.isValidating && (
+                          <span className="text-[10px] text-[#6366F1]">Validating...</span>
+                        )}
+                        {consentUpload.uploadState.isValid && !consentUpload.uploadState.isValidating && (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        )}
+                        {consentUpload.uploadState.errors.length > 0 && !consentUpload.uploadState.isValidating && (
+                          <AlertCircle className="w-4 h-4 text-red-500" />
+                        )}
+                      </div>
+                      <p className="text-[12px] text-[#5F5F5F]">
+                        {(avatarData.consentVideoFile.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+
+                      {consentUpload.uploadState.errors.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {consentUpload.uploadState.errors.map((error, index) => (
+                            <div key={index} className="flex items-start gap-1 text-red-600 text-[12px]">
+                              <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                              <span>{error.message}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {consentUpload.uploadState.isValid && !consentUpload.uploadState.isValidating && (
+                        <div className="mt-2 flex items-start gap-1 text-green-600 text-[12px]">
+                          <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                          <span>Consent video is valid</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={clearConsentSelection}
+                      className="p-1 hover:bg-[#F3F4F6] rounded-lg transition-colors duration-300"
+                      title="Clear selection"
+                    >
+                      <X className="w-4 h-4 text-[#5F5F5F]" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-[18px] font-semibold text-[#101010]">Training Video</h3>
+            <div
+              className={`border-[2px] rounded-[8px] p-6 border-dashed transition-all min-h-[200px] duration-300 ${trainingUpload.getBorderClasses('training')}`}
+              onDragEnter={(e) => trainingUpload.handleDragEnter(e, 'training')}
+              onDragLeave={trainingUpload.handleDragLeave}
+              onDragOver={trainingUpload.handleDragOver}
+              onDrop={(e) => trainingUpload.handleDrop(e, 'training')}
+            >
+              {!avatarData.videoFile ? (
+                <div className="flex flex-col items-center justify-center gap-4 h-full">
+                  <h4 className="text-[16px] font-semibold text-[#101010]">
+                    Drag and drop training video
+                  </h4>
+                  <p className="text-[12px] text-[#5F5F5F] text-center">
+                    MP4 or MOV format, 2-3 minutes, minimum 720p
+                  </p>
+                  <button
+                    onClick={() => trainingUpload.fileInputRef.current?.click()}
+                    className="text-[#6366F1] font-normal transition-colors duration-300 hover:text-[#5046E5] text-[14px]"
+                  >
+                    Browse files
+                  </button>
+                  <input
+                    ref={trainingUpload.fileInputRef}
+                    type="file"
+                    accept="video/mp4,video/quicktime,.mp4,.mov"
+                    onChange={handleTrainingInputChange}
+                    className="hidden"
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {trainingUpload.uploadState.preview && (
+                    <div className="relative rounded-lg overflow-hidden bg-black">
+                      <video
+                        ref={trainingUpload.videoRef}
+                        src={trainingUpload.uploadState.preview}
+                        controls
+                        className="w-full max-h-[150px] object-contain"
                   />
                 </div>
               )}
 
-              {/* File Info and Status */}
-              <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-[16px] font-medium text-[#101010]">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-[14px] font-medium text-[#101010] truncate">
                       {avatarData.videoFile.name}
                     </p>
-                    {isValidating && (
-                      <span className="text-[12px] text-[#6366F1]">Validating...</span>
+                        {trainingUpload.uploadState.isValidating && (
+                          <span className="text-[10px] text-[#6366F1]">Validating...</span>
                     )}
-                    {isValid && !isValidating && (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
+                        {trainingUpload.uploadState.isValid && !trainingUpload.uploadState.isValidating && (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
                     )}
-                    {validationErrors.length > 0 && !isValidating && (
-                      <AlertCircle className="w-5 h-5 text-red-500" />
+                        {trainingUpload.uploadState.errors.length > 0 && !trainingUpload.uploadState.isValidating && (
+                          <AlertCircle className="w-4 h-4 text-red-500" />
                     )}
                   </div>
-                  <p className="text-[14px] text-[#5F5F5F]">
+                      <p className="text-[12px] text-[#5F5F5F]">
                     {(avatarData.videoFile.size / (1024 * 1024)).toFixed(2)} MB
                   </p>
 
-                  {/* Validation Errors */}
-                  {validationErrors.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {validationErrors.map((error, index) => (
-                        <div key={index} className="flex items-start gap-2 text-red-600 text-[14px]">
-                          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      {trainingUpload.uploadState.errors.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {trainingUpload.uploadState.errors.map((error, index) => (
+                            <div key={index} className="flex items-start gap-1 text-red-600 text-[12px]">
+                              <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                           <span>{error.message}</span>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Success Message */}
-                  {isValid && !isValidating && (
-                    <div className="mt-3 flex items-start gap-2 text-green-600 text-[14px]">
-                      <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span>Video meets all requirements</span>
+                      {trainingUpload.uploadState.isValid && !trainingUpload.uploadState.isValidating && (
+                        <div className="mt-2 flex items-start gap-1 text-green-600 text-[12px]">
+                          <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                          <span>Training video is valid</span>
                     </div>
                   )}
                 </div>
 
                 <button
-                  onClick={clearSelection}
-                  className="p-2 hover:bg-[#F3F4F6] rounded-lg transition-colors duration-300"
+                      onClick={clearTrainingSelection}
+                      className="p-1 hover:bg-[#F3F4F6] rounded-lg transition-colors duration-300"
                   title="Clear selection"
                 >
-                  <X className="w-5 h-5 text-[#5F5F5F]" />
+                      <X className="w-4 h-4 text-[#5F5F5F]" />
                 </button>
               </div>
-
-              {/* Change File Button */}
-              <button 
-                onClick={() => {
-                  clearSelection();
-                  setTimeout(() => fileInputRef.current?.click(), 100);
-                }} 
-                className="text-[#6366F1] font-normal transition-colors duration-300 hover:text-[#5046E5] text-[14px] text-left"
-              >
-                Choose a different file
-              </button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Create Button */}
+
         <button
-          onClick={onNext}
-          disabled={!canProceed}
-          className={`px-8 py-[11.3px] font-semibold text-[20px] mt-12 rounded-full transition-all duration-300 w-full border-2 ${
-            canProceed
+          onClick={handleContinue}
+          disabled={!canProceed || isCreating}
+          className={`px-8 py-[11.3px] font-semibold text-[20px] mt-12 rounded-full transition-all duration-300 w-full max-w-md border-2 ${canProceed && !isCreating
               ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
               : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
           }`}
         >
-          {isValidating ? 'Validating...' : 'Create'}
+          {isCreating ? 'Creating Avatar...' : consentUpload.uploadState.isValidating || trainingUpload.uploadState.isValidating ? 'Validating...' : 'Continue'}
         </button>
       </div>
     </div>

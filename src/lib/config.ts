@@ -2,8 +2,9 @@
 export const API_CONFIG = {
   // Express Backend URL
   // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
-  BACKEND_URL: 'https://backend.edgeairealty.com',
+  // BACKEND_URL: 'https://backend.edgeairealty.com',
   // BACKEND_URL: 'http://192.168.3.45:4000',
+  BACKEND_URL: 'http://localhost:4000',
   
   // HeyGen API Configuration
   HEYGEN_API_URL: 'https://api.heygen.com',
@@ -64,7 +65,7 @@ export const API_CONFIG = {
     
     // Video Avatar endpoints (HeyGen API)
     VIDEO_AVATAR: {
-      CREATE: '/v2/video_avatar',
+      CREATE: '/api/v2/video_avatar',
       STATUS: '/v2/video_avatar', // Will be appended with /{id} in the method
     },
 
@@ -176,3 +177,19 @@ export const getHeyGenHeaders = (): Record<string, string> => {
     'Content-Type': 'application/json',
   };
 };
+export const postHeyGenHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'x-api-key': API_CONFIG.HEYGEN_API_KEY,
+  };
+  
+  // Add Authorization token if available
+  const token = localStorage.getItem(API_CONFIG.AUTH.TOKEN_KEY);
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
+ // Add HeyGen API key
+
+  

@@ -222,7 +222,7 @@ export default function FormDropdown({
                                 >
                                   <div className="relative">
                                     <Image
-                                      src={avatar.preview_image_url || avatar.imageUrl || '/images/avatars/avatargirl.png'}
+                                      src={avatar?.preview_image_url || avatar?.imageUrl || '/images/avatars/avatargirl.png'}
                                       alt={avatar.avatar_name || avatar.name || 'Avatar'}
                                       width={80}
                                       height={80}
@@ -262,13 +262,9 @@ export default function FormDropdown({
                           </div>
                         </div>
                       )}
-
-                      {/* Separator - only show if both custom and default avatars exist */}
                       {avatars.custom.length > 0 && avatars.default.length > 0 && (
                         <div className="bg-[#A0A3BD] h-[1px] mb-6"></div>
                       )}
-
-                      {/* Default Avatar Section */}
                       {avatars.default.length > 0 && (
                         <div>
                           <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Default Avatar</h4>
@@ -298,8 +294,8 @@ export default function FormDropdown({
                                 >
                                   <div className="relative">
                                     <Image
-                                      src={avatar.preview_image_url || avatar.imageUrl || '/images/avatars/avatargirl.png'}
-                                      alt={avatar.avatar_name || avatar.name || 'Avatar'}
+                                      src={avatar?.preview_image_url || avatar?.imageUrl || '/images/avatars/avatargirl.png'}
+                                      alt={avatar?.avatar_name || avatar?.name || 'Avatar'}
                                       width={80}
                                       height={80}
                                       className="rounded-lg object-cover w-[80px] h-[80px]"
@@ -328,8 +324,6 @@ export default function FormDropdown({
                           )}
                         </div>
                       )}
-
-                      {/* No avatars message */}
                       {avatars.custom.length === 0 && avatars.default.length === 0 && (
                         <div className="text-center py-8">
                           <p className="text-[#5F5F5F]">No avatars available</p>
@@ -357,8 +351,8 @@ export default function FormDropdown({
                         <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
                           <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm relative">
                             <Image
-                              src={selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || '/images/avatars/avatargirl.png'}
-                              alt={selectedAvatars.title.avatar_name || selectedAvatars.title.name || 'Avatar'}
+                              src={selectedAvatars.title?.preview_image_url || selectedAvatars.title?.imageUrl || '/images/avatars/avatargirl.png'}
+                              alt={selectedAvatars.title?.avatar_name || selectedAvatars.title?.name || 'Avatar'}
                               width={50}
                               height={50}
                               className="rounded-lg object-cover w-[50px] h-[50px]"
@@ -402,8 +396,8 @@ export default function FormDropdown({
                         <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
                           <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm relative">
                             <Image
-                              src={selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || '/images/avatars/avatargirl.png'}
-                              alt={selectedAvatars.body.avatar_name || selectedAvatars.body.name || 'Avatar'}
+                              src={selectedAvatars.body?.preview_image_url || selectedAvatars.body?.imageUrl || '/images/avatars/avatargirl.png'}
+                              alt={selectedAvatars.body?.avatar_name || selectedAvatars.body?.name || 'Avatar'}
                               width={50}
                               height={50}
                               className="rounded-lg object-cover w-[50px] h-[50px]"
@@ -436,7 +430,6 @@ export default function FormDropdown({
                       )}
                     </div>
 
-                    {/* Conclusion Avatar Drop Zone */}
                     <div
                       onDragOver={onDragOver}
                       onDragLeave={onDragLeave}
@@ -447,8 +440,8 @@ export default function FormDropdown({
                         <div className="flex md:flex-row flex-col items-center gap-y-4 w-full">
                           <div className="w-[60px] h-[60px] bg-purple-100 rounded-lg flex items-center justify-center mr-3 shadow-sm relative">
                             <Image
-                              src={selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || '/images/avatars/avatargirl.png'}
-                              alt={selectedAvatars.conclusion.avatar_name || selectedAvatars.conclusion.name || 'Avatar'}
+                              src={selectedAvatars.conclusion?.preview_image_url || selectedAvatars.conclusion?.imageUrl || '/images/avatars/avatargirl.png'}
+                              alt={selectedAvatars.conclusion?.avatar_name || selectedAvatars.conclusion?.name || 'Avatar'}
                               width={50}
                               height={50}
                               className="rounded-lg object-cover w-[50px] h-[50px]"

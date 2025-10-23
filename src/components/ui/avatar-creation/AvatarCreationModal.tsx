@@ -12,6 +12,7 @@ import VideoAvatarStep1 from './steps/videoAvatarStep1'
 import VideoAvatarStep2 from './steps/videoAvatarStep2'
 import VideoAvatarStep4 from './steps/videoAvatarStep4'
 import VideoAvatarStep5 from './steps/videoAvatarStep5'
+import DigitalTwinGuidelines from './steps/DigitalTwinGuidelines'
 
 export type AvatarType = 'digital-twin' | 'photo-avatar'
 
@@ -137,7 +138,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 3:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep1 onNext={handleNext} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <DigitalTwinGuidelines onNext={handleNext} onBack={handleBack} />
         } else {
           return (
             <Step6PhotoInstructions 
@@ -149,7 +150,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 4:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep2 onNext={handleNext} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <VideoAvatarStep1 onNext={handleNext} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step7PhotoUpload 
@@ -163,16 +164,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 5:
         if (selectedAvatarType === 'digital-twin') {
-          return (
-            <VideoAvatarStep5
-              onBack={handleBack}
-              avatarData={avatarData}
-              setAvatarData={handleSetAvatarData}
-              onSkipBackToUpload={handleSkipBackToUpload}
-              onClose={handleAvatarCreationSuccess}
-              onShowToast={onShowToast}
-            />
-          )
+          return <VideoAvatarStep2 onNext={handleNext} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step8Details 
@@ -189,9 +181,6 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
           return (
             <VideoAvatarStep4
               onNext={handleNext}
-            // onBack={handleBack}
-            // avatarData={avatarData}
-            // setAvatarData={setAvatarData}
             />
           )
         } else {
@@ -206,19 +195,6 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
         }
       
       case 7:
-        if (selectedAvatarType === 'digital-twin') {
-          return (
-            <Step5QRCode 
-              onNext={handleNext}
-              onBack={handleBack}
-              avatarData={avatarData}
-              setAvatarData={handleSetAvatarData}
-            />
-          )
-        }
-        break
-
-      case 8:
         if (selectedAvatarType === 'digital-twin') {
           return (
             <VideoAvatarStep5

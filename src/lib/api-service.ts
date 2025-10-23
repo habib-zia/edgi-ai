@@ -1,4 +1,4 @@
-import { getApiUrl, getAuthHeaders, getAuthenticatedHeaders, ensureTokenStored, API_CONFIG, getHeyGenApiUrl, getHeyGenHeaders } from './config';
+import { getApiUrl, getAuthHeaders, getAuthenticatedHeaders, ensureTokenStored, API_CONFIG, getHeyGenApiUrl, getHeyGenHeaders, postHeyGenHeaders } from './config';
 // API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -777,44 +777,63 @@ class ApiService {
     avatarName: string
   ): Promise<ApiResponse<CreateVideoAvatarResponse>> {
     try {
-      console.log('🔧 Creating video avatar with HeyGen API');
-      console.log('📹 Training video:', trainingVideoFile.name, `(${(trainingVideoFile.size / (1024 * 1024)).toFixed(2)} MB)`);
-      console.log('📹 Consent video:', consentVideoFile.name, `(${(consentVideoFile.size / (1024 * 1024)).toFixed(2)} MB)`);
-      console.log('👤 Avatar name:', avatarName);
 
-      // Convert files to data URLs
-      const [trainingFootageUrl, videoConsentUrl] = await Promise.all([
-        this.fileToUrl(trainingVideoFile),
-        this.fileToUrl(consentVideoFile)
-      ]);
+      // Create FormData for multipart/form-data request
+      const formData = new FormData();
+      formData.append('avatar_name', avatarName);
+      formData.append('training_footage', trainingVideoFile);
+      formData.append('consent_statement', consentVideoFile);
 
-      const requestData = {
-        training_footage_url: trainingFootageUrl,
-        video_consent_url: videoConsentUrl,
-        avatar_name: avatarName
-      };
+      const url = getApiUrl(API_CONFIG.ENDPOINTS.VIDEO_AVATAR.CREATE);
 
-      const url = getHeyGenApiUrl(API_CONFIG.ENDPOINTS.VIDEO_AVATAR.CREATE);
-      const headers = getHeyGenHeaders();
-
-      console.log('🌐 HeyGen API URL:', url);
-      console.log('📤 Request data:', { ...requestData, training_footage_url: '[DATA_URL]', video_consent_url: '[DATA_URL]' });
+      const headers = postHeyGenHeaders();
 
       const response = await fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify(requestData),
+        body: formData,
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         try {
           const errorData = JSON.parse(errorText);
-          this.showNotification(errorData.message || 'Failed to create video avatar', 'error');
+          let errorMessage = 'Failed to create video avatar';
+          
+          // Handle nested error structure from HeyGen API
+          if (errorData.error && errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else if (errorData.message) {
+            // Extract the actual error message from the wrapped message
+            // Format: "Heygen responded 400: {\"data\":null,\"error\":{\"code\":\"internal_error\",\"message\":\"You've reached the limit of 1 verified avatar group slots.\"}}"
+            const messageMatch = errorData.message.match(/Heygen responded \d+: \{[^}]*"message":"([^"]*)"[^}]*\}/);
+            if (messageMatch && messageMatch[1]) {
+              errorMessage = messageMatch[1];
+            } else {
+              // Try to parse the JSON within the message
+              try {
+                const jsonMatch = errorData.message.match(/Heygen responded \d+: (.+)/);
+                if (jsonMatch && jsonMatch[1]) {
+                  const innerError = JSON.parse(jsonMatch[1]);
+                  if (innerError.error && innerError.error.message) {
+                    errorMessage = innerError.error.message;
+                  } else {
+                    errorMessage = errorData.message;
+                  }
+                } else {
+                  errorMessage = errorData.message;
+                }
+              } catch {
+                errorMessage = errorData.message;
+              }
+            }
+          }
+          
+          this.showNotification(errorMessage, 'error');
           return { 
             success: false, 
-            message: errorData.message || 'Failed to create video avatar', 
-            error: errorData.message,
+            message: errorMessage, 
+            error: errorMessage,
             status: response.status 
           };
         } catch {
@@ -848,10 +867,9 @@ class ApiService {
     try {
       console.log('🔍 Checking video avatar status for ID:', id);
       
-      const url = getHeyGenApiUrl(`${API_CONFIG.ENDPOINTS.VIDEO_AVATAR.STATUS}/${id}`);
-      const headers = getHeyGenHeaders();
+      const url = getApiUrl(`${API_CONFIG.ENDPOINTS.VIDEO_AVATAR.STATUS}/${id}`);
+      const headers = getAuthenticatedHeaders();
 
-      console.log('🌐 HeyGen Status API URL:', url);
 
       const response = await fetch(url, {
         method: 'GET',

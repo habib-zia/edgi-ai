@@ -192,9 +192,13 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         // Handle both response structures: direct response or nested under data
         const avatarData = (response as any).data || response;
 
+        const customAvatars = (avatarData as any).custom || (response as any).custom || [];
+        const defaultAvatars = (avatarData as any).default || (response as any).default || [];
+        
+
         setAvatars({
-          custom: (avatarData as any).custom || [],
-          default: (avatarData as any).default || []
+          custom: customAvatars,
+          default: defaultAvatars
         })
 
         // Explicitly clear any previous errors
