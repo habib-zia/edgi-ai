@@ -78,6 +78,27 @@ export default function FormDropdown({
   getAvatarSelectionNumber,
   getAvatarType
 }: FormDropdownProps) {
+  // State for managing visible avatar count
+  const [visibleDefaultCount, setVisibleDefaultCount] = React.useState(12)
+  const [visibleCustomCount, setVisibleCustomCount] = React.useState(12)
+
+  // Handler functions for "See More" functionality
+  const handleSeeMoreDefault = () => {
+    setVisibleDefaultCount(prev => Math.min(prev + 12, avatars.default.length))
+  }
+
+  const handleSeeMoreCustom = () => {
+    setVisibleCustomCount(prev => Math.min(prev + 12, avatars.custom.length))
+  }
+
+  const handleSeeLessDefault = () => {
+    setVisibleDefaultCount(12)
+  }
+
+  const handleSeeLessCustom = () => {
+    setVisibleCustomCount(12)
+  }
+
   // Use extended options for avatar field when coming from Default Avatar
   const displayOptions = isAvatarField && isFromDefaultAvatar ? extendedAvatarOptions : options
 
@@ -114,7 +135,6 @@ export default function FormDropdown({
         className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${hasError ? 'ring-2 ring-red-500' : ''
           } ${selectedOption ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
         aria-describedby={hasError ? `${field}-error` : undefined}
-        aria-invalid={hasError ? 'true' : 'false'}
       >
         <span>{selectedOption ? selectedOption.label : placeholder}</span>
         <IoMdArrowDropdown
@@ -197,7 +217,7 @@ export default function FormDropdown({
                             })()}
                           </div>
                           <div className="md:grid flex flex-wrap lg:grid-cols-4 md:grid-cols-2 grid-cols-1 justify-center items-center gap-2">
-                            {avatars.custom.map((avatar) => {
+                            {avatars.custom.slice(0, visibleCustomCount).map((avatar) => {
                               const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
                               const isSelected = isAvatarSelected ? isAvatarSelected(avatar) : false
                               const isTypeAllowed = isAvatarTypeAllowed ? isAvatarTypeAllowed(avatar) : true
@@ -249,7 +269,7 @@ export default function FormDropdown({
                                     )}
                                   </div>
                                   <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">
-                                    {avatar.avatar_id}
+                                    {avatar.avatar_name}
                                     {(isAvatarPending ? isAvatarPending(avatar) : false) && (
                                       <>
                                         <span className="block text-xs text-orange-500 mt-1">Processing...</span>
@@ -260,6 +280,28 @@ export default function FormDropdown({
                               )
                             })}
                           </div>
+                          
+                          {/* See More/Less buttons for Custom Avatars */}
+                          {avatars.custom.length > 12 && (
+                            <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
+                              {visibleCustomCount < avatars.custom.length && (
+                                <button
+                                  onClick={handleSeeMoreCustom}
+                                  className="px-4 py-2 text-sm text-[#5046E5] hover:text-[#4338CA] hover:bg-[#5046E5]/10 rounded-lg transition-colors duration-200 border border-[#5046E5]"
+                                >
+                                  See More ({avatars.custom.length - visibleCustomCount} more)
+                                </button>
+                              )}
+                              {visibleCustomCount > 12 && (
+                                <button
+                                  onClick={handleSeeLessCustom}
+                                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-300"
+                                >
+                                  See Less
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                       {avatars.custom.length > 0 && avatars.default.length > 0 && (
@@ -269,7 +311,7 @@ export default function FormDropdown({
                         <div>
                           <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Default Avatar</h4>
                           <div className="md:grid flex flex-wrap lg:grid-cols-4 md:grid-cols-2 grid-cols-1 justify-center items-center gap-2">
-                            {avatars.default.slice(0, 12).map((avatar) => {
+                            {avatars.default.slice(0, visibleDefaultCount).map((avatar) => {
                               const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
                               const isSelected = isAvatarSelected ? isAvatarSelected(avatar) : false
                               const isTypeAllowed = isAvatarTypeAllowed ? isAvatarTypeAllowed(avatar) : true
@@ -312,15 +354,32 @@ export default function FormDropdown({
                                       </div>
                                     )}
                                   </div>
-                                  <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">{avatar.avatar_id}</span>
+                                  <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">{avatar.avatar_name}</span>
                                 </div>
                               )
                             })}
                           </div>
+                          
+                          {/* See More/Less buttons for Default Avatars */}
                           {avatars.default.length > 12 && (
-                            <p className="text-sm text-[#5F5F5F] text-center mt-3">
-                              Showing first 12 of {avatars.default.length} default avatars
-                            </p>
+                            <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
+                              {visibleDefaultCount < avatars.default.length && (
+                                <button
+                                  onClick={handleSeeMoreDefault}
+                                  className="px-4 py-2 text-sm text-[#5046E5] hover:text-[#4338CA] hover:bg-[#5046E5]/10 rounded-lg transition-colors duration-200 border border-[#5046E5]"
+                                >
+                                  See More ({avatars.default.length - visibleDefaultCount} more)
+                                </button>
+                              )}
+                              {visibleDefaultCount > 12 && (
+                                <button
+                                  onClick={handleSeeLessDefault}
+                                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-300"
+                                >
+                                  See Less
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}

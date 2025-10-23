@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { IoMdArrowDropdown } from "react-icons/io"
-import { Check, AlertCircle, Search } from 'lucide-react'
+import { Check, AlertCircle } from 'lucide-react'
 import { Trend } from '@/lib/api-service'
 
 interface HybridTopicInputProps {
@@ -19,7 +19,7 @@ interface HybridTopicInputProps {
   onSelect: (field: any, value: string) => void
   onBlur: (field: any) => void
   onRetry: () => void
-  onManualInput: (field: any, value: string) => void
+  onCustomTopicClick?: () => void
 }
 
 export default function HybridTopicInput({
@@ -36,13 +36,10 @@ export default function HybridTopicInput({
   onSelect,
   onBlur,
   onRetry,
-  onManualInput
+  onCustomTopicClick
 }: HybridTopicInputProps) {
   const [inputValue, setInputValue] = useState(currentValue || '')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isTyping, setIsTyping] = useState(false)
   const [filteredTrends, setFilteredTrends] = useState<Trend[]>([])
-  const [showCustomOption, setShowCustomOption] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -51,71 +48,37 @@ export default function HybridTopicInput({
   }, [currentValue])
 
   useEffect(() => {
-    if (inputValue && inputValue.trim()) {
-      const filtered = safeTrends.filter(trend => 
-        trend.description.toLowerCase().includes(inputValue.toLowerCase())
-      )
-      setFilteredTrends(filtered)
-      setShowCustomOption(true)
-    } else {
-      setFilteredTrends(safeTrends)
-      setShowCustomOption(false)
-    }
-  }, [inputValue, safeTrends])
+    // Always show all trends - no filtering based on input
+    setFilteredTrends(safeTrends)
+  }, [safeTrends])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setInputValue(value)
-    setIsTyping(true)
-    
-    if (value && value.trim()) {
-      return
-    }
+    // Disable manual input - only allow dropdown selection
+    e.preventDefault()
+    return
   }
 
   const handleInputFocus = () => {
-    setIsTyping(false)
     onToggle(field)
   }
 
   const handleInputBlur = () => {
     setTimeout(() => {
       if (!dropdownRef.current?.contains(document.activeElement)) {
-        setIsTyping(false)
         onBlur(field)
       }
     }, 200)
   }
 
   const handleToggle = () => {
-    setIsTyping(false)
     onToggle(field)
   }
 
   const handleTrendSelect = (trend: Trend) => {
     setInputValue(trend.description)
-    setIsTyping(false)
-    setShowCustomOption(false)
     onSelect(field, trend.description)
   }
 
-  const handleCustomInput = () => {
-    setIsTyping(false)
-    setShowCustomOption(false)
-    const trimmedValue = inputValue ? inputValue.trim() : ''
-    if (trimmedValue) {
-      onManualInput(field, trimmedValue)
-    }
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      if (inputValue && inputValue.trim()) {
-        handleCustomInput()
-      }
-    }
-  }
 
   const isCustomInput = selectedTrend === undefined && currentValue && currentValue.trim()
   
@@ -131,9 +94,9 @@ export default function HybridTopicInput({
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
-          onKeyPress={handleKeyPress}
           placeholder={placeholder}
-          className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white ${hasError ? 'ring-2 ring-red-500' : ''} ${hasValidSelection ? 'text-gray-800' : 'text-[#11101066]'} ${isCustomInput ? 'bg-[#F5F5F5]' : ''}`}
+          readOnly
+          className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white cursor-pointer ${hasError ? 'ring-2 ring-red-500' : ''} ${hasValidSelection ? 'text-gray-800' : 'text-[#11101066]'} ${isCustomInput ? 'bg-[#F5F5F5]' : ''}`}
           aria-describedby={hasError ? `${field}-error` : undefined}
         />
         <button
@@ -142,7 +105,7 @@ export default function HybridTopicInput({
           className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
         >
           <IoMdArrowDropdown 
-            className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+            className={`w-4 h-4 transition-transform text-black duration-300 ${isOpen ? 'rotate-180' : ''}`} 
           />
         </button>
       </div>
@@ -166,29 +129,29 @@ export default function HybridTopicInput({
             </div>
           ) : (
             <>
-              {/* Custom Input Option */}
-              {showCustomOption && inputValue && inputValue.trim() && (
+              {/* Custom Topic Button */}
+              {onCustomTopicClick && (
                 <button
                   type="button"
-                  onClick={handleCustomInput}
-                  className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 flex items-start justify-between text-[#282828] cursor-pointer border-b border-gray-100 bg-blue-50"
+                  onClick={onCustomTopicClick}
+                  className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 flex items-center justify-between text-[#282828] cursor-pointer border-b border-gray-100 bg-green-50"
                 >
-                  <div className="flex items-center flex-1">
-                    <Search className="w-4 h-4 text-blue-600 mr-2 flex-shrink-0" />
+                  <div className="flex items-normal flex-1">
+                    <span className="w-4 h-4 text-green-600 mr-2 flex-shrink-0 text-lg font-bold">+</span>
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-blue-800 mb-1">
-                        Use custom topic: &ldquo;{inputValue ? inputValue.trim() : ''}&rdquo;
+                      <div className="text-sm font-medium text-green-800 mb-1">
+                        Add Custom Topic
                       </div>
-                      <div className="text-xs text-blue-600">
-                        Create your own topic (press Enter or click)
+                      <div className="text-xs text-green-600">
+                        Create your own topic field
                       </div>
                     </div>
                   </div>
-                  <Check className="w-4 h-4 text-blue-600 mt-1 flex-shrink-0" />
+                  <Check className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
                 </button>
               )}
 
-              {/* Filtered Trends */}
+              {/* All Trends - Always show all options */}
               {filteredTrends.length > 0 ? (
                 filteredTrends.map((trend, index) => (
                   <button
@@ -210,20 +173,9 @@ export default function HybridTopicInput({
                     )}
                   </button>
                 ))
-              ) : inputValue && inputValue.trim() ? (
-                <div className="px-4 py-3 text-center text-gray-500">
-                  <p className="text-sm">No matching trends found</p>
-                  <button
-                    type="button"
-                    onClick={handleCustomInput}
-                    className="mt-2 px-3 py-1 text-xs bg-[#5046E5] text-white rounded hover:bg-[#4338CA] transition-colors"
-                  >
-                    Use &ldquo;{inputValue ? inputValue.trim() : ''}&rdquo; as custom topic
-                  </button>
-                </div>
               ) : (
                 <div className="px-4 py-3 text-center text-gray-500">
-                  <p className="text-sm">Start typing to search or create a custom topic</p>
+                  <p className="text-sm">No trends available</p>
                 </div>
               )}
             </>

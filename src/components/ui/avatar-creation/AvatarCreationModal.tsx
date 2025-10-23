@@ -239,7 +239,6 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
   }
 
   const modalDimensions = getModalDimensions()
-  console.log('modalDimensions', modalDimensions)
 
 
   if (!isOpen) return null

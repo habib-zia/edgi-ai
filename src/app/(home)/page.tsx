@@ -197,12 +197,10 @@ function HomePageContent() {
                   <Link href="/scheduled-post" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
                     Schedule Post
                   </Link>
-                  { hasPosts ? (
+
                     <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
                       Report Analytics
-                    </Link>
-                  ) : null}
-                  
+                    </Link>                  
                 </>
               ) : (
                 <>

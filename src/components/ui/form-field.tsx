@@ -14,6 +14,7 @@ interface FormFieldProps {
   register: UseFormRegister<any>
   errors: FieldErrors<any>
   disabled?: boolean
+  onBlur?: (value: string) => void
 }
 
 export default function FormField({
@@ -25,7 +26,8 @@ export default function FormField({
   required = false,
   register,
   errors,
-  disabled = false
+  disabled = false,
+  onBlur
 }: FormFieldProps) {
   return (
     <div>
@@ -40,6 +42,7 @@ export default function FormField({
         register={register}
         errors={errors}
         disabled={disabled}
+        onBlur={onBlur}
       />
     </div>
   )
