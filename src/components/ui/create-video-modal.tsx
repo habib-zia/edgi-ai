@@ -61,6 +61,11 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const [avatarError, setAvatarError] = useState<string>('')
   const [isRedirecting, setIsRedirecting] = useState(false)
 
+  // Clear redirect flag when component mounts to allow fresh redirects
+  useEffect(() => {
+    sessionStorage.removeItem('modalRedirectExecuted')
+  }, [])
+
   // Custom hook for avatar storage
   const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
 
@@ -137,9 +142,11 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     
     // Use window.location.href for page reload redirect with proper timing
     setTimeout(() => {
-      // Only redirect if we're not already on the target page to prevent loops
-      if (window.location.pathname !== '/create-video' && !isRedirecting) {
+      // Only redirect if we're not already on the target page and haven't redirected yet
+      if (window.location.pathname !== '/create-video' && !isRedirecting && !sessionStorage.getItem('modalRedirectExecuted')) {
         setIsRedirecting(true)
+        // Set a flag in sessionStorage to prevent repeated redirects
+        sessionStorage.setItem('modalRedirectExecuted', 'true')
         window.location.href = '/create-video'
       }
     }, 200) // Slightly longer delay to ensure modal closes and state is cleared
