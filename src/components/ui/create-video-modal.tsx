@@ -61,6 +61,11 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const [avatarError, setAvatarError] = useState<string>('')
   const [isRedirecting, setIsRedirecting] = useState(false)
 
+  // Clear redirect flag when component mounts to allow fresh redirects
+  useEffect(() => {
+    sessionStorage.removeItem('modalRedirectExecuted')
+  }, [])
+
   // Custom hook for avatar storage
   const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
 
@@ -118,6 +123,12 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     // Prevent multiple redirects
     if (isRedirecting) return
     
+    // Set redirect flag immediately to prevent any race conditions
+    if (!sessionStorage.getItem('modalRedirectExecuted')) {
+      sessionStorage.setItem('modalRedirectExecuted', 'true')
+      console.log('🔄 Setting redirect flag immediately to prevent race conditions')
+    }
+    
     setCurrentStep(startAtComplete ? 'complete' : 'form')
     setFormData({
       prompt: webhookResponse?.prompt || '',
@@ -137,10 +148,20 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     
     // Use window.location.href for page reload redirect with proper timing
     setTimeout(() => {
-      // Only redirect if we're not already on the target page to prevent loops
+      // Only redirect if we're not already on the target page
       if (window.location.pathname !== '/create-video' && !isRedirecting) {
-        setIsRedirecting(true)
-        window.location.href = '/create-video'
+        // Double-check the flag hasn't been set by another process
+        if (!sessionStorage.getItem('modalRedirectExecuted')) {
+          setIsRedirecting(true)
+          // Set a flag in sessionStorage to prevent repeated redirects - set immediately before redirect
+          sessionStorage.setItem('modalRedirectExecuted', 'true')
+          console.log('🔄 Setting redirect flag and redirecting to /create-video')
+          window.location.href = '/create-video'
+        } else {
+          console.log('🚫 Redirect blocked - flag already set by another process')
+        }
+      } else {
+        console.log('🚫 Redirect blocked - already on target page or redirecting')
       }
     }, 200) // Slightly longer delay to ensure modal closes and state is cleared
   }, [startAtComplete, webhookResponse, onClose, clearCompletedVideoUpdates, isRedirecting])

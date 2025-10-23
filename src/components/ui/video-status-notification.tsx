@@ -107,7 +107,6 @@ export default function VideoStatusNotification({
   }
 
   const latestUpdate = updates[updates.length - 1]
-  
   if (!isVisible || !latestUpdate) {
     return null
   }
@@ -134,11 +133,12 @@ export default function VideoStatusNotification({
             </p>
           </div>
           
-          {/* Close button for completed/failed status */}
-          {(isCompleted || hasError) && (
+          {/* Close button - show for all statuses except processing */}
+          {!isProcessing && (
             <button
               onClick={onClearCompleted}
               className="text-gray-400 hover:text-gray-600 transition-colors ml-2 flex-shrink-0"
+              title="Close notification"
             >
               <X className="w-4 h-4" />
             </button>

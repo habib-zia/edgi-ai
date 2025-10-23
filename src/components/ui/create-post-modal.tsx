@@ -71,7 +71,7 @@ export default function CreatePostModal({
                   onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
                   min={date === minDate ? minTime : undefined}
                   disabled={isSubmitting}
-                  className="w-full px-4 py-3 border-none rounded-md focus:outline-none focus:ring-2 focus:ring-[#5046E5] bg-[#EEEEEE80] text-black disabled:opacity-50 disabled:cursor-not-allowed text-md"
+                  className="w-full px-4 py-3 border-none rounded-md focus:outline-none focus:ring-2 focus:ring-[#5046E5] bg-[#EEEEEE] text-black disabled:opacity-50 disabled:cursor-not-allowed text-md"
                   placeholder="Select Time"
                 />
               </div>
