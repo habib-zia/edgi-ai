@@ -392,7 +392,11 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                       type="time"
                       value={post.time}
                       onChange={(e) => handlePostChange(index, 'time', e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // Open time picker by focusing and clicking
+                        e.currentTarget.showPicker?.()
+                      }}
                       className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
                         getFieldError(`time_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
                       }`}

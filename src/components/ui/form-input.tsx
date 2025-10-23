@@ -12,6 +12,8 @@ interface FormInputProps {
   register: UseFormRegister<any>
   errors: FieldErrors<any>
   disabled?: boolean
+  onBlur?: (value: string) => void
+  onChange?: () => void
 }
 
 export default function FormInput({
@@ -21,7 +23,9 @@ export default function FormInput({
   autoComplete,
   register,
   errors,
-  disabled = false
+  disabled = false,
+  onBlur,
+  onChange
 }: FormInputProps) {
   const error = errors[field] as FieldError | undefined
 
@@ -33,6 +37,16 @@ export default function FormInput({
         placeholder={placeholder}
         autoComplete={autoComplete}
         disabled={disabled}
+        onChange={() => {
+          if (onChange) {
+            onChange()
+          }
+        }}
+        onBlur={(e) => {
+          if (onBlur) {
+            onBlur(e.target.value)
+          }
+        }}
         aria-describedby={error ? `${field}-error` : undefined}
         aria-invalid={error ? 'true' : 'false'}
         className={`w-full px-4 py-[10.5px] text-[18px] font-normal placeholder:text-[#11101066] border-0 rounded-[8px] text-gray-800 transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white

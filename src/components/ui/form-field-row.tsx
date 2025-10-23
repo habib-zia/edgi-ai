@@ -19,13 +19,15 @@ interface FormFieldRowProps {
   register: UseFormRegister<any>
   errors: FieldErrors<any>
   columns?: '1' | '2' | '3' | '4'
+  onCityBlur?: (city: string) => void
 }
 
 export default function FormFieldRow({ 
   fields, 
   register, 
   errors, 
-  columns = '4' 
+  columns = '4',
+  onCityBlur
 }: FormFieldRowProps) {
   const getGridCols = () => {
     switch (columns) {
@@ -51,6 +53,7 @@ export default function FormFieldRow({
           register={register}
           errors={errors}
           disabled={fieldData.disabled}
+          onBlur={fieldData.field === 'city' ? onCityBlur : undefined}
         />
       ))}
     </div>

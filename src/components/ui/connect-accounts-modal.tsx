@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import { X, ExternalLink, Trash2, CheckCircle } from 'lucide-react'
+import { X, ExternalLink, CheckCircle } from 'lucide-react'
 import { useSocialAccounts } from '@/hooks/useSocialAccounts'
 import { getAccountTypeIcon } from '@/utils/socialMediaIcons'
 import { ConnectedAccount, VideoData } from '@/types/post-types'
 import { API_CONFIG, getApiUrl, getAuthenticatedHeaders } from '@/lib/config'
+import ConnectWarningModal from './connect-warning-modal'
 
 interface ConnectAccountsModalProps {
   isOpen: boolean
@@ -21,15 +22,15 @@ interface ConnectAccountsModalProps {
 export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, scheduleData, onCreatePost, onScheduleCreated, buttonText='Next' }: ConnectAccountsModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiResponse, setApiResponse] = useState<any>(null)
+  const [showWarningModal, setShowWarningModal] = useState(false)
+  const [selectedPlatform, setSelectedPlatform] = useState<{ id: string; name: string } | null>(null)
   
   const {
     connectedAccounts,
     availablePlatforms,
     loading,
     error,
-    disconnecting,
     fetchConnectedAccounts,
-    disconnectAccount,
     connectPlatform,
     isPlatformConnected,
     getConnectedAccount
@@ -37,10 +38,23 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
 
 
 
-  const handleDisconnectAccount = async (accountId: number, accountName: string) => {
-    if (window.confirm(`Are you sure you want to disconnect ${accountName}?`)) {
-      await disconnectAccount(accountId)
+
+  const handleConnectClick = (platformId: string, platformName: string) => {
+    setSelectedPlatform({ id: platformId, name: platformName })
+    setShowWarningModal(true)
+  }
+
+  const handleWarningConfirm = () => {
+    if (selectedPlatform) {
+      connectPlatform(selectedPlatform.id)
+      setShowWarningModal(false)
+      setSelectedPlatform(null)
     }
+  }
+
+  const handleWarningCancel = () => {
+    setShowWarningModal(false)
+    setSelectedPlatform(null)
   }
 
   const handleNext = async () => {
@@ -269,7 +283,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
                     ) : (
                       /* Connect Button */
                       <button
-                        onClick={() => connectPlatform(platform.id)}
+                        onClick={() => handleConnectClick(platform.id, platform.name)}
                         className="px-5 py-2 rounded-lg font-medium text-sm bg-[#5046E5] text-white hover:bg-[#4338CA] cursor-pointer transition-colors duration-200 flex items-center gap-2"
                       >
                         Connect
@@ -321,6 +335,13 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
         </div>
       </div>
 
+      {/* Warning Modal */}
+      <ConnectWarningModal
+        isOpen={showWarningModal}
+        onClose={handleWarningCancel}
+        onConfirm={handleWarningConfirm}
+        platformName={selectedPlatform?.name || ''}
+      />
     </div>
   )
 }

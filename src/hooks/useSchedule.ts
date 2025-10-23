@@ -30,12 +30,12 @@ export const useSchedule = (): UseScheduleReturn => {
         console.log('Schedule data fetched successfully:', response.data)
       } else {
         setScheduleData(null)
-        setScheduleError(response.message || 'Failed to fetch schedule data')
+        // setScheduleError(response.message || 'Failed to fetch schedule data')
       }
     } catch (error: any) {
       console.error('❌ Error fetching schedule data:', error)
       setScheduleData(null)
-      setScheduleError(error.message || 'Failed to fetch schedule data')
+      // setScheduleError(error.message || 'Failed to fetch schedule data')
     } finally {
       setScheduleLoading(false)
     }
@@ -78,7 +78,7 @@ export const useSchedule = (): UseScheduleReturn => {
           })
         }
         
-        setScheduleError(response.message || 'Failed to delete schedule')
+        // setScheduleError(response.message || 'Failed to delete schedule')
         return false
       }
     } catch (error: any) {
@@ -94,7 +94,7 @@ export const useSchedule = (): UseScheduleReturn => {
         })
       }
       
-      setScheduleError(error.message || 'Failed to delete schedule')
+      // setScheduleError(error.message || 'Failed to delete schedule')
       return false
     } finally {
       setScheduleLoading(false)

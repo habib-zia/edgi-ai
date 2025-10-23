@@ -15,7 +15,7 @@ import ManualScheduledPosts from "./ManualScheduledPosts";
 import { useManualPosts } from "@/hooks/useManualPosts";
 
 export default function ScheduledPostsGrid() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [scheduleType, setScheduleType] = useState('manual');
 
@@ -170,6 +170,8 @@ export default function ScheduledPostsGrid() {
             </p>
           </div>
         </>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center justify-between w-full md:flex-row flex-col gap-4">
           <Link href="/report-analytics" className="flex group items-center gap-2 text-[#5046E5] rounded-full text-lg font-semibold w-fit"> <ArrowLeftIcon className="w-6 h-6 group-hover:-translate-x-1 transition-transform duration-300" /> Reports Analytics</Link>

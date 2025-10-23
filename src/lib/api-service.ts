@@ -517,15 +517,31 @@ class ApiService {
   }
 
   // Trends Methods
-  async getRealEstateTrends(): Promise<ApiResponse<RealEstateTrendsData>> {
+  async getCityTrends(city: string): Promise<ApiResponse<RealEstateTrendsData>> {
     try {
-      const response = await this.request<RealEstateTrendsData>(API_CONFIG.ENDPOINTS.TRENDS.REAL_ESTATE, {
-        method: 'GET',
+      const response = await this.request<RealEstateTrendsData>(API_CONFIG.ENDPOINTS.TRENDS.CITY, {
+        method: 'POST',
+        body: JSON.stringify({ city }),
       }, true);
-      console.log('Real Estate Trends API Response:', JSON?.stringify(response))
+      console.log('City Trends API Response:', JSON?.stringify(response))
       return response;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to get real estate trends';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get city trends';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async getDescriptionKeypoints(description: string): Promise<ApiResponse<{ keypoints: string }>> {
+    try {
+      const response = await this.request<{ keypoints: string }>(API_CONFIG.ENDPOINTS.TRENDS.DESCRIPTION, {
+        method: 'POST',
+        body: JSON.stringify({ description }),
+      }, true);
+      console.log('Description Keypoints API Response:', JSON?.stringify(response))
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get description keypoints';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
@@ -534,24 +550,101 @@ class ApiService {
   // Schedule Methods
   async getSchedule(): Promise<ApiResponse<any>> {
     try {
-      const response = await this.request<any>('/api/schedule', {
+      const url = getApiUrl('/api/schedule');
+      const headers = getAuthenticatedHeaders();
+      
+      const response = await fetch(url, {
         method: 'GET',
-      }, true);
-      console.log('Schedule API Response:', JSON?.stringify(response))
-      return response;
+        headers,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        
+        try {
+          const errorData = JSON.parse(errorText);
+        
+          if (errorData.message === 'No active schedule found') {
+            return { 
+              success: false, 
+              message: errorData.message, 
+              error: errorData.message,
+              status: response.status 
+            };
+          }
+          
+          this.showNotification(errorData.message || 'An error occurred', 'error');
+          return { 
+            success: false, 
+            message: errorData.message || 'An error occurred', 
+            error: errorData.message,
+            status: response.status 
+          };
+        } catch {
+          this.showNotification(errorText || 'An unexpected error occurred', 'error');
+          return { 
+            success: false, 
+            message: errorText || 'An unexpected error occurred', 
+            error: errorText,
+            status: response.status 
+          };
+        }
+      }
+
+      const data = await response.json();
+      console.log('Schedule API Response:', JSON?.stringify(data))
+      return data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get schedule data';
-      // this.showNotification(errorMessage, 'error');
+      this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
   }
 
   async getScheduledPosts(): Promise<ApiResponse<any>> {
     try {
-      const response = await this.request<any>('/api/schedule', {
+      const url = getApiUrl('/api/schedule');
+      const headers = getAuthenticatedHeaders();
+      
+      const response = await fetch(url, {
         method: 'GET',
-      }, true);
-      return response;
+        headers,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message === 'No active schedule found') {
+            return { 
+              success: false, 
+              message: errorData.message, 
+              error: errorData.message,
+              status: response.status 
+            };
+          }
+          
+          this.showNotification(errorData.message || 'An error occurred', 'error');
+          return { 
+            success: false, 
+            message: errorData.message || 'An error occurred', 
+            error: errorData.message,
+            status: response.status 
+          };
+        } catch {
+          this.showNotification(errorText || 'An unexpected error occurred', 'error');
+          return { 
+            success: false, 
+            message: errorText || 'An unexpected error occurred', 
+            error: errorText,
+            status: response.status 
+          };
+        }
+      }
+
+      const data = await response.json();
+      return data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get scheduled posts';
       this.showNotification(errorMessage, 'error');
@@ -623,7 +716,6 @@ class ApiService {
     try {
       console.log('Update Schedule Config API Request:', scheduleId, configData);
       
-      // Transform the data to match the new API structure
       const requestBody: any = {
         newFrequency: configData.frequency
       };

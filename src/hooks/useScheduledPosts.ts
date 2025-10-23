@@ -92,7 +92,7 @@ export const useScheduledPosts = (): UseScheduledPostsReturn => {
         setTimezone(null)
         setTotalPendingPosts(0)
         setScheduleInfo(null)
-        setError(response.message || 'Failed to fetch scheduled posts')
+        // setError(response.message || 'Failed to fetch scheduled posts')
       }
     } catch (error: any) {
       console.error('❌ Error fetching scheduled posts:', error)
@@ -102,7 +102,7 @@ export const useScheduledPosts = (): UseScheduledPostsReturn => {
       setTimezone(null)
       setTotalPendingPosts(0)
       setScheduleInfo(null)
-      setError(error.message || 'Failed to fetch scheduled posts')
+      // setError(error.message || 'Failed to fetch scheduled posts')
     } finally {
       setLoading(false)
     }

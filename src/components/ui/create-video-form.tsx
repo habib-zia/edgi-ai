@@ -110,13 +110,17 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [avatarsLoading, setAvatarsLoading] = useState(false)
   const [avatarsError, setAvatarsError] = useState<string | null>(null)
   
-  // Real estate trends state
-  const [trends, setTrends] = useState<Trend[]>([])
-  const [trendsLoading, setTrendsLoading] = useState(false)
-  const [trendsError, setTrendsError] = useState<string | null>(null)
+  // City trends state
+  const [cityTrends, setCityTrends] = useState<Trend[]>([])
+  const [cityTrendsLoading, setCityTrendsLoading] = useState(false)
+  const [cityTrendsError, setCityTrendsError] = useState<string | null>(null)
+  const [lastFetchedCity, setLastFetchedCity] = useState<string | null>(null)
   // Use schedule hook
   const { scheduleData: autoScheduleData, scheduleLoading, fetchSchedule } = useSchedule()
-  const safeTrends = Array.isArray(trends) ? trends : []
+  const safeCityTrends = Array.isArray(cityTrends) ? cityTrends : []
+  
+  // Use only city trends for the dropdown
+  const allTrends = safeCityTrends
 
   // Drag and drop state
   const [selectedAvatars, setSelectedAvatars] = useState<{
@@ -142,6 +146,21 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [showSubscriptionRequiredToast, setShowSubscriptionRequiredToast] = useState(false)
   const [subscriptionRequiredMessage, setSubscriptionRequiredMessage] = useState('')
 
+  // Custom topic state
+  const [showCustomTopicInput, setShowCustomTopicInput] = useState(false)
+  const [customTopicValue, setCustomTopicValue] = useState('')
+  
+  // User settings loading state
+  const [userSettingsLoaded, setUserSettingsLoaded] = useState(false)
+  const [savedVideoTopic, setSavedVideoTopic] = useState<string | null>(null)
+  
+  // Custom topic key points generation state
+  const [keyPointsLoading, setKeyPointsLoading] = useState(false)
+  const [keyPointsError, setKeyPointsError] = useState<string | null>(null)
+  
+  // Track if form has been manually touched to avoid showing validation errors on prefilled forms
+  const [formManuallyTouched, setFormManuallyTouched] = useState(false)
+
 
   // Check if user came from Default Avatar button
   useEffect(() => {
@@ -151,35 +170,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [searchParams])
 
-  // Fetch real estate trends function
-  const fetchTrends = useCallback(async () => {
-    try {
-      setTrendsLoading(true)
-      setTrendsError(null)
-      const response = await apiService.getRealEstateTrends()
-      if (response.success && response.data) {
-        const trendsData = response.data.trends || []
-        
-        if (Array.isArray(trendsData)) {
-          setTrends(trendsData)
-          setTrendsError(null)
-        } else {
-          console.error('Trends data is not an array:', trendsData)
-          setTrendsError('Invalid trends data format')
-          setTrends([])
-        }
-      } else {
-        setTrendsError(response.message || 'Failed to fetch trends')
-        setTrends([])
-      }
-    } catch (error: any) {
-      console.error('Trends fetch error:', error)
-      setTrendsError(error.message || 'Failed to load trends')
-      setTrends([])
-    } finally {
-      setTrendsLoading(false)
-    }
-  }, [])
+
 
   // Fetch avatars function - extracted to be reusable
   const fetchAvatars = useCallback(async () => {
@@ -219,9 +210,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }, [])
   useEffect(() => {
     fetchAvatars()
-    fetchTrends()
     fetchSchedule()
-  }, [fetchSchedule])
+  }, [fetchAvatars, fetchSchedule])
 
   useEffect(() => {
     if (latestAvatarUpdate) {
@@ -465,20 +455,128 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       email: ''
     }
   })
+
+  // Mark form as manually touched when any form field changes
+  const handleFormFieldChange = () => {
+    setFormManuallyTouched(true)
+  }
   // User settings hook
   const { fetchUserSettings, saveUserSettings } = useUserSettings({
     userEmail: user?.email,
     avatars,
     setSelectedAvatars,
-    setValue,
-    trigger
+    setValue
   })
+
+  // Generate key points for custom topic
+  const generateCustomTopicKeyPoints = useCallback(async (description: string) => {
+    if (!description || description.trim() === '') {
+      return
+    }
+
+    try {
+      setKeyPointsLoading(true)
+      setKeyPointsError(null)
+      const response = await apiService.getDescriptionKeypoints(description.trim())
+      
+      if (response.success && response.data) {
+        const keypoints = response.data.keypoints || ''
+        if (keypoints.trim()) {
+          console.log('🎯 Auto-generated key points for custom topic:', keypoints)
+          setValue('topicKeyPoints', keypoints, { shouldValidate: true, shouldDirty: true })
+          trigger('topicKeyPoints')
+        }
+        // Set videoTopic field AFTER API confirmation
+        setValue('videoTopic', description.trim(), { shouldValidate: true, shouldDirty: true })
+      } else {
+        setKeyPointsError(response.message || 'Failed to generate key points')
+      }
+    } catch (error: any) {
+      console.error('Key points generation error:', error)
+      setKeyPointsError(error.message || 'Failed to generate key points')
+    } finally {
+      setKeyPointsLoading(false)
+    }
+  }, [setValue, trigger])
+
+  // Fetch city trends function
+  const fetchCityTrends = useCallback(async (city: string) => {
+    if (!city || city.trim() === '') {
+      setCityTrends([])
+      setLastFetchedCity(null)
+      return
+    }
+
+    // Don't fetch if we already have trends for this city
+    if (lastFetchedCity === city.trim()) {
+      return
+    }
+
+    try {
+      setCityTrendsLoading(true)
+      setCityTrendsError(null)
+      const response = await apiService.getCityTrends(city.trim())
+      
+      if (response.success && response.data) {
+        const trendsData = response.data.trends || []
+        
+        if (Array.isArray(trendsData)) {
+          setCityTrends(trendsData)
+          setCityTrendsError(null)
+          setLastFetchedCity(city.trim())
+          
+          // Pre-select saved video topic if it exists in the fetched trends
+          if (savedVideoTopic && savedVideoTopic.trim()) {
+            const matchingTrend = trendsData.find(trend => trend.description === savedVideoTopic)
+            if (matchingTrend) {
+              console.log('🎯 Pre-selecting saved video topic from city trends:', savedVideoTopic)
+              setValue('videoTopic', savedVideoTopic)
+              setValue('topicKeyPoints', matchingTrend.keypoints)
+              trigger('videoTopic')
+            }
+          }
+        } else {
+          console.error('City trends data is not an array:', trendsData)
+          setCityTrendsError('Invalid city trends data format')
+          setCityTrends([])
+        }
+      } else {
+        setCityTrendsError(response.message || 'Failed to fetch city trends')
+        setCityTrends([])
+      }
+    } catch (error: any) {
+      console.error('City trends fetch error:', error)
+      setCityTrendsError(error.message || 'Failed to load city trends')
+      setCityTrends([])
+    } finally {
+      setCityTrendsLoading(false)
+    }
+  }, [lastFetchedCity, savedVideoTopic, setValue, trigger])
 
   // Auto-fill form when avatars are loaded and user has settings
   useEffect(() => {
     if (!avatarsLoading && (avatars.custom.length > 0 || avatars.default.length > 0) && user?.email) {
       setAutoFilling(true)
-      fetchUserSettings().finally(() => {
+      fetchUserSettings().then((result) => {
+        // Auto-trigger city trends if city is loaded from settings
+        if (result && !userSettingsLoaded) {
+          const cityValue = watch('city')
+          const videoTopicValue = watch('videoTopic')
+          
+          // Save the video topic for later pre-selection
+          if (videoTopicValue && videoTopicValue.trim()) {
+            setSavedVideoTopic(videoTopicValue)
+          }
+          
+          // Auto-trigger city trends if city exists
+          if (cityValue && cityValue.trim()) {
+            console.log('🏙️ Auto-triggering city trends for saved city:', cityValue)
+            fetchCityTrends(cityValue)
+          }
+          
+          setUserSettingsLoaded(true)
+        }
+      }).finally(() => {
         setAutoFilling(false)
         setIsFormReady(true)
       })
@@ -486,7 +584,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       // If avatars are loaded but no user email, form is ready
       setIsFormReady(true)
     }
-  }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings])
+  }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings, userSettingsLoaded, watch, fetchCityTrends])
 
   // Check if all data is loaded
   const isDataLoading = avatarsLoading || scheduleLoading || autoFilling || !isFormReady
@@ -503,11 +601,41 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [user?.email, setValue])
 
+  // Focus custom topic input when it becomes visible
+  useEffect(() => {
+    if (showCustomTopicInput) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        const customTopicInput = document.querySelector('input[placeholder="Enter your custom topic"]') as HTMLInputElement
+        if (customTopicInput) {
+          customTopicInput.focus()
+        }
+      }, 100)
+    }
+  }, [showCustomTopicInput])
+
+
   const onSubmit = async (data: CreateVideoFormData) => {
     if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
       dispatch(setVideoError('Please select 3 avatars before submitting'))
       return
     }
+
+     // Validate that either videoTopic or custom topic is provided
+     if (showCustomTopicInput) {
+       if (!customTopicValue.trim()) {
+         dispatch(setVideoError('Please enter a custom topic'))
+         return
+       }
+       // Use custom topic value for submission
+       data.videoTopic = customTopicValue.trim()
+     } else {
+       // Ensure videoTopic is provided when not using custom topic
+       if (!data.videoTopic || !data.videoTopic.trim()) {
+         dispatch(setVideoError('Please select a video topic'))
+         return
+       }
+     }
 
     // Check video usage limit and payment status before proceeding
     try {
@@ -664,11 +792,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         setValue('avatar', '')
       setValue('avatar', value)
       } else if (field === 'videoTopic') {
-      setValue('videoTopic', value)
+      setValue('videoTopic', value, { shouldValidate: true, shouldDirty: true })
       
-      const selectedTrend = safeTrends.find(trend => trend.description === value)
+      // Hide custom topic field when a trend is selected
+      setShowCustomTopicInput(false)
+      setCustomTopicValue('')
+      
+      // Clear key points loading and error states
+      setKeyPointsLoading(false)
+      setKeyPointsError(null)
+      
+      const selectedTrend = allTrends.find(trend => trend.description === value)
       if (selectedTrend) {
-        setValue('topicKeyPoints', selectedTrend.keypoints)
+        setValue('topicKeyPoints', selectedTrend.keypoints, { shouldValidate: true, shouldDirty: true })
       }
       } else {
       setValue(field, value)
@@ -677,28 +813,36 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }, 50)
   }
 
-  // Handle manual input for custom topics
-  const handleManualInput = (field: keyof CreateVideoFormData, value: string) => {
-    console.log('🎯 handleManualInput called:', { field, value })
-    
-    // Close dropdown first
-    setOpenDropdown(null)
-    
-    // Use setTimeout to ensure the dropdown closes before setting values
-    setTimeout(() => {
-      if (field === 'videoTopic') {
-        console.log('🎯 Setting custom videoTopic value:', value)
-        setValue('videoTopic', value)
-        
-        // For custom topics, clear the key points field to allow manual input
-        setValue('topicKeyPoints', '')
-        console.log('🎯 Cleared topicKeyPoints for custom input - user can enter manually')
-      } else {
-      setValue(field, value)
-    }
-      trigger(field)
-    }, 50)
+
+   // Handle custom topic button click
+   const handleCustomTopicClick = () => {
+     setShowCustomTopicInput(true)
+     setCustomTopicValue('')
+     // Close the Video Topic dropdown immediately
+     setOpenDropdown(null)
+     // Clear the Video Topic field value
+     setValue('videoTopic', '', { shouldValidate: false, shouldDirty: true })
+     // Clear the topic key points when switching to custom mode
+     setValue('topicKeyPoints', '', { shouldValidate: false, shouldDirty: true })
+   }
+
+  // Handle custom topic input change
+  const handleCustomTopicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setCustomTopicValue(value)
+    // Mark form as manually touched
+    setFormManuallyTouched(true)
+    // Don't update videoTopic form field - keep them completely separate
   }
+
+  // Handle custom topic blur - generate key points
+  const handleCustomTopicBlur = () => {
+    if (customTopicValue && customTopicValue.trim()) {
+      // Don't update videoTopic immediately - wait for API confirmation
+      generateCustomTopicKeyPoints(customTopicValue)
+    }
+  }
+
   const handleDropdownToggle = (field: keyof CreateVideoFormData) => {
     const isOpen = openDropdown === field
     
@@ -766,27 +910,41 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     placeholder: string
   ) => {
     const currentValue = watch(field)
-    const selectedTrend = safeTrends.find(trend => trend.description === currentValue)
-    const isOpen = openDropdown === field
-    const hasError = errors[field]
     
+    // Filter layer: Only show dropdown value if it exists in the options
+    const isValidDropdownValue = allTrends.some(trend => trend.description === currentValue)
+    const displayValue = isValidDropdownValue ? currentValue : ''
+    
+    const selectedTrend = allTrends.find(trend => trend.description === displayValue)
+    const isOpen = openDropdown === field
+    // Hide error for videoTopic when custom topic input is shown
+    const hasError = showCustomTopicInput && field === 'videoTopic' ? null : errors[field]
+    
+    // Use only city trends loading states
+    const isLoading = cityTrendsLoading
+    const combinedError = cityTrendsError
 
     return (
       <HybridTopicInput
         field={field}
         placeholder={placeholder}
-        currentValue={currentValue}
+        currentValue={displayValue}
         selectedTrend={selectedTrend}
         isOpen={isOpen}
         hasError={hasError}
-        trendsLoading={trendsLoading}
-        trendsError={trendsError}
-        safeTrends={safeTrends}
+        trendsLoading={isLoading}
+        trendsError={combinedError}
+        safeTrends={allTrends}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
         onBlur={(field) => trigger(field)}
-        onRetry={fetchTrends}
-        onManualInput={handleManualInput}
+        onRetry={() => {
+          const cityValue = watch('city')
+          if (cityValue && cityValue.trim()) {
+            fetchCityTrends(cityValue)
+          }
+        }}
+        onCustomTopicClick={handleCustomTopicClick}
       />
     )
   }
@@ -798,6 +956,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     autoComplete?: string
   ) => {
     const isDisabled = field === 'email'
+    
+    // Filter errors for prefilled forms - only show errors after manual interaction
+    const filteredErrors = formManuallyTouched ? errors : {}
 
     return (
       <FormInput
@@ -806,8 +967,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         type={type}
           autoComplete={autoComplete}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
           disabled={isDisabled}
+          onChange={handleFormFieldChange}
       />
     )
   }
@@ -896,35 +1058,70 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           register={register}
           errors={errors}
           columns="4"
+          onCityBlur={fetchCityTrends}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Video Topic <span className="text-red-500">*</span>
             </label>
-            {renderTrendsDropdown('videoTopic', 'Enter a topic or select a trend')}
+            {renderTrendsDropdown('videoTopic', 'Select a trend')}
           </div>
+
+          {showCustomTopicInput && (
+            <div>
+              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+                Custom Topic <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={customTopicValue}
+                onChange={handleCustomTopicChange}
+                onBlur={handleCustomTopicBlur}
+                placeholder="Enter your custom topic"
+                className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white text-gray-800 ${!customTopicValue.trim() && formManuallyTouched ? 'ring-2 ring-red-500' : ''}`}
+              />
+               {!customTopicValue.trim() && formManuallyTouched && (
+                 <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+                   <AlertCircle className="w-4 h-4" />
+                   Please enter a custom topic
+                 </p>
+               )}
+            </div>
+          )}
 
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Topic Key Points <span className="text-red-500">*</span>
+              {keyPointsLoading && showCustomTopicInput && (
+                <span className="text-blue-600 text-sm ml-2">Generating key points...</span>
+              )}
             </label>
             {(() => {
-              const videoTopicValue = watch('videoTopic')
-              const selectedTrend = safeTrends.find(trend => trend.description === videoTopicValue)
-              const isCustomTopic = videoTopicValue && videoTopicValue.trim() && !selectedTrend
-              const placeholder = isCustomTopic ? 'Enter topic key points' : 'Key points will auto-fill when topic is selected'
+              const isCustomTopic = showCustomTopicInput && customTopicValue && customTopicValue.trim()
+              const placeholder = isCustomTopic ? 'Key points will auto-generate when you finish typing' : 'Key points will auto-fill when topic is selected'
               return renderInput('topicKeyPoints', placeholder, 'text')
             })()}
+            {keyPointsError && showCustomTopicInput && (
+              <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+                <AlertCircle className="w-4 h-4" />
+                {keyPointsError}
+              </p>
+            )}
           </div>
         </div>
         <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
-        <SubmitButton
-          isLoading={isLoading}
-          disabled={!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion}
-          loadingText="Creating Video..."
-          buttonText="Submit"
-        />
+         <SubmitButton
+           isLoading={isLoading}
+           disabled={
+             !selectedAvatars.title || 
+             !selectedAvatars.body || 
+             !selectedAvatars.conclusion ||
+             (!watch('videoTopic')?.trim() && !customTopicValue.trim())
+           }
+           loadingText="Creating Video..."
+           buttonText="Submit"
+         />
       </form>
       )}
       {openDropdown && (
@@ -1008,7 +1205,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         onNext={() => {setShowConnectAccountsModal(false)}}
         buttonText="Schedule Post"
         scheduleData={scheduleData}
-        onCreatePost={(accounts, video) => {
+        onCreatePost={() => {
           setShowConnectAccountsModal(false)
           // TODO: Implement post creation with schedule data
         }}

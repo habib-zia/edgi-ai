@@ -32,10 +32,9 @@ interface UseUserSettingsProps {
   avatars: { custom: any[], default: any[] }
   setSelectedAvatars: (avatars: { title: any, body: any, conclusion: any }) => void
   setValue: (name: any, value: any) => void
-  trigger: () => void
 }
 
-export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setValue, trigger }: UseUserSettingsProps) => {
+export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setValue }: UseUserSettingsProps) => {
   const [loadingUserSettings, setLoadingUserSettings] = useState(false)
   const [savingUserSettings, setSavingUserSettings] = useState(false)
 
@@ -44,7 +43,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
     try {
       if (!userEmail) {
         console.error('User email is required to fetch settings')
-        return
+        return { success: false, data: null }
       }
 
       const response = await fetch(
@@ -57,7 +56,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
 
       if (!response.ok) {
         // console.error('Failed to fetch user settings:', await response.text())
-        return
+        return { success: false, data: null }
       }
 
       const userSettings: UserSettingsResponse = await response.json()
@@ -188,13 +187,16 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
             }
         console.log('Form populated with user settings')
         // Note: Removed automatic validation trigger to prevent validation errors on empty fields
+        return { success: true, data: userSettings.data }
       }
+      return { success: false, data: null }
     } catch (error) {
       console.error('Error fetching user settings:', error)
+      return { success: false, data: null }
     } finally {
       setLoadingUserSettings(false)
     }
-  }, [userEmail, avatars, setSelectedAvatars, setValue, trigger])
+  }, [userEmail, avatars, setSelectedAvatars, setValue])
 
   const saveUserSettings = useCallback(async (userSettingsData: UserSettings) => {
     setSavingUserSettings(true)
