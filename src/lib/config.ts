@@ -75,6 +75,7 @@ export const API_CONFIG = {
       ACCOUNT_DELETE: '/api/socialbu-account',
       ACCOUNTS_CONNECT: '/api/socialbu/accounts/connect',
       MEDIA_CREATE_POST: '/api/socialbu-media/create-post',
+      POSTS_SCHEDULED: '/api/socialbu/posts/scheduled',
     },
     
     // Video Schedule endpoints

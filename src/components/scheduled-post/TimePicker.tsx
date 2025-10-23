@@ -9,9 +9,11 @@ interface TimePickerProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
+  minTime?: string;
 }
 
-export default function TimePicker({ value, onChange, placeholder = "Select Time" }: TimePickerProps) {
+export default function TimePicker({ value, onChange, placeholder = "Select Time", disabled = false, minTime }: TimePickerProps) {
   const [open, setOpen] = useState(false);
 
   const handleChange = (newValue: Dayjs | null) => {
@@ -30,6 +32,8 @@ export default function TimePicker({ value, onChange, placeholder = "Select Time
         open={open}
         onOpen={() => setOpen(true)}
         onClose={() => setOpen(false)}
+        disabled={disabled}
+        minTime={minTime ? dayjs(`2000-01-01 ${minTime}`) : undefined}
         slotProps={{
           textField: {
             placeholder: placeholder,
