@@ -138,7 +138,7 @@ export const useCreatePost = ({
       const requestBody = {
         accountIds: selectedAccountIds,
         name: video.title || '',
-        videoUrl: video.videoUrl || video.url || '',
+        videoUrl: 'https://assets.json2video.com/clients/1F75bsfPXR/renders/2025-10-08-61921.mp4',
         date: date,
         time: timeOnly,
         caption: 'Caption',
