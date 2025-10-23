@@ -5,6 +5,7 @@ import { getPlatformIcon } from "../report-analytics/PlatformIcon";
 interface CaptionsDropdownProps {
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 const platforms = [
@@ -16,7 +17,7 @@ const platforms = [
   { name: "YouTube" }
 ];
 
-export default function CaptionsDropdown({ value, onChange }: CaptionsDropdownProps) {
+export default function CaptionsDropdown({ value, onChange, disabled = false }: CaptionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -44,8 +45,12 @@ export default function CaptionsDropdown({ value, onChange }: CaptionsDropdownPr
   return (
     <div className="relative z-[100]" ref={dropdownRef}>
       <div 
-        className="flex items-center gap-2 px-3 py-2 bg-[#EEEEEE] rounded-[7px] cursor-pointer hover:bg-gray-200 transition-colors"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3 py-2 rounded-[7px] transition-colors ${
+          disabled 
+            ? 'bg-gray-100 cursor-not-allowed opacity-50' 
+            : 'bg-[#EEEEEE] cursor-pointer hover:bg-gray-200'
+        }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <div className="w-5 h-5 flex items-center justify-center">
           {getPlatformIcon(selectedPlatform.name)}

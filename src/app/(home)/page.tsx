@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, Suspense, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { SLIDER_ITEMS, REVIEW_SLIDER_ITEMS } from "@/lib/constants";
 import { Slider } from "@/components/ui/slider";
 import VideoCard from "@/components/ui/video-card";
@@ -33,7 +33,7 @@ import SubscriptionRequiredToast from "@/components/ui/subscription-required-toa
 function HomePageContent() {
   const [isSigninModalOpen, setIsSigninModalOpen] = useState(false);
   const [hasPosts, setHasPosts] = useState(false);
-  const [postsLoading, setPostsLoading] = useState(false);
+  const [, setPostsLoading] = useState(false);
   const { isAuthenticated } = useAppSelector((state) => state.user);
   const searchParams = useSearchParams();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);

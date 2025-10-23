@@ -22,6 +22,7 @@ export const useCreatePost = ({
   const [apiResponse, setApiResponse] = useState<any>(null)
   const [showResponse, setShowResponse] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [timeAdjustmentMessage, setTimeAdjustmentMessage] = useState<string | null>(null)
 
   // Get user ID from Redux store
   const userId = useSelector((state: RootState) => state.user.user?.id)
@@ -43,6 +44,15 @@ export const useCreatePost = ({
 
   const { date: minDate, time: minTime } = getCurrentDateTime()
 
+  // Get minimum time for today (current time + 20 minutes)
+  const getMinTimeForToday = useCallback(() => {
+    const now = new Date()
+    const minTime = new Date(now.getTime() + 20 * 60 * 1000) // Add 20 minutes
+    return minTime.toTimeString().slice(0, 5)
+  }, [])
+
+  const minTimeForToday = getMinTimeForToday()
+
   // Initialize selected accounts when modal opens
   useEffect(() => {
     if (isOpen && selectedAccounts.length > 0) {
@@ -63,6 +73,53 @@ export const useCreatePost = ({
     )
   }, [])
 
+  // Handle date change with automatic time adjustment
+  const handleDateChange = useCallback((newDate: string) => {
+    const selectedDate = new Date(newDate)
+    const today = new Date()
+    const isToday = selectedDate.toDateString() === today.toDateString()
+    
+    if (isToday && time) {
+      const currentTime = new Date()
+      const minTime = new Date(currentTime.getTime() + 20 * 60 * 1000) // Add 20 minutes
+      const selectedTime = new Date(`${newDate}T${time}:00`)
+      const minTimeForToday = new Date(`${newDate}T${minTime.toTimeString().slice(0, 5)}:00`)
+      
+      if (selectedTime < minTimeForToday) {
+        const adjustedTime = minTime.toTimeString().slice(0, 5)
+        setTimeAdjustmentMessage(`Time automatically adjusted to ${adjustedTime} (20 minutes from now)`)
+        setTime(adjustedTime)
+        setTimeout(() => setTimeAdjustmentMessage(null), 5000)
+      }
+    }
+    
+    setDate(newDate)
+  }, [time])
+
+  // Handle time change with validation
+  const handleTimeChange = useCallback((newTime: string) => {
+    const selectedDate = new Date(date)
+    const today = new Date()
+    const isToday = selectedDate.toDateString() === today.toDateString()
+    
+    if (isToday) {
+      const currentTime = new Date()
+      const minTime = new Date(currentTime.getTime() + 20 * 60 * 1000) // Add 20 minutes
+      const selectedTime = new Date(`${date}T${newTime}:00`)
+      const minTimeForToday = new Date(`${date}T${minTime.toTimeString().slice(0, 5)}:00`)
+      
+      if (selectedTime < minTimeForToday) {
+        const adjustedTime = minTime.toTimeString().slice(0, 5)
+        setTimeAdjustmentMessage(`Time automatically adjusted to ${adjustedTime} (20 minutes from now)`)
+        setTime(adjustedTime)
+        setTimeout(() => setTimeAdjustmentMessage(null), 5000)
+        return
+      }
+    }
+    
+    setTime(newTime)
+  }, [date])
+
   const validateForm = useCallback(() => {
     const errors: string[] = []
 
@@ -76,8 +133,8 @@ export const useCreatePost = ({
     // Validate time
     if (!time || time.trim() === '') {
       errors.push('Time is required')
-    } else if (date === minDate && time < minTime) {
-      errors.push('Cannot select a past time for today')
+    } else if (date === minDate && time < minTimeForToday) {
+      errors.push('Cannot select a time less than 20 minutes from now for today')
     }
 
     // Caption validation removed - using empty string
@@ -253,9 +310,9 @@ export const useCreatePost = ({
   return {
     // State
     date,
-    setDate,
+    setDate: handleDateChange,
     time,
-    setTime,
+    setTime: handleTimeChange,
     selectedAccountIds,
     matchedSelectedAccounts,
     isSubmitting,
@@ -263,7 +320,8 @@ export const useCreatePost = ({
     showResponse,
     validationErrors,
     minDate,
-    minTime,
+    minTime: minTimeForToday,
+    timeAdjustmentMessage,
     
     // Handlers
     handleAccountToggle,

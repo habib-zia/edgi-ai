@@ -9,9 +9,11 @@ interface DatePickerProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
+  minDate?: string;
 }
 
-export default function DatePicker({ value, onChange, placeholder = "Select Day" }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder = "Select Day", disabled = false, minDate }: DatePickerProps) {
   const [open, setOpen] = useState(false);
 
   const handleChange = (newValue: Dayjs | null) => {
@@ -30,6 +32,8 @@ export default function DatePicker({ value, onChange, placeholder = "Select Day"
         open={open}
         onOpen={() => setOpen(true)}
         onClose={() => setOpen(false)}
+        disabled={disabled}
+        minDate={minDate ? dayjs(minDate) : undefined}
         slotProps={{
           textField: {
             placeholder: placeholder,
