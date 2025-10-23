@@ -170,7 +170,6 @@ export default function ScheduledPostsGrid() {
             </p>
           </div>
         </>
-      )}
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center justify-between w-full md:flex-row flex-col gap-4">
