@@ -2,8 +2,8 @@
 export const API_CONFIG = {
   // Express Backend URL
   // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
-  BACKEND_URL: 'https://backend.edgeairealty.com',
-  // BACKEND_URL: 'http://192.168.3.45:4000',
+  // BACKEND_URL: 'https://backend.edgeairealty.com',
+  BACKEND_URL: 'http://192.168.3.45:4000',
   // BACKEND_URL: 'http://localhost:4000',
   
   // HeyGen API Configuration
@@ -54,7 +54,8 @@ export const API_CONFIG = {
     USER_SETTINGS: '/api/user-settings/user-settings',
     // Trends endpoints
     TRENDS: {
-      REAL_ESTATE: '/api/trends/real-estate',
+      CITY: '/api/trends/city',
+      DESCRIPTION: '/api/trends/description',
     },
     
     // Avatar endpoints
