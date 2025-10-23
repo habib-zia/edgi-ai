@@ -54,7 +54,8 @@ export const API_CONFIG = {
     USER_SETTINGS: '/api/user-settings/user-settings',
     // Trends endpoints
     TRENDS: {
-      REAL_ESTATE: '/api/trends/real-estate',
+      CITY: '/api/trends/city',
+      DESCRIPTION: '/api/trends/description',
     },
     
     // Avatar endpoints
