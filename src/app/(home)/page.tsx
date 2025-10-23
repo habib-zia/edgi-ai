@@ -33,7 +33,7 @@ import SubscriptionRequiredToast from "@/components/ui/subscription-required-toa
 function HomePageContent() {
   const [isSigninModalOpen, setIsSigninModalOpen] = useState(false);
   const [hasPosts, setHasPosts] = useState(false);
-  const [setPostsLoading] = useState(false);
+  const [, setPostsLoading] = useState(false);
   const { isAuthenticated } = useAppSelector((state) => state.user);
   const searchParams = useSearchParams();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);

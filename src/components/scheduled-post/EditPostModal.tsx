@@ -6,7 +6,6 @@ import CaptionsTextarea from "./CaptionsTextarea";
 import CaptionsDropdown from "./CaptionsDropdown";
 import { 
   getCurrentDate, 
-  getCurrentTime, 
   getMinTimeForToday, 
   isPostScheduledSoon, 
   getCleanDate 
