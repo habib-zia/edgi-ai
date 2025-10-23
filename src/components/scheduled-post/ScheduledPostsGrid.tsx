@@ -30,7 +30,7 @@ export default function ScheduledPostsGrid() {
   } = useScheduledPosts();
 
   const { scheduleData, scheduleLoading, deleteSchedule } = useSchedule();
-  const { posts: manualPosts, loading: manualLoading, error: manualError } = useManualPosts();
+  const { posts: manualPosts } = useManualPosts();
 
   useEffect(() => {
     fetchScheduledPosts();

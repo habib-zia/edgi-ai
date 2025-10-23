@@ -65,7 +65,6 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   // Get current date and time for restrictions
   const minDate = getCurrentDate();
-  const minTime = getCurrentTime();
   const minTimeForToday = getMinTimeForToday(45);
 
   // Check if post is scheduled soon (today and within 40 minutes)

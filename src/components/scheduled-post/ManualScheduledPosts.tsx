@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Calendar, Clock, User, ExternalLink } from 'lucide-react';
+import { Calendar, Clock } from 'lucide-react';
 import { formatDate, formatTime } from '@/utils/dateTimeUtils';
 
 interface ManualPost {
@@ -105,7 +105,7 @@ const getPlatformIcon = (accountType: string) => {
 
 const ManualPostCard: React.FC<{ post: ManualPost }> = ({ post }) => {
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  const [isVideoPlaying, setIsVideoPlaying] = React.useState(false);
+  const [isVideoPlaying] = React.useState(false);
   const thumbnailUrl = post.attachments?.[0]?.url;
   const publishDate = formatDate(post.publish_at);
   const publishTime = formatTime(post.publish_at);
@@ -191,7 +191,7 @@ const ManualScheduledPosts: React.FC<ManualScheduledPostsProps> = ({ posts }) =>
           </div>
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">No Manual Posts</h3>
-        <p className="text-gray-500">You haven't scheduled any manual posts yet.</p>
+        <p className="text-gray-500">You haven&apos;t scheduled any manual posts yet.</p>
       </div>
     );
   }
