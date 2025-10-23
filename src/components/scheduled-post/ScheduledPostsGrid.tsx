@@ -71,7 +71,6 @@ export default function ScheduledPostsGrid() {
         times: times
       };
 
-      console.log('configData', scheduleId)
       const response = await apiService.updateScheduleConfig(scheduleId, configData);
 
       if (response.success) {
@@ -145,7 +144,6 @@ export default function ScheduledPostsGrid() {
   };
   return (
     <div className={`${scheduledPosts.length > 0 ? 'mt-0' : 'mt-0'}`}>
-    
         <>
           <div className="text-center">
             <h1 className="text-3xl md:text-[42px] font-semibold text-[#171717] mb-4">
@@ -191,7 +189,7 @@ export default function ScheduledPostsGrid() {
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5]"></div>
         </div>
-      ) : error ? (
+      ) : error && scheduleType === 'auto' ? (
         <div className="text-center py-20">
           <div className="flex items-center justify-center mb-3">
             <div className="flex items-center justify-center bg-[#5046E533] rounded-full h-[96px] w-[96px]">
@@ -202,7 +200,7 @@ export default function ScheduledPostsGrid() {
           <p className="text-[#5F5F5F] text-xl font-normal tracking-[0%] leading-[24px] max-w-[500px] mx-auto mb-7">Create and schedule your social media posts to be published automatically at your preferred times.</p>
           <Link href="/create-video/new" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
         </div>
-      ) : scheduledPosts.length === 0 ? (
+      ) : scheduledPosts.length === 0 && scheduleType === 'auto' ? (
           <div className="text-center py-20">
           <div className="flex items-center justify-center mb-3">
             <div className="flex items-center justify-center bg-[#5046E533] rounded-full h-[96px] w-[96px]">
@@ -213,9 +211,7 @@ export default function ScheduledPostsGrid() {
             <p className="text-[#5F5F5F] text-xl font-normal tracking-[0%] leading-[24px] max-w-[500px] mx-auto mb-7">Create and schedule your social media posts to be published automatically at your preferred times.</p>
             <Link href="/create-video/new" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
           </div>
-      ) : scheduleType === 'manual' ? (
-        <ManualScheduledPosts posts={manualPosts} />
-      ) : (
+      ) : scheduleType === 'auto' &&(
         <>          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {scheduledPosts.map((post) => (
@@ -229,6 +225,9 @@ export default function ScheduledPostsGrid() {
             ))}
           </div>
         </>
+      )}
+      {scheduleType === 'manual' && (
+        <ManualScheduledPosts posts={manualPosts} />
       )}
       <UpdateScheduleModal
         isOpen={isModalOpen}

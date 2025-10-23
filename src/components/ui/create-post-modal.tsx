@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { CreatePostModalProps } from '@/types/post-types'
 import { useCreatePost } from '@/hooks/useCreatePost'
 import AccountSelection from './account-selection'
+import DatePicker from '../scheduled-post/DatePicker'
 
 export default function CreatePostModal({ 
   isOpen, 
@@ -24,6 +25,7 @@ export default function CreatePostModal({
     validationErrors,
     minDate,
     minTime,
+    timeAdjustmentMessage,
     handleAccountToggle,
     handleSubmit,
     handleClose
@@ -49,18 +51,13 @@ export default function CreatePostModal({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Date <span className="text-red-500">*</span>
               </label>
-              <div>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
-                  min={minDate}
-                  disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:border-transparent bg-gray-50 text-black disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="Select Date"
-                />
-              </div>
+              <DatePicker
+                value={date}
+                onChange={setDate}
+                placeholder="Select Date"
+                disabled={isSubmitting}
+                minDate={minDate}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -74,20 +71,28 @@ export default function CreatePostModal({
                   onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
                   min={date === minDate ? minTime : undefined}
                   disabled={isSubmitting}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:border-transparent bg-gray-50 text-black disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 border-none rounded-md focus:outline-none focus:ring-2 focus:ring-[#5046E5] bg-[#EEEEEE80] text-black disabled:opacity-50 disabled:cursor-not-allowed text-md"
                   placeholder="Select Time"
                 />
               </div>
             </div>
           </div>
+
+          {/* Time Adjustment Message */}
+          {timeAdjustmentMessage && (
+            <div className="w-full max-w-md p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0 mt-0.5"></div>
+                <p className="text-sm text-blue-700">{timeAdjustmentMessage}</p>
+              </div>
+            </div>
+          )}
           <AccountSelection
             selectedAccounts={selectedAccounts}
             selectedAccountIds={matchedSelectedAccounts?.map(account => account.id) || selectedAccountIds}
             isSubmitting={isSubmitting}
             onAccountToggle={handleAccountToggle}
           />
-
-          {/* Video Info */}
           {video && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -112,8 +117,6 @@ export default function CreatePostModal({
               </ul>
             </div>
           )}
-
-          {/* Post Button */}
           <button
             type="submit"
             disabled={isSubmitting || validationErrors.length > 0}

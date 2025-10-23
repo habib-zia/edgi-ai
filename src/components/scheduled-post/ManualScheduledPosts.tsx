@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Calendar, Clock, User, ExternalLink } from 'lucide-react';
+import { formatDate, formatTime } from '@/utils/dateTimeUtils';
 
 interface ManualPost {
   id: number;
@@ -101,63 +102,37 @@ const getPlatformIcon = (accountType: string) => {
   }
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: userTimezone
-  });
-};
-
-const formatTime = (dateString: string) => {
-  // Parse the date string and treat it as UTC
-  // Format: "2025-10-23 11:50:00" -> "2025-10-23T11:50:00Z"
-  const utcDateString = dateString.replace(' ', 'T') + 'Z';
-  const date = new Date(utcDateString);
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  
-  // Debug: Log the conversion process
-  console.log('Input date string:', dateString);
-  console.log('UTC date string:', utcDateString);
-  console.log('Parsed date:', date);
-  console.log('Date in UTC:', date.toISOString());
-  console.log('User timezone:', userTimezone);
-  
-  const localTime = date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: userTimezone
-  });
-  
-  console.log('Converted local time:', localTime);
-  return localTime;
-};
 
 const ManualPostCard: React.FC<{ post: ManualPost }> = ({ post }) => {
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = React.useState(false);
   const thumbnailUrl = post.attachments?.[0]?.url;
   const publishDate = formatDate(post.publish_at);
   const publishTime = formatTime(post.publish_at);
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  
-  console.log('User timezone:', userTimezone);
-  console.log('Original UTC time:', post.publish_at);
-  console.log('Converted time:', publishTime);
-  console.log('Post data:', post);
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-      {/* Thumbnail */}
       <div className="relative aspect-video bg-gray-100">
         {thumbnailUrl ? (
-          <video
-            src={thumbnailUrl}
-            className="w-full h-full object-cover"
-            poster={thumbnailUrl}
-            muted
-          />
+         <video
+         ref={videoRef}
+         src={post.attachments?.[0]?.url || ''}
+         className="absolute inset-0 w-full h-full object-cover rounded-[8px]"
+         muted
+         loop
+         playsInline
+         preload="metadata"
+         controls={isVideoPlaying}
+         poster=""
+         webkit-playsinline="true"
+         onError={() => {}}
+         onLoadStart={() => {}}
+         onLoadedMetadata={() => {
+           if (videoRef.current) {
+             videoRef.current.currentTime = 1;
+           }
+         }}
+       />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100">
             <svg className="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -165,13 +140,9 @@ const ManualPostCard: React.FC<{ post: ManualPost }> = ({ post }) => {
             </svg>
           </div>
         )}
-        
-        {/* Platform Icon */}
         <div className="absolute top-3 right-3">
           {getPlatformIcon(post.account_type)}
         </div>
-        
-        {/* Status Badge */}
         <div className="absolute top-3 left-3">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
             post.published 
@@ -184,23 +155,17 @@ const ManualPostCard: React.FC<{ post: ManualPost }> = ({ post }) => {
           </span>
         </div>
       </div>
-      
-      {/* Content */}
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <h3 className="font-semibold text-gray-900 text-sm line-clamp-2">
             {post.content || 'No caption'}
           </h3>
         </div>
-        
-        {/* Platform and User */}
         <div className="flex items-center gap-2 mb-3">
         <span className="text-xs text-gray-300">•</span>
           <span className="text-xs text-gray-500">{post.account_type}</span>
 
         </div>
-        
-        {/* Publish Date & Time */}
         <div className="flex items-center gap-4 text-xs text-gray-500">
           <div className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
@@ -236,13 +201,8 @@ const ManualScheduledPosts: React.FC<ManualScheduledPostsProps> = ({ posts }) =>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Manual Scheduled Posts</h2>
-          <p className="text-gray-600 mt-1">Posts scheduled for manual publishing</p>
-        </div>
-        <div className="text-sm text-gray-500">
-          {posts.length} {posts.length === 1 ? 'post' : 'posts'}
         </div>
       </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {posts.map((post) => (
           <ManualPostCard key={post.id} post={post} />

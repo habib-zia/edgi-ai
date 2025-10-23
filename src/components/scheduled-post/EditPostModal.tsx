@@ -4,6 +4,13 @@ import DatePicker from "./DatePicker";
 import TimePicker from "./TimePicker";
 import CaptionsTextarea from "./CaptionsTextarea";
 import CaptionsDropdown from "./CaptionsDropdown";
+import { 
+  getCurrentDate, 
+  getCurrentTime, 
+  getMinTimeForToday, 
+  isPostScheduledSoon, 
+  getCleanDate 
+} from '@/utils/dateTimeUtils';
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -34,17 +41,6 @@ interface EditPostModalProps {
 }
 
 export default function EditPostModal({ isOpen, onClose, onEdit, postData }: EditPostModalProps) {
-  const getCleanDate = (dateString?: string) => {
-    if (!dateString) return "";
-  
-    if (dateString.includes('T')) {
-      return dateString.split('T')[0];
-    } else if (dateString.includes(' ')) {
-      return dateString.split(' ')[0];
-    } else {
-      return dateString;
-    }
-  };
 
   const [formData, setFormData] = useState({
     date: getCleanDate(postData?.date),
@@ -64,6 +60,16 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
     index: postData?.index || 0,
     keypoints: postData?.keypoints || ""
   });
+
+  const [timeAdjustmentMessage, setTimeAdjustmentMessage] = useState<string | null>(null);
+
+  // Get current date and time for restrictions
+  const minDate = getCurrentDate();
+  const minTime = getCurrentTime();
+  const minTimeForToday = getMinTimeForToday(45);
+
+  // Check if post is scheduled soon (today and within 40 minutes)
+  const isRestricted = isPostScheduledSoon(formData.date, formData.time, 40);
 
   useEffect(() => {
     if (postData) {
@@ -109,6 +115,55 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
   };
 
   const handleInputChange = (field: string, value: string) => {
+    if (field === 'date') {
+      const selectedDate = new Date(value);
+      const today = new Date();
+      const isToday = selectedDate.toDateString() === today.toDateString();
+      
+      if (isToday && formData.time) {
+        const now = new Date();
+        const minTime = new Date(now.getTime() + 45 * 60 * 1000);
+        const selectedTime = new Date(`${value}T${formData.time}:00`);
+        const minTimeForToday = new Date(`${value}T${minTime.toTimeString().slice(0, 5)}:00`);
+        
+        if (selectedTime < minTimeForToday) {
+          const adjustedTime = minTime.toTimeString().slice(0, 5);
+          setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime}`);
+          setFormData(prev => ({
+            ...prev,
+            [field]: value,
+            time: adjustedTime
+          }));
+          setTimeout(() => setTimeAdjustmentMessage(null), 5000);
+          return;
+        }
+      }
+    }
+    
+    if (field === 'time') {
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      const isToday = selectedDate.toDateString() === today.toDateString();
+      
+      if (isToday) {
+        const now = new Date();
+        const minTime = new Date(now.getTime() + 45 * 60 * 1000);
+        const selectedTime = new Date(`${formData.date}T${value}:00`);
+        const minTimeForToday = new Date(`${formData.date}T${minTime.toTimeString().slice(0, 5)}:00`);
+        
+        if (selectedTime < minTimeForToday) {
+          const adjustedTime = minTime.toTimeString().slice(0, 10);
+          setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime}`);
+          setFormData(prev => ({
+            ...prev,
+            time: adjustedTime
+          }));
+          setTimeout(() => setTimeAdjustmentMessage(null), 10000);
+          return;
+        }
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -157,7 +212,6 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[12px] max-w-[766px] w-full max-h-[90vh] flex flex-col relative">
-        {/* Modal Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-7 flex-shrink-0">
           <h2 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">Updated Post</h2>
           <button
@@ -172,18 +226,43 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
             </svg>
           </button>
         </div>
-
-        {/* Modal Content */}
         <div className="flex-1 overflow-y-auto px-6 pb-10">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Warning Message for Restricted Posts */}
+            {isRestricted && (
+              <div className="w-full p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-yellow-500 rounded-full flex-shrink-0 mt-0.5"></div>
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-800 mb-1">Editing Restricted</h4>
+                    <p className="text-sm text-yellow-700">This post is scheduled within 40 minutes. You cannot edit the date and time.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Time Adjustment Message */}
+            {timeAdjustmentMessage && (
+              <div className="w-full p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-red-500 rounded-full flex-shrink-0 mt-0.5"></div>
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800 mb-1">Time Restriction</h4>
+                    <p className="text-sm text-red-700">{timeAdjustmentMessage}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
-              {/* Date Field */}
               <div>
                 <label className="block text-base font-normal text-[#5F5F5F] mb-[2px]">Date</label>
                 <DatePicker
                   value={formData.date}
                   onChange={(value) => handleInputChange('date', value)}
                   placeholder="Select Date"
+                  disabled={isRestricted}
+                  minDate={minDate}
                 />
               </div>
               <div>
@@ -192,6 +271,8 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
                   value={formData.time}
                   onChange={(value) => handleInputChange('time', value)}
                   placeholder="Select Time"
+                  disabled={isRestricted}
+                  minTime={formData.date === minDate ? minTimeForToday : undefined}
                 />
               </div>
             </div>
@@ -204,35 +285,40 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
                   value={formData.videoTopic}
                   onChange={(e) => handleInputChange('videoTopic', e.target.value)}
                   placeholder="Please Specify"
-                  className="w-full bg-[#EEEEEE] rounded-[7px] px-3 py-2 text-sm font-medium text-[#282828] placeholder-[#858999] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#5046E5] focus:border-transparent transition-all"
+                  disabled={isRestricted}
+                  className="w-full bg-[#EEEEEE] rounded-[7px] px-3 py-2 text-sm font-medium text-[#282828] placeholder-[#858999] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#5046E5] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
-            {/* Captions Field */}
             <div>
               <div className="flex items-center justify-between mb-[2px]">
                 <label className="block text-base font-normal text-[#5F5F5F]">Captions</label>
                 <CaptionsDropdown
                   value={formData.platform}
                   onChange={(value) => handleInputChange('platform', value)}
+                  disabled={isRestricted}
                 />
               </div>
               <CaptionsTextarea
                 value={getCurrentCaption()}
                 onChange={handleCaptionChange}
                 placeholder="Enter Caption"
+                disabled={isRestricted}
               />
             </div>
           </form>
         </div>
-
-        {/* Modal Footer */}
         <div className="px-6 pb-6 flex-shrink-0">
           <button
             onClick={handleSubmit}
-            className="w-full bg-[#5046E5] text-white py-3 px-6 font-semibold rounded-full text-xl hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-colors duration-300"
+            disabled={isRestricted}
+            className={`w-full py-3 px-6 font-semibold rounded-full text-xl transition-colors duration-300 ${
+              isRestricted 
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                : 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
+            }`}
           >
-            Updated
+            {isRestricted ? 'Editing Restricted' : 'Updated'}
           </button>
         </div>
       </div>
