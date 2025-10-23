@@ -26,6 +26,16 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "resource2.heygen.ai",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.heygen.ai",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "socialbu.nyc3.digitaloceanspaces.com",
         pathname: "/**",
       },

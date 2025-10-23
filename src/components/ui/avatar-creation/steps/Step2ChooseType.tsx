@@ -23,7 +23,7 @@ export default function Step2ChooseType({ onAvatarTypeSelect, onAvatarTypeNext, 
       type: 'digital-twin' as AvatarType,
       title: 'Digital Twin',
       subtitle: 'Video-based avatar',
-      description: 'Use a single video to create an avatar that moves and acts just like you.',
+      description: 'Use 2 videos to create a video avatar that moves and acts just like you.',
       remaining: '1 / 1 slots remaining',
       preview: '/images/avatars/digital.png',
       realistic: true
