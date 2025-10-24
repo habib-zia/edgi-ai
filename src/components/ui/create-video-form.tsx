@@ -586,8 +586,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings, userSettingsLoaded, watch, fetchCityTrends])
 
-  // Check if all data is loaded
-  const isDataLoading = avatarsLoading || scheduleLoading || autoFilling || !isFormReady
+  // Check if all data is loaded (used for other components)
+  // const isDataLoading = avatarsLoading || scheduleLoading || autoFilling || !isFormReady
 
   // Toggle schedule mode
   const handleToggleScheduleMode = () => {
@@ -977,7 +977,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   return (
     <div className={`w-full max-w-[1260px] mx-auto ${className} relative`}>
       <FormLoadingOverlay
-        avatarsLoading={isDataLoading}
+        avatarsLoading={avatarsLoading}
         autoFilling={autoFilling}
         isFormReady={isFormReady}
         hasUserEmail={!!user?.email}
