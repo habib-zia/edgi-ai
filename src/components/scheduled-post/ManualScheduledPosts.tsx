@@ -3,6 +3,7 @@
 import React from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import { formatDate, formatTime } from '@/utils/dateTimeUtils';
+import { noActiveScheduleIcon } from '../report-analytics/PlatformIcon';
 
 interface ManualPost {
   id: number;
@@ -184,15 +185,15 @@ const ManualPostCard: React.FC<{ post: ManualPost }> = ({ post }) => {
 const ManualScheduledPosts: React.FC<ManualScheduledPostsProps> = ({ posts }) => {
   if (!posts || posts.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="flex items-center justify-center mb-4">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-            <Calendar className="w-8 h-8 text-gray-400" />
-          </div>
+      <div className="text-center py-20">
+      <div className="flex items-center justify-center mb-3">
+        <div className="flex items-center justify-center bg-[#5046E533] rounded-full h-[96px] w-[96px]">
+          {noActiveScheduleIcon}
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Manual Posts</h3>
-        <p className="text-gray-500">You haven&apos;t scheduled any manual posts yet.</p>
       </div>
+      <p className="text-[#171717] mb-2 md:text-[42px] text-[30px] font-semibold tracking-[0%]">No Manual Posts</p>
+      <p className="text-[#5F5F5F] text-xl font-normal tracking-[0%] leading-[24px] max-w-[500px] mx-auto mb-7">You haven&apos;t scheduled any manual posts yet.</p>
+    </div>
     );
   }
 
