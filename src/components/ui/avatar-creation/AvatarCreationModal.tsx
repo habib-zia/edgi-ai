@@ -62,7 +62,13 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     }, [isOpen])
 
   const handleNext = () => {
-    // For digital-twin: Normal progression through steps 3 -> 4 -> 8
+    // For digital-twin: Close modal after step 4 (VideoAvatarStep1)
+    if (selectedAvatarType === 'digital-twin' && currentStep === 4) {
+      handleClose()
+      return
+    }
+    
+    // For other cases: Normal progression through steps
     setCurrentStep(prev => prev + 1)
   }
 
