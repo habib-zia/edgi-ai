@@ -941,7 +941,7 @@ class ApiService {
 
       const result = await response.json();
       console.log('✅ Video avatar created successfully:', result);
-      
+      this.showNotification('Video avatar created successfully', 'success');
       return {
         success: true,
         message: 'Video avatar created successfully',
