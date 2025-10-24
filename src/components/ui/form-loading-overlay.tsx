@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 interface FormLoadingOverlayProps {
   avatarsLoading: boolean
@@ -15,9 +15,76 @@ export default function FormLoadingOverlay({
   isFormReady,
   hasUserEmail
 }: FormLoadingOverlayProps) {
-  const isDataLoading = avatarsLoading || autoFilling || !isFormReady
+  const [showOverlay, setShowOverlay] = useState(false)
+  const [isApiComplete, setIsApiComplete] = useState(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const delayTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  if (!isDataLoading) return null
+  useEffect(() => {
+    const isNowLoading = avatarsLoading || autoFilling || !isFormReady
+    
+    if (!isNowLoading && showOverlay && !isApiComplete) {
+      console.log('✅ FormLoadingOverlay: API complete, starting 4-second delay')
+      setIsApiComplete(true)
+      
+      if (delayTimeoutRef.current) {
+        clearTimeout(delayTimeoutRef.current)
+      }
+      
+      delayTimeoutRef.current = setTimeout(() => {
+        console.log('🚪 FormLoadingOverlay: Hiding overlay after delay')
+        setShowOverlay(false)
+        setIsApiComplete(false)
+      }, 2000)
+    }
+  }, [avatarsLoading, autoFilling, isFormReady, showOverlay, isApiComplete])
+
+  useEffect(() => {
+    if (showOverlay && !isApiComplete) {
+      const fallbackTimeout = setTimeout(() => {
+        console.log('⚠️ FormLoadingOverlay: Fallback timeout triggered - hiding overlay')
+        setShowOverlay(false)
+        setIsApiComplete(false)
+      }, 15000)
+
+      return () => clearTimeout(fallbackTimeout)
+    }
+  }, [showOverlay, isApiComplete])
+
+  useEffect(() => {
+    const isDataLoading = avatarsLoading || autoFilling || !isFormReady
+    
+    if (isDataLoading && !showOverlay) {
+      console.log('🔄 FormLoadingOverlay: Showing overlay - avatarsLoading:', avatarsLoading, 'autoFilling:', autoFilling, 'isFormReady:', isFormReady)
+      setShowOverlay(true)
+      setIsApiComplete(false)
+    }
+  }, [avatarsLoading, autoFilling, isFormReady, showOverlay])
+
+  useEffect(() => {
+    console.log('🔍 FormLoadingOverlay state:', {
+      avatarsLoading,
+      autoFilling,
+      isFormReady,
+      showOverlay,
+      isApiComplete
+    })
+  }, [avatarsLoading, autoFilling, isFormReady, showOverlay, isApiComplete])
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+      if (delayTimeoutRef.current) {
+        clearTimeout(delayTimeoutRef.current)
+        delayTimeoutRef.current = null
+      }
+    }
+  }, [])
+
+  if (!showOverlay) return null
 
   return (
     <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-30 flex items-center justify-center">
@@ -33,14 +100,14 @@ export default function FormLoadingOverlay({
           
           {/* Loading title */}
           <h3 className="text-xl font-semibold text-gray-800 mb-4">
-            {autoFilling ? 'Loading Your Settings' : 'Preparing Form'}
+            {isApiComplete ? 'Form Ready!' : (autoFilling ? 'Loading Your Settings' : 'Preparing Form')}
           </h3>
           
           {/* Progress indicators */}
           <div className="space-y-3 text-left">
-            <div className={`flex items-center gap-3 ${!avatarsLoading ? 'text-green-600' : 'text-gray-500'}`}>
-              <div className={`w-4 h-4 rounded-full flex items-center justify-center ${!avatarsLoading ? 'bg-green-100' : 'bg-gray-200'}`}>
-                {!avatarsLoading ? (
+            <div className={`flex items-center gap-3 ${(!avatarsLoading || isApiComplete) ? 'text-green-600' : 'text-gray-500'}`}>
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center ${(!avatarsLoading || isApiComplete) ? 'bg-green-100' : 'bg-gray-200'}`}>
+                {(!avatarsLoading || isApiComplete) ? (
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
@@ -49,14 +116,14 @@ export default function FormLoadingOverlay({
                 )}
               </div>
               <span className="text-sm font-medium">
-                {avatarsLoading ? 'Loading avatars...' : 'Avatars loaded'}
+                {avatarsLoading && !isApiComplete ? 'Loading avatars...' : 'Avatars loaded'}
               </span>
             </div>
             
             {hasUserEmail && (
-              <div className={`flex items-center gap-3 ${!autoFilling && isFormReady ? 'text-green-600' : 'text-gray-500'}`}>
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${!autoFilling && isFormReady ? 'bg-green-100' : 'bg-gray-200'}`}>
-                  {!autoFilling && isFormReady ? (
+              <div className={`flex items-center gap-3 ${(!autoFilling && isFormReady) || isApiComplete ? 'text-green-600' : 'text-gray-500'}`}>
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${(!autoFilling && isFormReady) || isApiComplete ? 'bg-green-100' : 'bg-gray-200'}`}>
+                  {(!autoFilling && isFormReady) || isApiComplete ? (
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
@@ -65,7 +132,7 @@ export default function FormLoadingOverlay({
                   )}
                 </div>
                 <span className="text-sm font-medium">
-                  {autoFilling ? 'Loading your settings...' : isFormReady ? 'Settings loaded' : 'Preparing settings...'}
+                  {isApiComplete ? 'Settings loaded' : (autoFilling ? 'Loading your settings...' : isFormReady ? 'Settings loaded' : 'Preparing settings...')}
                 </span>
               </div>
             )}
@@ -73,7 +140,7 @@ export default function FormLoadingOverlay({
           
           {/* Loading message */}
           <div className="mt-6 text-sm text-gray-600">
-            {autoFilling ? '' : 'Please wait while we prepare everything for you'}
+            {isApiComplete ? 'Everything is ready! You can now start creating your video.' : (autoFilling ? '' : 'Please wait while we prepare everything for you')}
           </div>
         </div>
       </div>
