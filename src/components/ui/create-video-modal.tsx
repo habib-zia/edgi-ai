@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useSelector } from 'react-redux'
@@ -60,10 +60,14 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const [countdown, setCountdown] = useState(10)
   const [avatarError, setAvatarError] = useState<string>('')
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const hasRedirectedThisModalRef = useRef(false)
 
   // Clear redirect flag when component mounts to allow fresh redirects
+  // Only clear if we haven't redirected for this specific modal instance
   useEffect(() => {
-    sessionStorage.removeItem('modalRedirectExecuted')
+    if (!hasRedirectedThisModalRef.current) {
+      sessionStorage.removeItem('modalRedirectExecuted')
+    }
   }, [])
 
   // Custom hook for avatar storage
@@ -153,6 +157,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         // Double-check the flag hasn't been set by another process
         if (!sessionStorage.getItem('modalRedirectExecuted')) {
           setIsRedirecting(true)
+          hasRedirectedThisModalRef.current = true // Mark that we've redirected for this modal instance
           // Set a flag in sessionStorage to prevent repeated redirects - set immediately before redirect
           sessionStorage.setItem('modalRedirectExecuted', 'true')
           console.log('🔄 Setting redirect flag and redirecting to /create-video')

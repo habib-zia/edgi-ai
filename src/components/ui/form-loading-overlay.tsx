@@ -24,7 +24,6 @@ export default function FormLoadingOverlay({
     const isNowLoading = avatarsLoading || autoFilling || !isFormReady
     
     if (!isNowLoading && showOverlay && !isApiComplete) {
-      console.log('✅ FormLoadingOverlay: API complete, starting 4-second delay')
       setIsApiComplete(true)
       
       if (delayTimeoutRef.current) {
@@ -32,7 +31,6 @@ export default function FormLoadingOverlay({
       }
       
       delayTimeoutRef.current = setTimeout(() => {
-        console.log('🚪 FormLoadingOverlay: Hiding overlay after delay')
         setShowOverlay(false)
         setIsApiComplete(false)
       }, 2000)
@@ -42,7 +40,6 @@ export default function FormLoadingOverlay({
   useEffect(() => {
     if (showOverlay && !isApiComplete) {
       const fallbackTimeout = setTimeout(() => {
-        console.log('⚠️ FormLoadingOverlay: Fallback timeout triggered - hiding overlay')
         setShowOverlay(false)
         setIsApiComplete(false)
       }, 15000)
@@ -55,21 +52,10 @@ export default function FormLoadingOverlay({
     const isDataLoading = avatarsLoading || autoFilling || !isFormReady
     
     if (isDataLoading && !showOverlay) {
-      console.log('🔄 FormLoadingOverlay: Showing overlay - avatarsLoading:', avatarsLoading, 'autoFilling:', autoFilling, 'isFormReady:', isFormReady)
       setShowOverlay(true)
       setIsApiComplete(false)
     }
   }, [avatarsLoading, autoFilling, isFormReady, showOverlay])
-
-  useEffect(() => {
-    console.log('🔍 FormLoadingOverlay state:', {
-      avatarsLoading,
-      autoFilling,
-      isFormReady,
-      showOverlay,
-      isApiComplete
-    })
-  }, [avatarsLoading, autoFilling, isFormReady, showOverlay, isApiComplete])
 
   useEffect(() => {
     return () => {

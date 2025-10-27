@@ -3,6 +3,7 @@ import React from "react";
 import AnalyticsDashboard from "@/components/report-analytics/analytics";
 import RecentPosts from "@/components/report-analytics/RecentPosts";
 import { useTopPostsInsights } from "@/hooks/useTopPostsInsights";
+import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 
 export default function ReportAnalyticsPage() {
   const [selectedPlatform, setSelectedPlatform] = React.useState("All");
@@ -27,20 +28,22 @@ export default function ReportAnalyticsPage() {
   }, []); // Empty dependency array to run only once on mount
 
   return (
-    <div>
-      <AnalyticsDashboard 
-        selectedPlatform={selectedPlatform} 
-        setSelectedPlatform={setSelectedPlatform} 
-        hasPosts={hasPosts}
-        postsData={postsData}
-        topPostsData={topPostsData}
-        insightsLoading={insightsLoading}
-      />
-      <RecentPosts 
-        selectedPlatform={selectedPlatform} 
-        onPostsChange={setHasPosts}
-        onPostsDataChange={setPostsData}
-      />
-    </div>
+    <ProtectedRoute>
+      <div>
+        <AnalyticsDashboard 
+          selectedPlatform={selectedPlatform} 
+          setSelectedPlatform={setSelectedPlatform} 
+          hasPosts={hasPosts}
+          postsData={postsData}
+          topPostsData={topPostsData}
+          insightsLoading={insightsLoading}
+        />
+        <RecentPosts 
+          selectedPlatform={selectedPlatform} 
+          onPostsChange={setHasPosts}
+          onPostsDataChange={setPostsData}
+        />
+      </div>
+    </ProtectedRoute>
   );
 }
