@@ -772,7 +772,7 @@ class ApiService {
         return response;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to get published posts';
-        this.showNotification(errorMessage, 'error');
+        // Note: Authentication errors are handled by ProtectedRoute, don't show notification here
         return { success: false, message: errorMessage, error: errorMessage };
       }
   }
@@ -792,7 +792,7 @@ class ApiService {
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get top posts insights';
-      this.showNotification(errorMessage, 'error');
+      // Note: Authentication errors are handled by ProtectedRoute, don't show notification here
       return { success: false, message: errorMessage, error: errorMessage };
     }
   }

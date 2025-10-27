@@ -584,7 +584,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       // If avatars are loaded but no user email, form is ready
       setIsFormReady(true)
     }
-  }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings, userSettingsLoaded, watch, fetchCityTrends])
+  }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings, userSettingsLoaded, watch])
 
   // Check if all data is loaded (used for other components)
   // const isDataLoading = avatarsLoading || scheduleLoading || autoFilling || !isFormReady

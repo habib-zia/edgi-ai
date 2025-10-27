@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState } from 'react'
 import { X, AlertCircle } from 'lucide-react'
 import { useScheduleValidation } from '@/hooks/useScheduleValidation'
 import { type ScheduleData } from '@/types/post-types'
@@ -32,9 +32,8 @@ const dayOptions = [
 ]
 
 export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Schedule Post" }: SchedulePostModalProps) {
-  const [frequency, setFrequency] = useState('Twice a Week')
+  const [frequency, setFrequency] = useState('Once a Week')
   const [posts, setPosts] = useState([
-    { day: '', date: '', time: '', _isNextWeek: false },
     { day: '', date: '', time: '', _isNextWeek: false }
   ])
   const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false)
@@ -108,6 +107,22 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
       })
     }
   }, [frequency])
+
+  // Reset form when modal closes after successful scheduling
+  // This ensures form is clean for next use without interfering with current scheduling process
+  React.useEffect(() => {
+    if (!isOpen) {
+      // Reset form state when modal closes (after successful scheduling or manual close)
+      setFrequency('Once a Week')
+      // Set posts array to match the default frequency (Once a Week = 1 post)
+      setPosts([
+        { day: '', date: '', time: '', _isNextWeek: false }
+      ])
+      setShowFrequencyDropdown(false)
+      setIsSubmitting(false)
+      clearValidationErrors()
+    }
+  }, [isOpen, clearValidationErrors])
 
   const handlePostChange = (index: number, field: 'day' | 'date' | 'time', value: string) => {
     const newPosts = [...posts]
@@ -206,14 +221,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
   }
 
   const handleClose = () => {
-    setFrequency('Once a Week')
-    setPosts([
-      { day: '', date: '', time: '', _isNextWeek: false },
-      { day: '', date: '', time: '', _isNextWeek: false }
-    ])
-    setShowFrequencyDropdown(false)
-    setIsSubmitting(false)
-    clearValidationErrors()
+    // Form reset is now handled by useEffect when isOpen becomes false
     onClose()
   }
 
@@ -237,7 +245,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     
     try {
       await onNext(scheduleData)
-    } catch (error) {
+    } catch {
+      // Error handling is done by parent component
     } finally {
       setIsSubmitting(false)
     }

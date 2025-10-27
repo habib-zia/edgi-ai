@@ -117,7 +117,7 @@ export default function VideoStatusNotification({
 
   return (
     <div className={`fixed top-24 right-4 z-10 max-w-xs w-full ${className}`}>
-      <div className={`border rounded-lg shadow-lg p-4 transition-all duration-300 ${getStatusColor(latestUpdate.status)}`}>
+      <div className={`border rounded-lg shadow-lg p-4 transition-all duration-300 ${getStatusColor(latestUpdate.status)} ${getStatusColor(latestUpdate.status) === 'border-yellow-200/60 bg-yellow-50/70 backdrop-blur-sm' ? 'hidden' : 'block'}`}>
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">

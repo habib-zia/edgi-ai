@@ -1,14 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAppDispatch } from '@/store/hooks'
 import { clearUser } from '@/store/slices/userSlice'
-import { useNotificationStore } from '@/components/ui/global-notification'
 import { isTokenExpired } from '@/lib/jwt-client'
+import { useNotificationStore } from '@/components/ui/global-notification'
 
 export function useAuthErrorHandler() {
-  const router = useRouter()
   const dispatch = useAppDispatch()
   const { showNotification } = useNotificationStore()
 
@@ -35,11 +33,23 @@ export function useAuthErrorHandler() {
             if (shouldLogout) {
               console.log('🔐 Auth Error Handler: Token expired or invalid, logging out user')
               dispatch(clearUser())
-              showNotification('Token expired. Please login again.', 'error')
-              router.push('/')
+              
+              // Check if we're on a protected page - if so, don't show toast (ProtectedRoute will handle it)
+              const currentPath = window.location.pathname
+              const isProtectedPage = currentPath.includes('/create-video') || 
+                                   currentPath.includes('/account') || 
+                                   currentPath.includes('/gallery') || 
+                                   currentPath.includes('/report-analytics') || 
+                                   currentPath.includes('/scheduled-post')
+              
+              if (!isProtectedPage) {
+                // Only show toast for API calls on non-protected pages
+                showNotification('Unauthorized access', 'error')
+              }
+              
               return new Response(JSON.stringify({ 
                 success: false, 
-                message: 'Token expired. Please login again.' 
+                message: 'Authentication failed' 
               }), {
                 status: 401,
                 headers: { 'Content-Type': 'application/json' }
@@ -70,5 +80,5 @@ export function useAuthErrorHandler() {
     return () => {
       window.fetch = originalFetch
     }
-  }, [dispatch, router, showNotification])
+  }, [dispatch, showNotification])
 }
