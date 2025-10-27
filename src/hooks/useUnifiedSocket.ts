@@ -23,18 +23,34 @@ export interface AvatarStatusUpdate {
   timestamp: string
 }
 
+export interface VideoAvatarStatusUpdate {
+  step: string
+  status: 'progress' | 'completed' | 'error'
+  data?: {
+    message: string
+    error?: string
+    avatarId?: string
+    progress?: number
+  }
+  timestamp: string
+}
+
 export interface UnifiedSocketState {
   socket: Socket | null
   isConnected: boolean
   videoUpdates: VideoStatusUpdate[]
   avatarUpdates: AvatarStatusUpdate[]
+  videoAvatarUpdates: VideoAvatarStatusUpdate[]
   latestVideoUpdate: VideoStatusUpdate | null
   latestAvatarUpdate: AvatarStatusUpdate | null
+  latestVideoAvatarUpdate: VideoAvatarStatusUpdate | null
   isVideoProcessing: boolean
   isAvatarProcessing: boolean
+  isVideoAvatarProcessing: boolean
   clearVideoUpdates: () => void
   clearCompletedVideoUpdates: () => void
   clearAvatarUpdates: () => void
+  clearVideoAvatarUpdates: () => void
   checkPendingWorkflows: (userId: string) => Promise<void>
 }
 
@@ -43,6 +59,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   const [isConnected, setIsConnected] = useState(false)
   const [videoUpdates, setVideoUpdates] = useState<VideoStatusUpdate[]>([])
   const [avatarUpdates, setAvatarUpdates] = useState<AvatarStatusUpdate[]>([])
+  const [videoAvatarUpdates, setVideoAvatarUpdates] = useState<VideoAvatarStatusUpdate[]>([])
   
   // Track processed events to prevent duplicates
   const processedEvents = useRef(new Set<string>())
@@ -62,6 +79,10 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
     setAvatarUpdates([])
   }, [])
 
+  const clearVideoAvatarUpdates = useCallback(() => {
+    setVideoAvatarUpdates([])
+  }, [])
+
   const checkPendingWorkflows = useCallback(async (userId: string) => {
     try {
       console.log('🔍 Checking pending workflows for user:', userId)
@@ -74,6 +95,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   // Get latest updates
   const latestVideoUpdate = videoUpdates.length > 0 ? videoUpdates[videoUpdates.length - 1] : null
   const latestAvatarUpdate = avatarUpdates.length > 0 ? avatarUpdates[avatarUpdates.length - 1] : null
+  const latestVideoAvatarUpdate = videoAvatarUpdates.length > 0 ? videoAvatarUpdates[videoAvatarUpdates.length - 1] : null
 
   // Check processing states
   const isVideoProcessing = videoUpdates.some(update => 
@@ -81,6 +103,9 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   )
   const isAvatarProcessing = avatarUpdates.some(update => 
     update.status === 'progress' && update.step !== 'ready'
+  )
+  const isVideoAvatarProcessing = videoAvatarUpdates.some(update => 
+    update.status === 'progress'
   )
 
   useEffect(() => {
@@ -93,6 +118,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       }
       setVideoUpdates([])
       setAvatarUpdates([])
+      setVideoAvatarUpdates([])
       processedEvents.current.clear()
       socketConnectedHandlers.current.clear()
       console.log('🧹 User logged out - cleared all socket data')
@@ -246,6 +272,29 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       setAvatarUpdates(prev => [...prev, completionUpdate])
     })
 
+    // Video Avatar status updates
+    newSocket.on('video-avatar-update', (update: VideoAvatarStatusUpdate) => {
+      console.log('🎬 Video Avatar update received:', update)
+      
+      const eventKey = `video-avatar-${update.step}-${update.timestamp}`
+      
+      if (processedEvents.current.has(eventKey)) {
+        console.log('🎬 Duplicate video avatar event ignored:', eventKey)
+        return
+      }
+      
+      processedEvents.current.add(eventKey)
+      setVideoAvatarUpdates(prev => [...prev, update])
+      
+      // Auto-disconnect on completion or error as requested
+      if (update.status === 'completed' || update.status === 'error') {
+        console.log('🎬 Video avatar process finished, disconnecting socket')
+        setTimeout(() => {
+          newSocket.disconnect()
+        }, 1000) // Small delay to ensure final update is processed
+      }
+    })
+
     setSocket(newSocket)
 
     // Store references for cleanup
@@ -279,13 +328,17 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
     isConnected,
     videoUpdates,
     avatarUpdates,
+    videoAvatarUpdates,
     latestVideoUpdate,
     latestAvatarUpdate,
+    latestVideoAvatarUpdate,
     isVideoProcessing,
     isAvatarProcessing,
+    isVideoAvatarProcessing,
     clearVideoUpdates,
     clearCompletedVideoUpdates,
     clearAvatarUpdates,
+    clearVideoAvatarUpdates,
     checkPendingWorkflows
   }
 }

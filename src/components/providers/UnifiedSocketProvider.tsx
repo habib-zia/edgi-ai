@@ -6,6 +6,7 @@ import { RootState } from '@/store'
 import { useUnifiedSocket, UnifiedSocketState } from '@/hooks/useUnifiedSocket'
 import VideoStatusNotification from '@/components/ui/video-status-notification'
 import AvatarStatusNotification from '@/components/ui/avatar-status-notification'
+import VideoAvatarStatusNotification from '@/components/ui/video-avatar-status-notification'
 
 const UnifiedSocketContext = createContext<UnifiedSocketState | null>(null)
 
@@ -31,6 +32,11 @@ export function UnifiedSocketProvider({ children }: UnifiedSocketProviderProps) 
         updates={socketState.avatarUpdates}
         isConnected={socketState.isConnected}
         onClear={socketState.clearAvatarUpdates}
+      />
+      <VideoAvatarStatusNotification
+        updates={socketState.videoAvatarUpdates}
+        isConnected={socketState.isConnected}
+        onClear={socketState.clearVideoAvatarUpdates}
       />
     </UnifiedSocketContext.Provider>
   )
