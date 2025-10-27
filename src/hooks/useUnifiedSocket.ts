@@ -35,22 +35,38 @@ export interface VideoAvatarStatusUpdate {
   timestamp: string
 }
 
+export interface ScheduleStatusUpdate {
+  scheduleId: string
+  status: 'processing' | 'ready' | 'failed'
+  message: string
+  data?: {
+    scheduleId?: string
+    error?: string
+    generationTime?: number
+  }
+  timestamp: string
+}
+
 export interface UnifiedSocketState {
   socket: Socket | null
   isConnected: boolean
   videoUpdates: VideoStatusUpdate[]
   avatarUpdates: AvatarStatusUpdate[]
   videoAvatarUpdates: VideoAvatarStatusUpdate[]
+  scheduleUpdates: ScheduleStatusUpdate[]
   latestVideoUpdate: VideoStatusUpdate | null
   latestAvatarUpdate: AvatarStatusUpdate | null
   latestVideoAvatarUpdate: VideoAvatarStatusUpdate | null
+  latestScheduleUpdate: ScheduleStatusUpdate | null
   isVideoProcessing: boolean
   isAvatarProcessing: boolean
   isVideoAvatarProcessing: boolean
+  isScheduleProcessing: boolean
   clearVideoUpdates: () => void
   clearCompletedVideoUpdates: () => void
   clearAvatarUpdates: () => void
   clearVideoAvatarUpdates: () => void
+  clearScheduleUpdates: () => void
   checkPendingWorkflows: (userId: string) => Promise<void>
 }
 
@@ -60,6 +76,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   const [videoUpdates, setVideoUpdates] = useState<VideoStatusUpdate[]>([])
   const [avatarUpdates, setAvatarUpdates] = useState<AvatarStatusUpdate[]>([])
   const [videoAvatarUpdates, setVideoAvatarUpdates] = useState<VideoAvatarStatusUpdate[]>([])
+  const [scheduleUpdates, setScheduleUpdates] = useState<ScheduleStatusUpdate[]>([])
   
   // Track processed events to prevent duplicates
   const processedEvents = useRef(new Set<string>())
@@ -83,6 +100,10 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
     setVideoAvatarUpdates([])
   }, [])
 
+  const clearScheduleUpdates = useCallback(() => {
+    setScheduleUpdates([])
+  }, [])
+
   const checkPendingWorkflows = useCallback(async (userId: string) => {
     try {
       console.log('🔍 Checking pending workflows for user:', userId)
@@ -96,6 +117,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   const latestVideoUpdate = videoUpdates.length > 0 ? videoUpdates[videoUpdates.length - 1] : null
   const latestAvatarUpdate = avatarUpdates.length > 0 ? avatarUpdates[avatarUpdates.length - 1] : null
   const latestVideoAvatarUpdate = videoAvatarUpdates.length > 0 ? videoAvatarUpdates[videoAvatarUpdates.length - 1] : null
+  const latestScheduleUpdate = scheduleUpdates.length > 0 ? scheduleUpdates[scheduleUpdates.length - 1] : null
 
   // Check processing states
   const isVideoProcessing = videoUpdates.some(update => 
@@ -106,6 +128,9 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   )
   const isVideoAvatarProcessing = videoAvatarUpdates.some(update => 
     update.status === 'progress'
+  )
+  const isScheduleProcessing = scheduleUpdates.some(update => 
+    update.status === 'processing'
   )
 
   useEffect(() => {
@@ -119,6 +144,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       setVideoUpdates([])
       setAvatarUpdates([])
       setVideoAvatarUpdates([])
+      setScheduleUpdates([])
       processedEvents.current.clear()
       socketConnectedHandlers.current.clear()
       console.log('🧹 User logged out - cleared all socket data')
@@ -295,6 +321,43 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       }
     })
 
+    // Schedule status updates
+    newSocket.on('schedule-status', (data: any) => {
+      console.log('📅 Schedule status update received:', data)
+      
+      const eventKey = `schedule-status-${data.scheduleId || 'unknown'}-${data.timestamp || Date.now()}`
+      
+      if (processedEvents.current.has(eventKey)) {
+        console.log('📅 Duplicate schedule status event ignored:', eventKey)
+        return
+      }
+      
+      processedEvents.current.add(eventKey)
+        console.log('data', data)
+      const scheduleUpdate: ScheduleStatusUpdate = {
+        scheduleId: data.data.scheduleId || 'unknown',
+        status: data.status === 'ready' ? 'ready' : data.status === 'failed' ? 'failed' : 'processing',
+        message: data.message || (data.status === 'ready' ? 'Your schedule is ready!' : data.status === 'failed' ? 'Schedule generation failed. Please try again.' : 'Schedule generation started.'),
+        data: {
+          scheduleId: data.data.scheduleId,
+          error: data.error,
+          generationTime: data.generationTime
+        },
+        timestamp: data.timestamp || new Date().toISOString()
+      }
+      
+      console.log('📅 Processed schedule status update:', scheduleUpdate)
+      setScheduleUpdates(prev => [...prev, scheduleUpdate])
+      
+      // Auto-disconnect on completion or failure as requested
+      if (data.status === 'ready' || data.status === 'failed') {
+        console.log('📅 Schedule generation finished, disconnecting socket')
+        setTimeout(() => {
+          newSocket.disconnect()
+        }, 1000) // Small delay to ensure final update is processed
+      }
+    })
+
     setSocket(newSocket)
 
     // Store references for cleanup
@@ -329,16 +392,20 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
     videoUpdates,
     avatarUpdates,
     videoAvatarUpdates,
+    scheduleUpdates,
     latestVideoUpdate,
     latestAvatarUpdate,
     latestVideoAvatarUpdate,
+    latestScheduleUpdate,
     isVideoProcessing,
     isAvatarProcessing,
     isVideoAvatarProcessing,
+    isScheduleProcessing,
     clearVideoUpdates,
     clearCompletedVideoUpdates,
     clearAvatarUpdates,
     clearVideoAvatarUpdates,
+    clearScheduleUpdates,
     checkPendingWorkflows
   }
 }

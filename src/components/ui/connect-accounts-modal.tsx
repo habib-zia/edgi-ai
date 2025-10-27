@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, ExternalLink, CheckCircle } from 'lucide-react'
 import { useSocialAccounts } from '@/hooks/useSocialAccounts'
 import { getAccountTypeIcon } from '@/utils/socialMediaIcons'
 import { ConnectedAccount, VideoData } from '@/types/post-types'
 import { API_CONFIG, getApiUrl, getAuthenticatedHeaders } from '@/lib/config'
 import ConnectWarningModal from './connect-warning-modal'
+import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
 
 interface ConnectAccountsModalProps {
   isOpen: boolean
@@ -35,6 +36,31 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
     isPlatformConnected,
     getConnectedAccount
   } = useSocialAccounts()
+
+  const { socket } = useUnifiedSocketContext()
+
+  // Listen for schedule status updates
+  useEffect(() => {
+    if (socket) {
+      const handleScheduleStatus = (data: any) => {
+        console.log('📅 Schedule status update received:', data)
+        
+        if (data.status === 'ready') {
+          console.log('📅 Schedule is ready! Calling onScheduleCreated')
+          // Call the callback to refresh schedule data
+          if (onScheduleCreated) {
+            onScheduleCreated()
+          }
+        }
+      }
+
+      socket.on('schedule-status', handleScheduleStatus)
+
+      return () => {
+        socket.off('schedule-status', handleScheduleStatus)
+      }
+    }
+  }, [socket, onScheduleCreated])
 
 
 
@@ -115,23 +141,32 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
           setApiResponse(responseData)
           
           if (responseData.success) {
-            console.log('Schedule created successfully:', responseData)
+            console.log('Schedule creation initiated:', responseData)
             
+            // Check if it's async generation
+            if (responseData.data?.generation_status === 'processing') {
+              // Emit socket event for processing status
+              if (socket) {
+                socket.emit('schedule-status', {
+                  scheduleId: responseData.data.scheduleId || responseData.data.id,
+                  status: 'processing',
+                  message: 'Your video schedule is being generated. This may take 2-3 minutes.',
+                  timestamp: new Date().toISOString()
+                })
+              }
+            }
+            
+            // Show success notification
             if ((window as any).showNotification) {
               (window as any).showNotification({
                 type: 'success',
-                title: 'Schedule Created Successfully',
-                message: 'Your video schedule has been created successfully!',
+                title: 'Schedule Creation Started',
+                message: 'Your video schedule is being generated. You will receive a notification when ready!',
                 duration: 5000
               })
             }
             
-            // Call the callback to refresh schedule data
-            if (onScheduleCreated) {
-              onScheduleCreated()
-            }
-            
-            // Close modal after successful schedule creation
+            // Close modal immediately after API response
             onClose()
           } else {
             console.error('Schedule API Error:', responseData)
