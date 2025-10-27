@@ -222,7 +222,7 @@ export default function VideoAvatarStep5({ onBack, avatarData, setAvatarData, on
           // Start polling for avatar status
           console.log('🔄 Starting status polling...')
           setIsGenerating(true)
-          setGenerationStatus('Avatar generation started...')
+          setGenerationStatus('Avatar generation started... This process may take 5-10 minutes. Please keep this page open.')
           
           const statusResult = await apiService.pollVideoAvatarStatus(
             avatarId,

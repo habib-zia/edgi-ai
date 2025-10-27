@@ -851,24 +851,13 @@ class ApiService {
     }
   }
 
-  // Helper function to convert File to URL for HeyGen API
-  private async fileToUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        resolve(reader.result as string);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
   async createVideoAvatar(
     trainingVideoFile: File, 
     consentVideoFile: File, 
     avatarName: string
   ): Promise<ApiResponse<CreateVideoAvatarResponse>> {
     try {
+      console.log('🎬 Starting video avatar creation process...')
 
       // Create FormData for multipart/form-data request
       const formData = new FormData();
@@ -940,11 +929,14 @@ class ApiService {
       }
 
       const result = await response.json();
-      console.log('✅ Video avatar created successfully:', result);
-      this.showNotification('Video avatar created successfully', 'success');
+      console.log('✅ Video avatar creation initiated successfully:', result);
+      
+      // Show initial success notification
+      this.showNotification('Video avatar creation started! You will receive real-time updates.', 'success');
+      
       return {
         success: true,
-        message: 'Video avatar created successfully',
+        message: 'Video avatar creation started successfully',
         data: result
       };
     } catch (error) {
