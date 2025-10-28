@@ -210,11 +210,11 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
             <button
               onClick={() => {
                 // Navigate to avatar management or creation page
-                window.location.href = '/create-video'
+                window.location.href = '/create-video/new'
               }}
               className="px-6 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
             >
-              Create Another Avatar
+              Create Video
             </button>
           </div>
         </div>

@@ -177,21 +177,21 @@ export default function VideoAvatarStatusNotification({
               {isConnected ? 'Connected' : 'Disconnected'}
             </span>
           </div>
-
+          {latestUpdate.data.avatar_name && <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+                <span className="text-gray-700"><strong>Avatar Name:</strong> {getStepText(latestUpdate.data.avatar_name)}</span>
+              {progress > 0 && (
+                <span className="text-gray-500">{progress}%</span>
+              )}
+            </div>
+          </div>}
           {latestUpdate.status === 'progress' && (
             <div className="mt-3 text-sm text-gray-600">
               Video avatar is in progress might take 4-10 min!
             </div>
           )}
 
-          {latestUpdate.data.avatar_name && <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-700">{getStepText(latestUpdate.data.avatar_name)}</span>
-              {progress > 0 && (
-                <span className="text-gray-500">{progress}%</span>
-              )}
-            </div>
-          </div>}
+          
 
           {latestUpdate.data?.message && (
             <div className="mt-3 text-sm text-gray-600">
