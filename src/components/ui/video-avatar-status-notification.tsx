@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, X, AlertCircle, Clock, Video } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, Video } from 'lucide-react'
 import { VideoAvatarStatusUpdate } from '@/hooks/useUnifiedSocket'
 import AvatarCompletionModal from './avatar-creation/AvatarCompletionModal'
 

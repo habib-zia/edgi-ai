@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Play, Pause, Volume2, VolumeX, Download, Share } from 'lucide-react'
+import { X, Play, Pause, Volume2, VolumeX, Download } from 'lucide-react'
 
 interface AvatarCompletionData {
   avatarId: string
@@ -86,24 +86,6 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
     }
   }
 
-  const handleShare = async () => {
-    if (navigator.share && avatarData?.previewVideoUrl) {
-      try {
-        await navigator.share({
-          title: `${avatarData.avatarName} - Digital Avatar`,
-          text: `Check out my new digital avatar: ${avatarData.avatarName}`,
-          url: avatarData.previewVideoUrl
-        })
-      } catch (error) {
-        console.log('Error sharing:', error)
-        // Fallback to copying URL
-        navigator.clipboard.writeText(avatarData.previewVideoUrl)
-      }
-    } else if (avatarData?.previewVideoUrl) {
-      // Fallback to copying URL
-      navigator.clipboard.writeText(avatarData.previewVideoUrl)
-    }
-  }
 
   if (!isOpen || !avatarData) {
     return null
@@ -119,7 +101,7 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
               Avatar Created Successfully! 🎉
             </h2>
             <p className="text-[16px] text-[#5F5F5F] mt-2">
-              Your digital avatar "{avatarData.avatarName}" is ready
+              Your digital avatar &quot;{avatarData.avatarName}&quot; is ready
             </p>
           </div>
           <button
@@ -235,7 +217,7 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
 
               {/* Next Steps */}
               <div>
-                <h3 className="text-[20px] font-semibold text-[#101010] mb-4">What's Next?</h3>
+                <h3 className="text-[20px] font-semibold text-[#101010] mb-4">What&apos;s Next?</h3>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-[#5046E5] rounded-full flex items-center justify-center text-white text-sm font-bold">1</div>
