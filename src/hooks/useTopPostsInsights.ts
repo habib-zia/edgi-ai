@@ -37,7 +37,11 @@ export const useTopPostsInsights = (): UseTopPostsInsightsReturn => {
       } else {
         setError(response.message || 'Failed to fetch top posts insights');
       }
-    } catch (err) {
+    } catch (err:any) {
+      console.log(err)
+      if(err.status === 401) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch top posts insights';
       setError(errorMessage);
     } finally {

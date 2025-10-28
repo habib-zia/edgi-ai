@@ -230,7 +230,14 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
 
   // Dynamic modal sizing based on current step
   const getModalDimensions = () => {
-    if (selectedAvatarType == 'digital-twin' && (currentStep == 3 || currentStep == 4 || currentStep == 5)) {
+    if (selectedAvatarType == 'digital-twin' && currentStep == 3) {
+      return {
+        maxWidth: 'max-w-[1400px]',
+        maxHeight: 'max-h-[900px]',
+        padding: ''
+      }
+    }
+    if (selectedAvatarType == 'digital-twin' && (currentStep == 4 || currentStep == 5)) {
       return {
         maxWidth: isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[900px]',
         maxHeight: 'max-h-[650px]',

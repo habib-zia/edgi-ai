@@ -24,6 +24,8 @@ export interface AvatarStatusUpdate {
 }
 
 export interface VideoAvatarStatusUpdate {
+  notificationId: string
+  avatarId: string
   step: string
   status: 'progress' | 'completed' | 'error'
   data?: {
@@ -31,6 +33,10 @@ export interface VideoAvatarStatusUpdate {
     error?: string
     avatarId?: string
     progress?: number
+    avatar_name?: string
+    preview_image_url?: string
+    preview_video_url?: string
+    default_voice_id?: string
   }
   timestamp: string
 }
