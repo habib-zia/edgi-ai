@@ -592,7 +592,6 @@ class ApiService {
       }
 
       const data = await response.json();
-      console.log('Schedule API Response:', JSON?.stringify(data))
       return data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get schedule data';
@@ -657,7 +656,6 @@ class ApiService {
       const response = await this.request<any>(`${API_CONFIG.ENDPOINTS.VIDEO_SCHEDULE.DELETE}/${scheduleId}`, {
         method: 'DELETE',
       }, true);
-      console.log('Delete Schedule API Response:', JSON?.stringify(response))
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete schedule';

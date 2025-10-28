@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { X, AlertCircle } from 'lucide-react'
 import { useScheduleValidation } from '@/hooks/useScheduleValidation'
 import { type ScheduleData } from '@/types/post-types'
@@ -32,8 +32,9 @@ const dayOptions = [
 ]
 
 export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Schedule Post" }: SchedulePostModalProps) {
-  const [frequency, setFrequency] = useState('Once a Week')
+  const [frequency, setFrequency] = useState('Twice a Week')
   const [posts, setPosts] = useState([
+    { day: '', date: '', time: '', _isNextWeek: false },
     { day: '', date: '', time: '', _isNextWeek: false }
   ])
   const [showFrequencyDropdown, setShowFrequencyDropdown] = useState(false)
@@ -108,22 +109,6 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     }
   }, [frequency])
 
-  // Reset form when modal closes after successful scheduling
-  // This ensures form is clean for next use without interfering with current scheduling process
-  React.useEffect(() => {
-    if (!isOpen) {
-      // Reset form state when modal closes (after successful scheduling or manual close)
-      setFrequency('Once a Week')
-      // Set posts array to match the default frequency (Once a Week = 1 post)
-      setPosts([
-        { day: '', date: '', time: '', _isNextWeek: false }
-      ])
-      setShowFrequencyDropdown(false)
-      setIsSubmitting(false)
-      clearValidationErrors()
-    }
-  }, [isOpen, clearValidationErrors])
-
   const handlePostChange = (index: number, field: 'day' | 'date' | 'time', value: string) => {
     const newPosts = [...posts]
     newPosts[index][field] = value
@@ -136,7 +121,9 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         const targetDay = dayIndex === 6 ? 0 : dayIndex + 1
         
         let daysUntilTarget = targetDay - currentDay
-        if (daysUntilTarget < 0) {
+        
+        // If the selected day is today or in the past, schedule for next week
+        if (daysUntilTarget <= 0) {
           daysUntilTarget += 7
         }
         
@@ -145,7 +132,10 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
         
         newPosts[index].date = targetDate.toISOString().split('T')[0]
         
-        newPosts[index]._isNextWeek = false
+        // Check if this is next week (more than 7 days from today)
+        const daysDifference = Math.floor((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        newPosts[index]._isNextWeek = daysDifference > 7
+        
         if (newPosts[index].time) {
           const selectedDay = newPosts[index].day
           const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1]
@@ -198,12 +188,19 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
             const currentDay = today.getDay()
             const targetDay = dayIndex === 6 ? 0 : dayIndex + 1
             let daysUntilTarget = targetDay - currentDay
-            if (daysUntilTarget < 0) {
+            
+            // If the selected day is today or in the past, schedule for next week
+            if (daysUntilTarget <= 0) {
               daysUntilTarget += 7
             }
+            
             const targetDate = new Date(today)
             targetDate.setDate(today.getDate() + daysUntilTarget)
             newPosts[idx].date = targetDate.toISOString().split('T')[0]
+            
+            // Check if this is next week (more than 7 days from today)
+            const daysDifference = Math.floor((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+            newPosts[idx]._isNextWeek = daysDifference > 7
           }
         }
       })
@@ -221,7 +218,14 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
   }
 
   const handleClose = () => {
-    // Form reset is now handled by useEffect when isOpen becomes false
+    setFrequency('Once a Week')
+    setPosts([
+      { day: '', date: '', time: '', _isNextWeek: false },
+      { day: '', date: '', time: '', _isNextWeek: false }
+    ])
+    setShowFrequencyDropdown(false)
+    setIsSubmitting(false)
+    clearValidationErrors()
     onClose()
   }
 
@@ -245,8 +249,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
     
     try {
       await onNext(scheduleData)
-    } catch {
-      // Error handling is done by parent component
+    } catch (error) {
     } finally {
       setIsSubmitting(false)
     }
