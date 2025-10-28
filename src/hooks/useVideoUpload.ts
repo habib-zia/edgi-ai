@@ -148,7 +148,10 @@ export const useVideoUpload = () => {
 
     const files = e.dataTransfer.files;
     if (files && files[0]) {
+      console.log('📁 File selected from drop:', files[0]);
       handleFileSelect(files[0], type);
+    } else {
+      console.log('❌ No files in drop event');
     }
   };
 

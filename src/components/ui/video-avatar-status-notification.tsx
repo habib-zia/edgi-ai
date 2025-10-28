@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, X, AlertCircle, Clock, Video } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, Video } from 'lucide-react'
 import { VideoAvatarStatusUpdate } from '@/hooks/useUnifiedSocket'
+import AvatarCompletionModal from './avatar-creation/AvatarCompletionModal'
 
 interface VideoAvatarStatusNotificationProps {
   updates: VideoAvatarStatusUpdate[]
@@ -20,6 +21,8 @@ export default function VideoAvatarStatusNotification({
   
   const [isVisible, setIsVisible] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [completionData, setCompletionData] = useState<any>(null)
 
   // Show notification when we have updates
   useEffect(() => {
@@ -27,10 +30,32 @@ export default function VideoAvatarStatusNotification({
       setIsVisible(true)
       const latest = updates[updates.length - 1]
       
+      // Show completion modal when status is completed
+      if (latest.status === 'completed') {
+        setCompletionData({
+          avatarId: latest.avatarId,
+          avatarName: latest.data?.avatar_name || 'Digital Avatar',
+          previewImageUrl: latest.data?.preview_image_url || '',
+          previewVideoUrl: latest.data?.preview_video_url || '',
+          message: latest.data?.message || 'Avatar creation completed successfully!'
+        })
+        setShowCompletionModal(true)
+        
+        // Auto-close notification after showing modal
+        const timer = setTimeout(() => {
+          onClear()
+          setIsVisible(false)
+        }, 5000)
+        
+        return () => {
+          clearTimeout(timer)
+        }
+      }
+      
       // Auto-close notification based on status
-      if (latest.status === 'completed' || latest.status === 'error') {
-        const timeout = latest.status === 'error' ? 60000 : 30000 // 60s for errors, 30s for success
-        const countdown = latest.status === 'error' ? 60 : 30
+      if (latest.status === 'error') {
+        const timeout = 60000 // 60s for errors
+        const countdown = 60
         
         setTimeRemaining(countdown)
         
@@ -120,83 +145,99 @@ export default function VideoAvatarStatusNotification({
   }
 
   if (!isVisible || updates.length === 0) {
-    return null
+    return (
+      <>
+        {/* Completion Modal - can show even when notification is hidden */}
+        <AvatarCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => {
+            setShowCompletionModal(false)
+            setCompletionData(null)
+          }}
+          avatarData={completionData}
+        />
+      </>
+    )
   }
 
-  const latestUpdate = updates[updates.length - 1]
+  const latestUpdate: any = updates[updates.length - 1]
   const progress = latestUpdate.data?.progress || 0
 
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-sm ${className}`}>
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            {getStatusIcon(latestUpdate.status)}
-            <h3 className="font-semibold text-gray-900">Video Avatar</h3>
-            <div className={`text-sm font-medium ${getStatusColor(latestUpdate.status)}`}>
-              {getStatusText(latestUpdate.status)}
+    <>
+      {/* Toast Notification */}
+      <div className={`fixed top-4 right-4 z-50 max-w-sm ${className}`}>
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              {getStatusIcon(latestUpdate.status)}
+              <h3 className="font-semibold text-gray-900">Video Avatar</h3>
+              <div className={`text-sm font-medium ${getStatusColor(latestUpdate.status)}`}>
+                {getStatusText(latestUpdate.status)}
+              </div>
             </div>
           </div>
-          <button
-            onClick={() => {
-              onClear()
-              setIsVisible(false)
-            }}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+
+          {/* Connection Status */}
+          <div className="flex items-center space-x-2 mb-3">
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-xs text-gray-600">
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+
+          {/* Progress */}
+          {latestUpdate.data.avatar_name && <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-700">{getStepText(latestUpdate.data.avatar_name)}</span>
+              {progress > 0 && (
+                <span className="text-gray-500">{progress}%</span>
+              )}
+            </div>
+          </div>}
+
+          {/* Message */}
+          {latestUpdate.data?.message && (
+            <div className="mt-3 text-sm text-gray-600">
+              {latestUpdate.data.message}
+            </div>
+          )}
+
+          {/* Error Details */}
+          {latestUpdate.status === 'error' && latestUpdate.data?.error && (
+            <div className="mt-3 p-2 bg-red-50 rounded text-sm text-red-700">
+              {latestUpdate.data.error}
+            </div>
+          )}
+
+          {/* Countdown Timer */}
+          {timeRemaining !== null && (
+            <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+              <span>Auto-dismiss in {timeRemaining}s</span>
+              <button
+                onClick={() => {
+                  onClear()
+                  setIsVisible(false)
+                }}
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Dismiss now
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* Connection Status */}
-        <div className="flex items-center space-x-2 mb-3">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-xs text-gray-600">
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-        </div>
-
-        {/* Progress */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-700">{getStepText(latestUpdate.step)}</span>
-            {progress > 0 && (
-              <span className="text-gray-500">{progress}%</span>
-            )}
-          </div>
-        </div>
-
-        {/* Message */}
-        {latestUpdate.data?.message && (
-          <div className="mt-3 text-sm text-gray-600">
-            {latestUpdate.data.message}
-          </div>
-        )}
-
-        {/* Error Details */}
-        {latestUpdate.status === 'error' && latestUpdate.data?.error && (
-          <div className="mt-3 p-2 bg-red-50 rounded text-sm text-red-700">
-            {latestUpdate.data.error}
-          </div>
-        )}
-
-        {/* Countdown Timer */}
-        {timeRemaining !== null && (
-          <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-            <span>Auto-dismiss in {timeRemaining}s</span>
-            <button
-              onClick={() => {
-                onClear()
-                setIsVisible(false)
-              }}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Dismiss now
-            </button>
-          </div>
-        )}
       </div>
-    </div>
+
+      {/* Completion Modal */}
+      <AvatarCompletionModal
+        isOpen={showCompletionModal}
+        onClose={() => {
+          setShowCompletionModal(false)
+          setCompletionData(null)
+        }}
+        avatarData={completionData}
+      />
+    </>
   )
 }

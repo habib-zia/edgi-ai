@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Pause, Volume2, VolumeX, ArrowRight, CheckCircle } from 'lucide-react'
+import { Play, Pause, Volume2, VolumeX, ArrowRight, CheckCircle, Mic, Camera, Grid3X3, Hand } from 'lucide-react'
+import VideoCard from './VideoCard'
 
 interface DigitalTwinGuidelinesProps {
   onNext: () => void
@@ -22,14 +23,43 @@ export default function DigitalTwinGuidelines({ onNext, onBack }: DigitalTwinGui
     2: { isPlaying: false, isMuted: false, currentTime: 0, duration: 0 }
   })
 
+  const guidelines = [
+    {
+      icon: Mic,
+      title: "Use the right equipment",
+      description: "Submit 2-5 min of unedited footage with a professional camera or smartphone."
+    },
+    {
+      icon: Camera,
+      title: "Set the right environment",
+      description: "Look straight ahead and keep your head level"
+    },
+    {
+      icon: Mic,
+      title: "Speak naturally and clearly",
+      description: "Maintain a steady pace, pausing 1-2 seconds between sentences with lips closed."
+    },
+    {
+      icon: Grid3X3,
+      title: "Subtle movement, clear expression",
+      description: "Sit, stand, or walk with subtle hand movements kept below the chest. Vary facial expressions and look into the camera."
+    },
+    {
+      icon: Hand,
+      title: "Want large or distinct gesture?",
+      description: "You can include these after 30 seconds, spaced at least 2 seconds apart. They'll be excluded from your avatar's default behavior and only used when triggered."
+    }
+  ]
+
   const guidelineVideos = [
     {
       id: 1,
       title: "Avatar Training Video",
       description: "",
-      videoUrl: "/videos/guidelines/recording-guide.mov",
-      thumbnail: "/videos/guidelines/recording-guide.mov",
-      duration: ""
+      videoUrl: "/videos/guidelines/heygen_lifestyle_instruction_rebrand.mp4",
+      thumbnail: "/videos/guidelines/heygen_lifestyle_instruction_rebrand.mp4",
+      duration: "",
+      progress: 45
     },
     {
       id: 2,
@@ -37,7 +67,8 @@ export default function DigitalTwinGuidelines({ onNext, onBack }: DigitalTwinGui
       description: "",
       videoUrl: "/videos/guidelines/lighting-guide.mov",
       thumbnail: "/videos/guidelines/lighting-guide.mov",
-      duration: ""
+      duration: "",
+      progress: 45
     }
   ]
 
@@ -63,13 +94,28 @@ export default function DigitalTwinGuidelines({ onNext, onBack }: DigitalTwinGui
     }
   }
 
+  const handleVideoLoadedMetadata = (videoId: number, duration: number) => {
+    setVideoStates(prev => ({
+      ...prev,
+      [videoId]: { ...prev[videoId], duration }
+    }))
+  }
+
+  const handleVideoPlayStateChange = (videoId: number, isPlaying: boolean) => {
+    setVideoStates(prev => ({
+      ...prev,
+      [videoId]: { ...prev[videoId], isPlaying }
+    }))
+  }
+
   const handleVideoTimeUpdate = (videoId: number, currentTime: number, duration: number) => {
     setVideoStates(prev => ({
       ...prev,
       [videoId]: { ...prev[videoId], currentTime, duration }
     }))
 
-    if (currentTime / duration >= 0.8) {
+    // Mark video as watched when 90% complete
+    if (currentTime / duration >= 0.9) {
       setWatchedVideos(prev => new Set([...prev, videoId]))
     }
   }
@@ -83,162 +129,73 @@ export default function DigitalTwinGuidelines({ onNext, onBack }: DigitalTwinGui
   const allVideosWatched = watchedVideos.size === guidelineVideos.length
 
   return (
-    <div className="bg-white flex flex-col h-full">
-      <div className="text-center mb-8 px-6">
-        <h2 className="text-[28px] font-semibold text-[#101010] mb-4 tracking-[-2%] leading-[120%]">
-          Digital Twin Guidelines
-        </h2>
-        <p className="text-[18px] text-[#5F5F5F] max-w-[600px] mx-auto leading-[24px]">
-          Watch these short videos to learn how to create the best possible digital twin avatar. 
-        </p>
-      </div>
-      <div className="flex-1 px-6 overflow-y-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+    <div className="bg-white flex flex-col h-full max-w-7xl mx-auto w-full">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto">
+        <div className="w-full lg:w-1/2 p-4 lg:p-8 space-y-6 order-1 lg:order-2">
           {guidelineVideos.map((video) => {
             const videoState = videoStates[video.id]
             const isWatched = watchedVideos.has(video.id)
-            const progress = videoState.duration > 0 ? (videoState.currentTime / videoState.duration) * 100 : 0
+            const progress = videoState.duration > 0 ? (videoState.currentTime / videoState.duration) * 100 : video.progress
 
             return (
-              <div key={video.id} className="bg-[#F8FAFC] rounded-[12px] p-6 border border-[#E2E8F0]">
-                <div className="relative mb-4 rounded-[8px] overflow-hidden bg-black">
-                  <video
-                    data-video-id={video.id}
-                    className="w-full h-[200px] object-cover"
-                    poster={video.videoUrl}
-                    preload="metadata"
-                    controls={false}
-                    muted={videoState.isMuted}
-                    onTimeUpdate={(e) => {
-                      const target = e.target as HTMLVideoElement
-                      handleVideoTimeUpdate(video.id, target.currentTime, target.duration)
-                    }}
-                    onLoadedMetadata={(e) => {
-                      const target = e.target as HTMLVideoElement
-                      setVideoStates(prev => ({
-                        ...prev,
-                        [video.id]: { ...prev[video.id], duration: target.duration }
-                      }))
-                    }}
-                    onPlay={() => {
-                      setVideoStates(prev => ({
-                        ...prev,
-                        [video.id]: { ...prev[video.id], isPlaying: true }
-                      }))
-                    }}
-                    onPause={() => {
-                      setVideoStates(prev => ({
-                        ...prev,
-                        [video.id]: { ...prev[video.id], isPlaying: false }
-                      }))
-                    }}
-                  >
-                    <source src={video.videoUrl} type="video/quicktime" />
-                    <source src={video.videoUrl} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                    <button
-                      onClick={() => handleVideoPlay(video.id)}
-                      className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200"
-                    >
-                      {videoState.isPlaying ? (
-                        <Pause className="w-8 h-8 text-[#5046E5]" />
-                      ) : (
-                        <Play className="w-8 h-8 text-[#5046E5] ml-1" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-30">
-                    <div 
-                      className="h-full bg-[#5046E5] transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                    {videoState.duration > 0 ? formatDuration(videoState.duration) : 'Loading...'}
-                  </div>
-                  {isWatched && (
-                    <div className="absolute top-2 left-2 bg-green-500 text-white p-1 rounded-full">
-                      <CheckCircle className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-[18px] font-semibold text-[#101010] mb-2">
-                        {video.title}
-                      </h3>
-                      <p className="text-[14px] text-[#5F5F5F] leading-[20px]">
-                        {video.description}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleVideoMute(video.id)}
-                      className="p-2 hover:bg-[#E2E8F0] rounded-lg transition-colors duration-200 ml-3"
-                    >
-                      {videoState.isMuted ? (
-                        <VolumeX className="w-5 h-5 text-[#5F5F5F]" />
-                      ) : (
-                        <Volume2 className="w-5 h-5 text-[#5F5F5F]" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="text-[12px] text-[#5F5F5F]">
-                    {isWatched ? (
-                      <span className="text-green-600 font-medium">✓ Watched</span>
-                    ) : (
-                      <span>Progress: {Math.round(progress)}%</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <VideoCard
+                key={video.id}
+                video={video}
+                videoState={videoState}
+                isWatched={isWatched}
+                progress={progress}
+                onVideoPlay={handleVideoPlay}
+                onVideoMute={handleVideoMute}
+                onVideoTimeUpdate={handleVideoTimeUpdate}
+                onVideoLoadedMetadata={handleVideoLoadedMetadata}
+                onVideoPlayStateChange={handleVideoPlayStateChange}
+                formatDuration={formatDuration}
+              />
             )
           })}
         </div>
-      </div>
-      <div className="px-2 py-1">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <button
-            onClick={onBack}
-            className="px-6 py-3 text-[#5F5F5F] hover:text-[#101010] transition-colors duration-200"
-          >
-            Back
-          </button>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-[14px] text-[#5F5F5F]">
-              <span>Guidelines: {watchedVideos.size}/{guidelineVideos.length}</span>
-              <div className="w-20 h-2 bg-[#E2E8F0] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-[#5046E5] transition-all duration-300"
-                  style={{ width: `${(watchedVideos.size / guidelineVideos.length) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={onNext}
-              disabled={!allVideosWatched}
-              className={`px-8 py-3 font-semibold text-[16px] rounded-full transition-all duration-300 flex items-center gap-2 ${
-                allVideosWatched
-                  ? 'bg-[#5046E5] text-white hover:bg-[#4338CA] cursor-pointer'
-                  : 'bg-[#D1D5DB] text-[#9CA3AF] cursor-not-allowed'
-              }`}
-            >
-              Continue to Upload
-              <ArrowRight className="w-5 h-5" />
-            </button>
+        <div className="w-full lg:w-1/2 p-4 lg:p-8 order-2 lg:order-1">
+          <div className="space-y-6">
+            {guidelines.map((guideline, index) => {
+              const IconComponent = guideline.icon
+              return (
+                <div key={index} className="space-y-3">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
+                      <IconComponent className="w-6 h-6 text-gray-700" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="md:text-[24px] text-[18px] font-semibold text-[#101010] mb-2">
+                        {guideline.title}
+                      </h3>
+                      <p className="md:text-[18px] max-w-[520px] text-[14px] text-[#5F5F5F] font-normal leading-[24px]">
+                        {guideline.description}
+                      </p>
+                    </div>
+                  </div>
+                  {index === 3 && (
+                    <div className="border-t border-gray-200 my-4"></div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
-
-        {!allVideosWatched && (
-          <div className="mt-1 text-center">
-            <p className="text-[14px] text-[#5F5F5F]">
-              Please watch both guideline videos to continue
-            </p>
-          </div>
-        )}
+      </div>
+      <div className="p-6">
+        <div className="flex justify-center">
+          <button
+            onClick={onNext}
+            disabled={!allVideosWatched}
+            className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 w-full ${
+              allVideosWatched
+                ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] cursor-pointer'
+                : 'bg-[#D1D5DB] text-[#9CA3AF] border-2 border-[#D1D5DB] cursor-not-allowed'
+            }`}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   )
