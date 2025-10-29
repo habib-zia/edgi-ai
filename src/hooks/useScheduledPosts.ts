@@ -35,6 +35,7 @@ interface ScheduledPostsResponse {
   totalPendingPosts: number
   pendingPosts: ScheduledPost[]
   scheduleInfo: ScheduleInfo
+  status: string
 }
 
 interface UseScheduledPostsReturn {
@@ -47,7 +48,7 @@ interface UseScheduledPostsReturn {
   scheduleInfo: ScheduleInfo | null
   loading: boolean
   error: string | null
-  
+  status: string | null
   // Actions
   fetchScheduledPosts: () => Promise<void>
   refreshScheduledPosts: () => Promise<void>
@@ -65,7 +66,7 @@ export const useScheduledPosts = (): UseScheduledPostsReturn => {
   const [scheduleInfo, setScheduleInfo] = useState<ScheduleInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
+  const [status, setStatus] = useState<string | null>(null)
   // Fetch scheduled posts data
   const fetchScheduledPosts = useCallback(async () => {
     try {
@@ -76,7 +77,7 @@ export const useScheduledPosts = (): UseScheduledPostsReturn => {
       
       if (response.success && response.data) {
         const data: ScheduledPostsResponse = response.data
-        
+        setStatus(data?.status)
         // Set the main data
         setScheduledPostsDurationData(data)
         setScheduledPosts(data.pendingPosts || [])
@@ -129,6 +130,7 @@ export const useScheduledPosts = (): UseScheduledPostsReturn => {
     error,
     scheduledPostsDurationData,
     // Actions
+    status,
     fetchScheduledPosts,
     refreshScheduledPosts,
     
