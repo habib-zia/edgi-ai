@@ -292,7 +292,8 @@ class ApiService {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    requireAuth: boolean = false
+    requireAuth: boolean = false,
+    timeout: number = 60000
   ): Promise<ApiResponse<T>> {
     const url = getApiUrl(endpoint);
     
@@ -308,8 +309,17 @@ class ApiService {
       },
     };
 
+    // Create an AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
     try {
-      const response = await fetch(url, config);
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -324,7 +334,6 @@ class ApiService {
             status: response.status 
           };
         } catch {
-          // If JSON parsing fails, show the raw error text
           this.showNotification(errorText || 'An unexpected error occurred', 'error');
           return { 
             success: false, 
@@ -338,7 +347,18 @@ class ApiService {
       const data = await response.json();
       return data;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      clearTimeout(timeoutId);
+      
+      let errorMessage = 'An unexpected error occurred';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }
@@ -450,7 +470,7 @@ class ApiService {
     return this.request<any>(API_CONFIG.ENDPOINTS.VIDEO.CREATE, {
       method: 'POST',
       body: JSON.stringify(videoData),
-    }, true);
+    }, true, 600000); // 10 minutes timeout for video creation
   }
 
   async deleteVideo(videoId: string): Promise<ApiResponse> {
