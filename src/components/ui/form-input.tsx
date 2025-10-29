@@ -28,16 +28,18 @@ export default function FormInput({
   onChange
 }: FormInputProps) {
   const error = errors[field] as FieldError | undefined
+  const { onChange: registerOnChange, ...registerProps } = register(field)
 
   return (
     <div className="relative">
       <input
-        {...register(field)}
+        {...registerProps}
         type={type}
         placeholder={placeholder}
         autoComplete={autoComplete}
         disabled={disabled}
-        onChange={() => {
+        onChange={(e) => {
+          registerOnChange(e)
           if (onChange) {
             onChange()
           }

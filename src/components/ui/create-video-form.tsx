@@ -31,6 +31,7 @@ import { createVideoSchema, type CreateVideoFormData } from './form-validation-s
 import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
+import RealEstateValidationError from './real-estate-validation-error'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
 
 const promptOptions = [
@@ -115,6 +116,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [cityTrendsLoading, setCityTrendsLoading] = useState(false)
   const [cityTrendsError, setCityTrendsError] = useState<string | null>(null)
   const [lastFetchedCity, setLastFetchedCity] = useState<string | null>(null)
+  const [lastFetchedPosition, setLastFetchedPosition] = useState<string | null>(null)
+  const [missingFieldsError, setMissingFieldsError] = useState<string | null>(null)
+  const [realEstateValidationError, setRealEstateValidationError] = useState<string | null>(null)
   // Use schedule hook
   const { scheduleData: autoScheduleData, scheduleLoading, fetchSchedule } = useSchedule()
   const safeCityTrends = Array.isArray(cityTrends) ? cityTrends : []
@@ -439,7 +443,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     resolver: zodResolver(createVideoSchema),
     mode: 'onSubmit',
     defaultValues: {
-      prompt: '',
+      prompt: 'Shawheen V1',
       avatar: '',
       name: '',
       position: '',
@@ -500,22 +504,39 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }, [setValue, trigger])
 
   // Fetch city trends function
-  const fetchCityTrends = useCallback(async (city: string) => {
-    if (!city || city.trim() === '') {
+  const fetchCityTrends = useCallback(async (city: string, position?: string) => {
+    const cityValue = city?.trim() || ''
+    const positionValue = position?.trim() || watch('position')?.trim() || ''
+    
+    // Check if both city and position are provided
+    if (!cityValue || !positionValue) {
       setCityTrends([])
       setLastFetchedCity(null)
+      setLastFetchedPosition(null)
+      setMissingFieldsError('Please select the position and city first')
+      setCityTrendsError(null)
       return
     }
-
-    // Don't fetch if we already have trends for this city
-    if (lastFetchedCity === city.trim()) {
+    
+    // Clear missing fields error if both are present
+    setMissingFieldsError(null)
+    
+    // Create cache key from both city and position
+    const cacheKey = `${cityValue}|${positionValue}`
+    const lastCacheKey = lastFetchedCity && lastFetchedPosition 
+      ? `${lastFetchedCity}|${lastFetchedPosition}` 
+      : null
+    
+    // Don't fetch if we already have trends for this city and position combination
+    if (cacheKey === lastCacheKey) {
       return
     }
 
     try {
       setCityTrendsLoading(true)
       setCityTrendsError(null)
-      const response = await apiService.getCityTrends(city.trim())
+      setMissingFieldsError(null)
+      const response = await apiService.getCityTrends(cityValue, positionValue)
       
       if (response.success && response.data) {
         const trendsData = response.data.trends || []
@@ -523,7 +544,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         if (Array.isArray(trendsData)) {
           setCityTrends(trendsData)
           setCityTrendsError(null)
-          setLastFetchedCity(city.trim())
+          setMissingFieldsError(null)
+          setRealEstateValidationError(null)
+          setLastFetchedCity(cityValue)
+          setLastFetchedPosition(positionValue)
           
           // Pre-select saved video topic if it exists in the fetched trends
           if (savedVideoTopic && savedVideoTopic.trim()) {
@@ -541,17 +565,58 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           setCityTrends([])
         }
       } else {
-        setCityTrendsError(response.message || 'Failed to fetch city trends')
+        const errorMessage = response.message || response.error || 'Failed to fetch city trends'
+        
+        // Check if this is a real estate validation error
+        const isRealEstateValidationError = errorMessage.includes('must be related to real estate topics') ||
+          errorMessage.includes('Required categories:') ||
+          errorMessage.includes('Real Estate') ||
+          errorMessage.includes('Examples include')
+        
+        if (isRealEstateValidationError) {
+          setRealEstateValidationError(errorMessage)
+          setCityTrendsError(null)
+        } else {
+          setCityTrendsError(errorMessage)
+          setRealEstateValidationError(null)
+        }
         setCityTrends([])
       }
     } catch (error: any) {
       console.error('City trends fetch error:', error)
-      setCityTrendsError(error.message || 'Failed to load city trends')
+      const errorMessage = error.message || 'Failed to load city trends'
+      
+      // Check if this is a real estate validation error
+      const isRealEstateValidationError = errorMessage.includes('must be related to real estate topics') ||
+        errorMessage.includes('Required categories:') ||
+        errorMessage.includes('Real Estate') ||
+        errorMessage.includes('Examples include')
+      
+      if (isRealEstateValidationError) {
+        setRealEstateValidationError(errorMessage)
+        setCityTrendsError(null)
+      } else {
+        setCityTrendsError(errorMessage)
+        setRealEstateValidationError(null)
+      }
       setCityTrends([])
     } finally {
       setCityTrendsLoading(false)
     }
-  }, [lastFetchedCity, savedVideoTopic, setValue, trigger])
+  }, [lastFetchedCity, lastFetchedPosition, savedVideoTopic, setValue, trigger, watch])
+
+  // Watch position changes and trigger city trends fetch
+  const watchedPosition = watch('position')
+  useEffect(() => {
+    const cityValue = watch('city')
+    if (watchedPosition && watchedPosition.trim() && cityValue && cityValue.trim()) {
+      console.log('🏢 Position changed, fetching city trends with position:', watchedPosition)
+      fetchCityTrends(cityValue, watchedPosition)
+    } else if (watchedPosition && watchedPosition.trim()) {
+      // Position is set but city is not - show error message
+      setMissingFieldsError('Please select the position and city first')
+    }
+  }, [watchedPosition, fetchCityTrends, watch])
 
   // Auto-fill form when avatars are loaded and user has settings
   useEffect(() => {
@@ -568,10 +633,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             setSavedVideoTopic(videoTopicValue)
           }
           
-          // Auto-trigger city trends if city exists
-          if (cityValue && cityValue.trim()) {
-            console.log('🏙️ Auto-triggering city trends for saved city:', cityValue)
-            fetchCityTrends(cityValue)
+          // Auto-trigger city trends if both city and position exist
+          const positionValue = watch('position')
+          if (cityValue && cityValue.trim() && positionValue && positionValue.trim()) {
+            console.log('🏙️ Auto-triggering city trends for saved city and position:', cityValue, positionValue)
+            fetchCityTrends(cityValue, positionValue)
           }
           
           setUserSettingsLoaded(true)
@@ -616,6 +682,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
 
   const onSubmit = async (data: CreateVideoFormData) => {
+    console.log('selectedAvatars', selectedAvatars)
     if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
       dispatch(setVideoError('Please select 3 avatars before submitting'))
       return
@@ -636,6 +703,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
          return
        }
      }
+
+     // Set default prompt value if not provided (since field was removed from UI)
+     if (!data.prompt || !data.prompt.trim()) {
+       data.prompt = 'Shawheen V1'
+     }
+
+     // Debug: Log form data before submission
+     console.log('🚀 Form submission starting...', {
+       hasAvatars: !!(selectedAvatars.title && selectedAvatars.body && selectedAvatars.conclusion),
+       hasVideoTopic: !!(data.videoTopic?.trim() || customTopicValue.trim()),
+       prompt: data.prompt,
+       formData: data
+     })
 
     // Check video usage limit and payment status before proceeding
     try {
@@ -775,9 +855,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
       dispatch(clearVideoError())
 
-      setTimeout(() => {
-        reset()
-      }, 100)
+      // Note: Form fields are NOT reset to preserve user data for next submission
+      // setTimeout(() => {
+      //   reset()
+      // }, 100)
     } catch (error: any) {
       dispatch(setVideoError(error.message || 'Failed to create video'))
     } finally {
@@ -922,7 +1003,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     
     // Use only city trends loading states
     const isLoading = cityTrendsLoading
-    const combinedError = cityTrendsError
+    // Show missing fields error in videoTopic dropdown
+    const combinedError = field === 'videoTopic' && missingFieldsError 
+      ? missingFieldsError 
+      : cityTrendsError
 
     return (
       <HybridTopicInput
@@ -940,8 +1024,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         onBlur={(field) => trigger(field)}
         onRetry={() => {
           const cityValue = watch('city')
-          if (cityValue && cityValue.trim()) {
-            fetchCityTrends(cityValue)
+          const positionValue = watch('position')
+          if (cityValue && cityValue.trim() && positionValue && positionValue.trim()) {
+            fetchCityTrends(cityValue, positionValue)
           }
         }}
         onCustomTopicClick={handleCustomTopicClick}
@@ -1009,7 +1094,15 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             onScheduleDeleted={fetchSchedule}
           />
         ) : (
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
+      <form onSubmit={handleSubmit(onSubmit, (errors) => {
+        console.log('❌ Form validation errors:', errors)
+        console.log('Form errors details:', JSON.stringify(errors, null, 2))
+        // Show first error to user
+        const firstError = Object.values(errors)[0]
+        if (firstError && 'message' in firstError) {
+          dispatch(setVideoError(firstError.message as string || 'Please fix form errors'))
+        }
+      })} className="space-y-7">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
@@ -1022,11 +1115,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div>
+           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Prompt <span className="text-red-500">*</span>
+              Name <span className="text-red-500">*</span>
             </label>
-            {renderDropdown('prompt', promptOptions, 'Select Option')}
+            {renderInput('name', 'e.g. John Smith', 'text', 'name')}
           </div>
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
@@ -1036,15 +1129,15 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           </div>
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Name <span className="text-red-500">*</span>
-            </label>
-            {renderInput('name', 'e.g. John Smith', 'text', 'name')}
-          </div>
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Position <span className="text-red-500">*</span>
             </label>
             {renderDropdown('position', positionOptions, 'Select Option')}
+          </div>
+          <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Company Name <span className="text-red-500">*</span>
+            </label>
+            {renderInput('companyName', 'e.g. Keller Williams', 'text', 'organization')}
           </div>
         </div>
         <FormFieldRow
@@ -1058,7 +1151,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           register={register}
           errors={errors}
           columns="4"
-          onCityBlur={fetchCityTrends}
+          onCityBlur={(city: string) => {
+            const positionValue = watch('position')
+            fetchCityTrends(city, positionValue)
+          }}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
@@ -1105,12 +1201,21 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             {keyPointsError && showCustomTopicInput && (
               <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
                 <AlertCircle className="w-4 h-4" />
-                {keyPointsError}
+                {keyPointsError.length > 50 ? `${keyPointsError.substring(0, 50)}...` : keyPointsError}
               </p>
             )}
           </div>
         </div>
         <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
+        
+        {/* Display real estate validation error */}
+        {keyPointsError && (
+          <RealEstateValidationError
+            message={keyPointsError}
+            onClose={() => setRealEstateValidationError(null)}
+          />
+        )}
+        
          <SubmitButton
            isLoading={isLoading}
            disabled={
@@ -1119,7 +1224,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
              !selectedAvatars.conclusion ||
              (!watch('videoTopic')?.trim() && !customTopicValue.trim())
            }
-           loadingText="Creating Video..."
+           loadingText="This Proccess will take up to 30-50 seconds"
            buttonText="Submit"
          />
       </form>
