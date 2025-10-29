@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // Form validation schema for CreateVideoForm
 export const createVideoSchema = z.object({
-  prompt: z.string().min(1, 'Please select a prompt option'),
+  prompt: z.string().min(1),
   avatar: z.string().min(1, 'Please select an avatar'),
   name: z.string()
     .min(2, 'Full name must be at least 2 characters')

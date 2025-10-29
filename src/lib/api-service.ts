@@ -76,11 +76,14 @@ export interface Avatar {
   avatar_name: string;
   name?: string; 
   preview_image_url?: string;
+  preview_video_url?: string;
   imageUrl?: string; 
   userId?: string;
   default?: boolean;
   status: string;
-  gender: string;
+  gender?: string;
+  ethnicity?: string;
+  age_group?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -537,13 +540,16 @@ class ApiService {
   }
 
   // Trends Methods
-  async getCityTrends(city: string): Promise<ApiResponse<RealEstateTrendsData>> {
+  async getCityTrends(city: string, position?: string): Promise<ApiResponse<RealEstateTrendsData>> {
     try {
+      const requestBody: { city: string; position?: string } = { city };
+      if (position && position.trim()) {
+        requestBody.position = position.trim();
+      }
       const response = await this.request<RealEstateTrendsData>(API_CONFIG.ENDPOINTS.TRENDS.CITY, {
         method: 'POST',
-        body: JSON.stringify({ city }),
+        body: JSON.stringify(requestBody),
       }, true);
-      console.log('City Trends API Response:', JSON?.stringify(response))
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get city trends';

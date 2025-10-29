@@ -80,23 +80,41 @@ export default function FormDropdown({
 }: FormDropdownProps) {
   // State for managing visible avatar count
   const [visibleDefaultCount, setVisibleDefaultCount] = React.useState(12)
-  const [visibleCustomCount, setVisibleCustomCount] = React.useState(12)
+  const [visibleImageAvatarCount, setVisibleImageAvatarCount] = React.useState(12)
+  const [visibleVideoAvatarCount, setVisibleVideoAvatarCount] = React.useState(12)
+
+  // Categorize custom avatars into image avatars and video avatars
+  const imageAvatars = React.useMemo(() => {
+    return avatars.custom.filter(avatar => avatar.gender && avatar.ethnicity)
+  }, [avatars.custom])
+
+  const videoAvatars = React.useMemo(() => {
+    return avatars.custom.filter(avatar => !avatar.gender || !avatar.ethnicity || avatar.preview_video_url)
+  }, [avatars.custom])
 
   // Handler functions for "See More" functionality
   const handleSeeMoreDefault = () => {
     setVisibleDefaultCount(prev => Math.min(prev + 12, avatars.default.length))
   }
 
-  const handleSeeMoreCustom = () => {
-    setVisibleCustomCount(prev => Math.min(prev + 12, avatars.custom.length))
+  const handleSeeMoreImageAvatars = () => {
+    setVisibleImageAvatarCount(prev => Math.min(prev + 12, imageAvatars.length))
+  }
+
+  const handleSeeMoreVideoAvatars = () => {
+    setVisibleVideoAvatarCount(prev => Math.min(prev + 12, videoAvatars.length))
   }
 
   const handleSeeLessDefault = () => {
     setVisibleDefaultCount(12)
   }
 
-  const handleSeeLessCustom = () => {
-    setVisibleCustomCount(12)
+  const handleSeeLessImageAvatars = () => {
+    setVisibleImageAvatarCount(12)
+  }
+
+  const handleSeeLessVideoAvatars = () => {
+    setVisibleVideoAvatarCount(12)
   }
 
   // Use extended options for avatar field when coming from Default Avatar
@@ -182,10 +200,10 @@ export default function FormDropdown({
                     </div>
                   ) : (
                     <>
-                      {/* Custom Avatar Section */}
-                      {avatars.custom.length > 0 && (
+                      {/* Image Avatar Section */}
+                      {imageAvatars.length > 0 && (
                         <div className="mb-6">
-                          <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Custom Avatar</h4>
+                          <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Image Avatar</h4>
                           {/* Info bar */}
                           <div className="flex md:flex-row flex-col items-center justify-between md:mb-3 mb-5 px-3 py-2 bg-purple-100 rounded-lg gap-y-4">
                             <div className="flex items-center gap-2">
@@ -217,7 +235,7 @@ export default function FormDropdown({
                             })()}
                           </div>
                           <div className="md:grid flex flex-wrap lg:grid-cols-4 md:grid-cols-2 grid-cols-1 justify-center items-center gap-2">
-                            {avatars.custom.slice(0, visibleCustomCount).map((avatar) => {
+                            {imageAvatars.slice(0, visibleImageAvatarCount).map((avatar) => {
                               const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
                               const isSelected = isAvatarSelected ? isAvatarSelected(avatar) : false
                               const isTypeAllowed = isAvatarTypeAllowed ? isAvatarTypeAllowed(avatar) : true
@@ -281,20 +299,20 @@ export default function FormDropdown({
                             })}
                           </div>
                           
-                          {/* See More/Less buttons for Custom Avatars */}
-                          {avatars.custom.length > 12 && (
+                          {/* See More/Less buttons for Image Avatars */}
+                          {imageAvatars.length > 12 && (
                             <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
-                              {visibleCustomCount < avatars.custom.length && (
+                              {visibleImageAvatarCount < imageAvatars.length && (
                                 <button
-                                  onClick={handleSeeMoreCustom}
+                                  onClick={handleSeeMoreImageAvatars}
                                   className="px-4 py-2 text-sm text-[#5046E5] hover:text-[#4338CA] hover:bg-[#5046E5]/10 rounded-lg transition-colors duration-200 border border-[#5046E5]"
                                 >
-                                  See More ({avatars.custom.length - visibleCustomCount} more)
+                                  See More ({imageAvatars.length - visibleImageAvatarCount} more)
                                 </button>
                               )}
-                              {visibleCustomCount > 12 && (
+                              {visibleImageAvatarCount > 12 && (
                                 <button
-                                  onClick={handleSeeLessCustom}
+                                  onClick={handleSeeLessImageAvatars}
                                   className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-300"
                                 >
                                   See Less
@@ -304,7 +322,148 @@ export default function FormDropdown({
                           )}
                         </div>
                       )}
-                      {avatars.custom.length > 0 && avatars.default.length > 0 && (
+
+                      {/* Separator between Image and Video Avatars */}
+                      {imageAvatars.length > 0 && videoAvatars.length > 0 && (
+                        <div className="bg-[#A0A3BD] h-[1px] mb-6"></div>
+                      )}
+
+                      {/* Video Avatar Section */}
+                      {videoAvatars.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Video Avatar</h4>
+                          {/* Info bar */}
+                          <div className="flex md:flex-row flex-col items-center justify-between md:mb-3 mb-5 px-3 py-2 bg-purple-100 rounded-lg gap-y-4">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-purple-600 md:block hidden" />
+                              <span className="md:text-sm text-xs text-purple-700">
+                                Click to select up to 3 avatars for your video
+                                {(() => {
+                                  const existingAvatars = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean) as Avatar[]
+                                  if (existingAvatars.length > 0 && getAvatarType) {
+                                    const avatarType = getAvatarType(existingAvatars[0])
+                                    return ` • All avatars must be ${avatarType}`
+                                  }
+                                  return ''
+                                })()}
+                              </span>
+                            </div>
+                            {(() => {
+                              const totalSelected = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
+                              return totalSelected > 0 && (
+                                <button
+                                  onClick={() => {
+                                    onClearAllAvatars && onClearAllAvatars()
+                                  }}
+                                  className="text-xs text-purple-600 hover:text-purple-800 underline"
+                                >
+                                  Clear Selection
+                                </button>
+                              )
+                            })()}
+                          </div>
+                          <div className="md:grid flex flex-wrap lg:grid-cols-4 md:grid-cols-2 grid-cols-1 justify-center items-center gap-2">
+                            {videoAvatars.slice(0, visibleVideoAvatarCount).map((avatar) => {
+                              const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
+                              const isSelected = isAvatarSelected ? isAvatarSelected(avatar) : false
+                              // Video avatars are disabled by default
+                              const isDisabled = true
+
+                              return (
+                                <div
+                                  key={avatar._id}
+                                  draggable={!isDisabled}
+                                  onDragStart={(e) => !isDisabled && onDragStart && onDragStart(e, avatar)}
+                                  onDragEnd={(e) => onDragEnd && onDragEnd(e)}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    if (!isDisabled) {
+                                      onAvatarClick && onAvatarClick(avatar)
+                                    }
+                                  }}
+                                  className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${isDisabled
+                                      ? 'opacity-40 cursor-not-allowed'
+                                      : isSelected
+                                        ? 'cursor-pointer'
+                                        : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
+                                    }`}
+                                >
+                                  <div className="relative">
+                                    <Image
+                                      src={avatar?.preview_image_url || avatar?.imageUrl || '/images/avatars/avatargirl.png'}
+                                      alt={avatar.avatar_name || avatar.name || 'Avatar'}
+                                      width={80}
+                                      height={80}
+                                      className={`rounded-lg object-cover w-[80px] h-[80px] ${(isAvatarPending ? isAvatarPending(avatar) : false) ? 'opacity-50' : ''
+                                        }`}
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = '/images/avatars/avatargirl.png';
+                                      }}
+                                    />
+
+                                    {/* Selection number indicator */}
+                                    {selectionNumber && (
+                                      <div className="absolute -top-3 -right-2 w-5 h-5 bg-[#5046E5]/60 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg backdrop-blur-lg leading-0">
+                                        {selectionNumber}
+                                      </div>
+                                    )}
+
+                                    {/* Loading overlay for pending avatars */}
+                                    {(isAvatarPending ? isAvatarPending(avatar) : false) && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
+                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                      </div>
+                                    )}
+
+                                    {/* Video indicator badge */}
+                                    {avatar.preview_video_url && (
+                                      <div className="absolute bottom-0 right-0 w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-[8px] font-bold mb-1 mr-1">
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-base text-[#11101066] font-normal mt-3 truncate w-full text-center">
+                                    {avatar.avatar_name}
+                                    {(isAvatarPending ? isAvatarPending(avatar) : false) && (
+                                      <>
+                                        <span className="block text-xs text-orange-500 mt-1">Processing...</span>
+                                      </>
+                                    )}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          
+                          {/* See More/Less buttons for Video Avatars */}
+                          {videoAvatars.length > 12 && (
+                            <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
+                              {visibleVideoAvatarCount < videoAvatars.length && (
+                                <button
+                                  onClick={handleSeeMoreVideoAvatars}
+                                  className="px-4 py-2 text-sm text-[#5046E5] hover:text-[#4338CA] hover:bg-[#5046E5]/10 rounded-lg transition-colors duration-200 border border-[#5046E5]"
+                                >
+                                  See More ({videoAvatars.length - visibleVideoAvatarCount} more)
+                                </button>
+                              )}
+                              {visibleVideoAvatarCount > 12 && (
+                                <button
+                                  onClick={handleSeeLessVideoAvatars}
+                                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-300"
+                                >
+                                  See Less
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Separator between Custom Avatars and Default Avatars */}
+                      {(imageAvatars.length > 0 || videoAvatars.length > 0) && avatars.default.length > 0 && (
                         <div className="bg-[#A0A3BD] h-[1px] mb-6"></div>
                       )}
                       {avatars.default.length > 0 && (
@@ -383,7 +542,7 @@ export default function FormDropdown({
                           )}
                         </div>
                       )}
-                      {avatars.custom.length === 0 && avatars.default.length === 0 && (
+                      {imageAvatars.length === 0 && videoAvatars.length === 0 && avatars.default.length === 0 && (
                         <div className="text-center py-8">
                           <p className="text-[#5F5F5F]">No avatars available</p>
                         </div>

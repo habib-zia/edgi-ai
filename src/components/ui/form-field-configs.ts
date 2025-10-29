@@ -13,11 +13,10 @@ export interface FormFieldConfig {
 // Row 2 fields configuration
 export const row2Fields: FormFieldConfig[] = [
   {
-    field: 'companyName',
-    label: 'Company Name',
-    placeholder: 'e.g. Keller Williams',
+    field: 'callToAction',
+    label: 'Call to Action',
+    placeholder: 'e.g. Call for consultation',
     type: 'text',
-    autoComplete: 'organization',
     required: true
   },
   {
@@ -57,13 +56,6 @@ export const row3Fields: FormFieldConfig[] = [
     field: 'preferredTone',
     label: 'Preferred Tone',
     placeholder: 'e.g. Professional, friendly, etc.',
-    type: 'text',
-    required: true
-  },
-  {
-    field: 'callToAction',
-    label: 'Call to Action',
-    placeholder: 'e.g. Call for consultation',
     type: 'text',
     required: true
   },

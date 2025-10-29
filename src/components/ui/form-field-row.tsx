@@ -40,7 +40,7 @@ export default function FormFieldRow({
   }
 
   return (
-    <div className={`grid ${getGridCols()} gap-3`}>
+    <div className={`grid ${getGridCols()} gap-4`}>
       {fields.map((fieldData) => (
         <FormField
           key={fieldData.field}
