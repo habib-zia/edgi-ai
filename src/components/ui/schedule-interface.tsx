@@ -131,12 +131,14 @@ export default function ScheduleInterface({ onStartScheduling, autoScheduleData,
                 Review & Update
               </button>
             </div>
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              className="w-full px-4 py-2 bg-[#5046E5] text-white rounded-full font-semibold text-lg hover:bg-[#4338CA] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#5046E5]/20 flex items-center justify-center cursor-pointer">
-              Cancel Schedule
-            </button>
+            {autoScheduleData.status==="ready" && (
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                className="w-full px-4 py-2 bg-[#5046E5] text-white rounded-full font-semibold text-lg hover:bg-[#4338CA] transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#5046E5]/20 flex items-center justify-center cursor-pointer">
+                Cancel Schedule
+              </button>
+            )}
           </div>
         </div>
 
