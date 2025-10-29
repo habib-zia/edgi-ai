@@ -114,7 +114,6 @@ export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: 
       <div className="flex-1 flex flex-col items-center justify-center px-6">
         {currentStep === 'training' ? (
           <>
-            {/* Training Video Upload UI */}
             <div className="text-center mb-10">
               <h2 className="text-[24px] font-semibold text-[#101010] mb-6 tracking-[-2%] leading-[120%]">
                 Upload your footage
@@ -250,7 +249,6 @@ export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: 
           </>
         ) : (
           <>
-            {/* Consent Video Upload UI */}
             <div className="text-center mb-10">
               <h2 className="text-[24px] font-semibold text-[#101010] mb-6 tracking-[-2%] leading-[120%]">
                 Upload your footage
@@ -259,9 +257,7 @@ export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: 
                 Record a consent video to authorize the use of your footage for avatar creation.
               </p>
             </div>
-
             <div className="w-full max-w-2xl space-y-6">
-              {/* Record Consent Section */}
               <div className="space-y-4">
                 <h3 className="text-[18px] font-semibold text-[#101010]">Record Consent</h3>
                 <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
@@ -270,8 +266,6 @@ export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: 
                   </p>
                 </div>
               </div>
-
-              {/* Drag and drop consent video */}
               <div className="space-y-4">
                 <h3 className="text-[18px] font-semibold text-[#101010]">Drag and drop consent video</h3>
                 <div
@@ -370,14 +364,11 @@ export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: 
                 </div>
               </div>
             </div>
-
-            {/* Error Message */}
             {errorMessage && (
               <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-red-600 text-[14px]">{errorMessage}</p>
               </div>
             )}
-
             <button
               onClick={handleCreate}
               disabled={!canProceedConsent || isCreating}

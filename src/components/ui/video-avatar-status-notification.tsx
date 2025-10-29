@@ -24,13 +24,11 @@ export default function VideoAvatarStatusNotification({
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const [completionData, setCompletionData] = useState<any>(null)
 
-  // Show notification when we have updates
   useEffect(() => {
     if (updates.length > 0) {
       setIsVisible(true)
       const latest = updates[updates.length - 1]
       
-      // Show completion modal when status is completed
       if (latest.status === 'completed') {
         setCompletionData({
           avatarId: latest.avatarId,
@@ -41,7 +39,6 @@ export default function VideoAvatarStatusNotification({
         })
         setShowCompletionModal(true)
         
-        // Auto-close notification after showing modal
         const timer = setTimeout(() => {
           onClear()
           setIsVisible(false)
@@ -52,9 +49,8 @@ export default function VideoAvatarStatusNotification({
         }
       }
       
-      // Auto-close notification based on status
       if (latest.status === 'error') {
-        const timeout = 60000 // 60s for errors
+        const timeout = 60000
         const countdown = 60
         
         setTimeRemaining(countdown)
@@ -82,7 +78,6 @@ export default function VideoAvatarStatusNotification({
         setTimeRemaining(null)
       }
     } else {
-      // Hide notification when no updates
       setIsVisible(false)
       setTimeRemaining(null)
     }
@@ -147,7 +142,6 @@ export default function VideoAvatarStatusNotification({
   if (!isVisible || updates.length === 0) {
     return (
       <>
-        {/* Completion Modal - can show even when notification is hidden */}
         <AvatarCompletionModal
           isOpen={showCompletionModal}
           onClose={() => {
@@ -165,10 +159,8 @@ export default function VideoAvatarStatusNotification({
 
   return (
     <>
-      {/* Toast Notification */}
       <div className={`fixed top-4 right-4 z-50 max-w-sm ${className}`}>
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
-          {/* Header */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               {getStatusIcon(latestUpdate.status)}
@@ -179,39 +171,40 @@ export default function VideoAvatarStatusNotification({
             </div>
           </div>
 
-          {/* Connection Status */}
           <div className="flex items-center space-x-2 mb-3">
             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
             <span className="text-xs text-gray-600">
               {isConnected ? 'Connected' : 'Disconnected'}
             </span>
           </div>
-
-          {/* Progress */}
           {latestUpdate.data.avatar_name && <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-700">{getStepText(latestUpdate.data.avatar_name)}</span>
+                <span className="text-gray-700"><strong>Avatar Name:</strong> {getStepText(latestUpdate.data.avatar_name)}</span>
               {progress > 0 && (
                 <span className="text-gray-500">{progress}%</span>
               )}
             </div>
           </div>}
+          {latestUpdate.status === 'progress' && (
+            <div className="mt-3 text-sm text-gray-600">
+              Video avatar is in progress might take 4-10 min!
+            </div>
+          )}
 
-          {/* Message */}
+          
+
           {latestUpdate.data?.message && (
             <div className="mt-3 text-sm text-gray-600">
               {latestUpdate.data.message}
             </div>
           )}
 
-          {/* Error Details */}
           {latestUpdate.status === 'error' && latestUpdate.data?.error && (
             <div className="mt-3 p-2 bg-red-50 rounded text-sm text-red-700">
               {latestUpdate.data.error}
             </div>
           )}
 
-          {/* Countdown Timer */}
           {timeRemaining !== null && (
             <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
               <span>Auto-dismiss in {timeRemaining}s</span>
@@ -229,7 +222,6 @@ export default function VideoAvatarStatusNotification({
         </div>
       </div>
 
-      {/* Completion Modal */}
       <AvatarCompletionModal
         isOpen={showCompletionModal}
         onClose={() => {

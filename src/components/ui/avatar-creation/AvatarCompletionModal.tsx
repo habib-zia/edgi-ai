@@ -94,7 +94,6 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[12px] max-w-4xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-[32px] font-bold text-[#101010]">
@@ -104,18 +103,12 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
               Your digital avatar &quot;{avatarData.avatarName}&quot; is ready
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors duration-200"
-          >
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors duration-200">
             <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
-
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Video Preview */}
             <div className="space-y-4">
               <h3 className="text-[20px] font-semibold text-[#101010]">Preview Video</h3>
               <div className="relative rounded-[12px] overflow-hidden bg-black">
@@ -132,8 +125,6 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                 >
                   Your browser does not support the video tag.
                 </video>
-
-                {/* Video Controls Overlay */}
                 <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
                   <button
                     onClick={handleVideoPlay}
@@ -146,21 +137,15 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                     )}
                   </button>
                 </div>
-
-                {/* Progress Bar */}
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-30">
                   <div
                     className="h-full bg-[#5046E5] transition-all duration-300"
                     style={{ width: `${videoProgress}%` }}
                   />
                 </div>
-
-                {/* Duration Display */}
                 <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white text-sm px-3 py-1 rounded">
                   {videoDuration > 0 ? formatDuration(videoDuration) : 'Loading...'}
                 </div>
-
-                {/* Mute Button */}
                 <button
                   onClick={handleVideoMute}
                   className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90 transition-all duration-200"
@@ -172,8 +157,6 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                   )}
                 </button>
               </div>
-
-              {/* Action Buttons */}
               <div className="flex gap-4">
                 <button
                   onClick={handleDownload}
@@ -184,8 +167,6 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                 </button>
               </div>
             </div>
-
-            {/* Avatar Details */}
             <div className="space-y-6">
               <div>
                 <h3 className="text-[20px] font-semibold text-[#101010] mb-4">Avatar Details</h3>
@@ -194,12 +175,6 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                     <h4 className="font-medium text-[#101010] mb-2">Avatar Name</h4>
                     <p className="text-[#5F5F5F]">{avatarData.avatarName}</p>
                   </div>
-                  
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium text-[#101010] mb-2">Avatar ID</h4>
-                    <p className="text-[#5F5F5F] font-mono text-sm">{avatarData.avatarId}</p>
-                  </div>
-
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="font-medium text-[#101010] mb-2">Status</h4>
                     <div className="flex items-center gap-2">
@@ -207,15 +182,8 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                       <span className="text-green-600 font-medium">Completed Successfully</span>
                     </div>
                   </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium text-[#101010] mb-2">Message</h4>
-                    <p className="text-[#5F5F5F]">{avatarData.message}</p>
-                  </div>
                 </div>
               </div>
-
-              {/* Next Steps */}
               <div>
                 <h3 className="text-[20px] font-semibold text-[#101010] mb-4">What&apos;s Next?</h3>
                 <div className="space-y-3">
@@ -226,27 +194,11 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                       <p className="text-[#5F5F5F] text-sm">Create videos with your digital twin</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-[#5046E5] rounded-full flex items-center justify-center text-white text-sm font-bold">2</div>
-                    <div>
-                      <p className="font-medium text-[#101010]">Customize Settings</p>
-                      <p className="text-[#5F5F5F] text-sm">Adjust voice and appearance settings</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-[#5046E5] rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
-                    <div>
-                      <p className="font-medium text-[#101010]">Share & Collaborate</p>
-                      <p className="text-[#5F5F5F] text-sm">Share your avatar with your team</p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Footer */}
         <div className="p-6 border-t border-gray-200">
           <div className="flex justify-end gap-4">
             <button
@@ -258,11 +210,11 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
             <button
               onClick={() => {
                 // Navigate to avatar management or creation page
-                window.location.href = '/create-video'
+                window.location.href = '/create-video/new'
               }}
               className="px-6 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
             >
-              Create Another Avatar
+              Create Video
             </button>
           </div>
         </div>
