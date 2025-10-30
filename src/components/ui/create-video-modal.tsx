@@ -59,13 +59,16 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const [isDownloading, setIsDownloading] = useState(false)
   const [countdown, setCountdown] = useState(10)
   const [avatarError, setAvatarError] = useState<string>('')
-  const didRedirectRef = useRef(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
+  const hasRedirectedThisModalRef = useRef(false)
 
-  function redirectToCreateVideoOnce() {
-    if (didRedirectRef.current) return
-    didRedirectRef.current = true
-    window.location.href = '/create-video'
-  }
+  // Clear redirect flag when component mounts to allow fresh redirects
+  // Only clear if we haven't redirected for this specific modal instance
+  useEffect(() => {
+    if (!hasRedirectedThisModalRef.current) {
+      sessionStorage.removeItem('modalRedirectExecuted')
+    }
+  }, [])
 
   // Custom hook for avatar storage
   const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
@@ -121,10 +124,15 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   }, [latestVideoUpdate, currentStep, clearVideoUpdates])
 
   const handleClose = useCallback(() => {
-    if (didRedirectRef.current) return
-
-    const wasLoading = currentStep === 'loading'
-
+    // Prevent multiple redirects
+    if (isRedirecting) return
+    
+    // Set redirect flag immediately to prevent any race conditions
+    if (!sessionStorage.getItem('modalRedirectExecuted')) {
+      sessionStorage.setItem('modalRedirectExecuted', 'true')
+      console.log('🔄 Setting redirect flag immediately to prevent race conditions')
+    }
+    
     setCurrentStep(startAtComplete ? 'complete' : 'form')
     setFormData({
       prompt: webhookResponse?.prompt || '',
@@ -132,19 +140,36 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       conclusion: webhookResponse?.conclusion || ''
     })
     setErrors({ prompt: '', description: '', conclusion: '' })
-
+    
     // Clear only completed video updates and localStorage keys when modal is closed
     // Preserve processing updates so they continue to show in the gallery
     clearCompletedVideoUpdates()
     localStorage.removeItem('videoGenerationStarted')
     localStorage.removeItem('videoProgress')
+    console.log('🧹 Modal closed: Cleared completed video updates and localStorage keys')
     
     onClose()
-
-    if (wasLoading) {
-      setTimeout(redirectToCreateVideoOnce, 50)
-    }
-  }, [currentStep, startAtComplete, webhookResponse, onClose, clearCompletedVideoUpdates])
+    
+    // Use window.location.href for page reload redirect with proper timing
+    setTimeout(() => {
+      // Only redirect if we're not already on the target page
+      if (window.location.pathname !== '/create-video' && !isRedirecting) {
+        // Double-check the flag hasn't been set by another process
+        if (!sessionStorage.getItem('modalRedirectExecuted')) {
+          setIsRedirecting(true)
+          hasRedirectedThisModalRef.current = true // Mark that we've redirected for this modal instance
+          // Set a flag in sessionStorage to prevent repeated redirects - set immediately before redirect
+          sessionStorage.setItem('modalRedirectExecuted', 'true')
+          console.log('🔄 Setting redirect flag and redirecting to /create-video')
+          window.location.href = '/create-video'
+        } else {
+          console.log('🚫 Redirect blocked - flag already set by another process')
+        }
+      } else {
+        console.log('🚫 Redirect blocked - already on target page or redirecting')
+      }
+    }, 200) // Slightly longer delay to ensure modal closes and state is cleared
+  }, [startAtComplete, webhookResponse, onClose, clearCompletedVideoUpdates, isRedirecting])
 
   // Auto close modal with countdown when in loading state
   useEffect(() => {
@@ -158,7 +183,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           if (prev <= 1)
           {
             clearInterval(countdownTimer!)
-            // Close modal and trigger redirect after countdown reaches 0
+            // Close modal without redirect after countdown reaches 0
             setTimeout(() => {
               handleClose()
             }, 1000)
@@ -365,7 +390,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           </h3>
 
           <button
-            onClick={() => handleClose()}
+            onClick={handleClose}
             className="cursor-pointer"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
