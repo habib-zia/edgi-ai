@@ -57,7 +57,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     conclusion: ''
   })
   const [isDownloading, setIsDownloading] = useState(false)
-  const [countdown, setCountdown] = useState(10)
+  const [countdown, setCountdown] = useState(60)
   const [avatarError, setAvatarError] = useState<string>('')
   const [isRedirecting, setIsRedirecting] = useState(false)
   const hasRedirectedThisModalRef = useRef(false)
@@ -195,7 +195,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     } else
     {
       // Reset countdown when not in loading state
-      setCountdown(10)
+      setCountdown(60)
     }
 
     return () => {

@@ -210,14 +210,6 @@ export default function FormDropdown({
                               <AlertCircle className="w-4 h-4 text-purple-600 md:block hidden" />
                               <span className="md:text-sm text-xs text-purple-700">
                                 Click to select up to 3 avatars for your video
-                                {(() => {
-                                  const existingAvatars = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean) as Avatar[]
-                                  if (existingAvatars.length > 0 && getAvatarType) {
-                                    const avatarType = getAvatarType(existingAvatars[0])
-                                    return ` • All avatars must be ${avatarType}`
-                                  }
-                                  return ''
-                                })()}
                               </span>
                             </div>
                             {(() => {
@@ -238,8 +230,7 @@ export default function FormDropdown({
                             {imageAvatars.slice(0, visibleImageAvatarCount).map((avatar) => {
                               const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
                               const isSelected = isAvatarSelected ? isAvatarSelected(avatar) : false
-                              const isTypeAllowed = isAvatarTypeAllowed ? isAvatarTypeAllowed(avatar) : true
-                              const isDisabled = (isAvatarPending ? isAvatarPending(avatar) : false) || !isTypeAllowed
+                              const isDisabled = (isAvatarPending ? isAvatarPending(avatar) : false)
 
                               return (
                                 <div
@@ -338,14 +329,6 @@ export default function FormDropdown({
                               <AlertCircle className="w-4 h-4 text-purple-600 md:block hidden" />
                               <span className="md:text-sm text-xs text-purple-700">
                                 Click to select up to 3 avatars for your video
-                                {(() => {
-                                  const existingAvatars = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean) as Avatar[]
-                                  if (existingAvatars.length > 0 && getAvatarType) {
-                                    const avatarType = getAvatarType(existingAvatars[0])
-                                    return ` • All avatars must be ${avatarType}`
-                                  }
-                                  return ''
-                                })()}
                               </span>
                             </div>
                             {(() => {
@@ -366,8 +349,7 @@ export default function FormDropdown({
                             {videoAvatars.slice(0, visibleVideoAvatarCount).map((avatar) => {
                               const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
                               const isSelected = isAvatarSelected ? isAvatarSelected(avatar) : false
-                              // Video avatars are disabled by default
-                              const isDisabled = true
+                              const isDisabled = (isAvatarPending ? isAvatarPending(avatar) : false)
 
                               return (
                                 <div
@@ -473,8 +455,7 @@ export default function FormDropdown({
                             {avatars.default.slice(0, visibleDefaultCount).map((avatar) => {
                               const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
                               const isSelected = isAvatarSelected ? isAvatarSelected(avatar) : false
-                              const isTypeAllowed = isAvatarTypeAllowed ? isAvatarTypeAllowed(avatar) : true
-                              const isDisabled = !isTypeAllowed
+                              const isDisabled = false
 
                               return (
                                 <div
@@ -484,7 +465,9 @@ export default function FormDropdown({
                                   onDragEnd={(e) => onDragEnd && onDragEnd(e)}
                                   onClick={(e) => {
                                     e.preventDefault()
+                                    if (!isDisabled) {
                                     onAvatarClick && onAvatarClick(avatar)
+                                    }
                                   }}
                                   className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${isDisabled
                                       ? 'opacity-40 cursor-not-allowed'
