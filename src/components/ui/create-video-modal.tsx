@@ -25,7 +25,7 @@ interface CreateVideoModalProps {
     license?: string
     avatar?: string
     email?: string
-  } | null
+  } | null;
 }
 
 type ModalStep = 'form' | 'loading' | 'complete'
