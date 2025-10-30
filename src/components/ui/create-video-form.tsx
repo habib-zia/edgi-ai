@@ -244,19 +244,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     return avatars.custom.some(customAvatar => customAvatar.avatar_id === avatar.avatar_id) ? 'custom' : 'default'
   }
 
-  // Helper function to check if avatar type is allowed based on existing selections
-  const isAvatarTypeAllowed = (avatar: Avatar): boolean => {
-    const avatarType = getAvatarType(avatar)
-    const existingAvatars = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean) as Avatar[]
-    
-    // If no avatars selected yet, any type is allowed
-    if (existingAvatars.length === 0) {
-      return true
-    }
-    
-    // Check if all existing avatars are of the same type as the new avatar
-    const firstAvatarType = getAvatarType(existingAvatars[0])
-    return avatarType === firstAvatarType
+  // All avatar types are allowed to mix (custom image, custom video, default)
+  const isAvatarTypeAllowed = (_avatar: Avatar): boolean => {
+    return true
   }
 
   // Drag and drop handlers
@@ -1306,8 +1296,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       />
       <ConnectAccountsModal
         isOpen={showConnectAccountsModal}
-        onClose={() => setShowConnectAccountsModal(false)}
-        onNext={() => {setShowConnectAccountsModal(false)}}
+        onClose={() => { fetchSchedule(); setShowConnectAccountsModal(false) }}
+        onNext={() => { setShowConnectAccountsModal(false) }}
         buttonText="Schedule Post"
         scheduleData={scheduleData}
         onCreatePost={() => {
