@@ -8,6 +8,7 @@ import { ConnectedAccount, VideoData } from '@/types/post-types'
 import { API_CONFIG, getApiUrl, getAuthenticatedHeaders } from '@/lib/config'
 import ConnectWarningModal from './connect-warning-modal'
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
+import { useModalScrollLock } from '@/components/providers/ModalScrollLockProvider'
 
 interface ConnectAccountsModalProps {
   isOpen: boolean
@@ -26,6 +27,9 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
   const [showWarningModal, setShowWarningModal] = useState(false)
   const [selectedPlatform, setSelectedPlatform] = useState<{ id: string; name: string } | null>(null)
   
+  // Use global modal scroll lock
+  const { openModal, closeModal } = useModalScrollLock()
+
   const {
     connectedAccounts,
     availablePlatforms,
@@ -62,7 +66,17 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
     }
   }, [socket, onScheduleCreated])
 
-
+  useEffect(() => {
+    if (isOpen) {
+      openModal()
+    } else {
+      closeModal()
+    }
+    
+    return () => {
+      closeModal()
+    }
+  }, [isOpen, openModal, closeModal])
 
 
   const handleConnectClick = (platformId: string, platformName: string) => {

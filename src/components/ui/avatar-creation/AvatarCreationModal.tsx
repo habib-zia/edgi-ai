@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useModalScrollLock } from '@/hooks/useModalScrollLock'
 import Step2ChooseType from './steps/Step2ChooseType'
 import Step5QRCode from './steps/Step5QRCode'
 import Step6PhotoInstructions from './steps/Step6PhotoInstructions'
@@ -47,19 +48,8 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     avatarType: null
   })
 
-    // Prevent body scroll when modal is open
-    useEffect(() => {
-      if (isOpen) {
-        document.body.style.overflow = 'hidden'
-      } else {
-        document.body.style.overflow = 'unset'
-      }
-  
-      // Cleanup function to reset overflow when component unmounts
-      return () => {
-        document.body.style.overflow = 'unset'
-      }
-    }, [isOpen])
+  // Lock body scroll when modal is open (handles multiple modals globally)
+  useModalScrollLock(isOpen)
 
   const handleNext = () => {
     // For digital-twin: Close modal after step 4 (VideoAvatarStep1)
