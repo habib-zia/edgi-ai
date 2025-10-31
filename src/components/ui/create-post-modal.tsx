@@ -125,7 +125,7 @@ export default function CreatePostModal({
             {isSubmitting ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                Posting...
+                Scheduling...
               </>
             ) : validationErrors.length > 0 ? (
               'Continue'

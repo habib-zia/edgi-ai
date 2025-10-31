@@ -31,7 +31,6 @@ import { createVideoSchema, type CreateVideoFormData } from './form-validation-s
 import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
-import RealEstateValidationError from './real-estate-validation-error'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
 
 const promptOptions = [
@@ -737,17 +736,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         title: {
           avatar_id: selectedAvatars.title.avatar_id,
           avatar_name: selectedAvatars.title.avatar_name || selectedAvatars.title.name || '',
-          preview_image_url: selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || ''
+          preview_image_url: selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || '',
+          avatarType: selectedAvatars.conclusion.avatarType || (selectedAvatars.title.preview_video_url ? 'video_avatar' : 'photo_avatar')
         },
         body: {
           avatar_id: selectedAvatars.body.avatar_id,
           avatar_name: selectedAvatars.body.avatar_name || selectedAvatars.body.name || '',
-          preview_image_url: selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || ''
+          preview_image_url: selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || '',
+          avatarType: selectedAvatars.conclusion.avatarType || (selectedAvatars.body.preview_video_url ? 'video_avatar' : 'photo_avatar')
         },
         conclusion: {
           avatar_id: selectedAvatars.conclusion.avatar_id,
           avatar_name: selectedAvatars.conclusion.avatar_name || selectedAvatars.conclusion.name || '',
-          preview_image_url: selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || ''
+          preview_image_url: selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || '',
+          avatarType: selectedAvatars.conclusion.avatarType || (selectedAvatars.conclusion.preview_video_url ? 'video_avatar' : 'photo_avatar')
         }
       }
       
@@ -818,10 +820,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           selectedAvatars.body?.avatar_id || '',
           selectedAvatars.conclusion?.avatar_id || ''
         ].filter(id => id !== ''), // Filter out empty strings
-        // Add the three selected avatars separately
-        titleAvatar: selectedAvatars.title?.avatar_id || '',
-        bodyAvatar: selectedAvatars.body?.avatar_id || '',
-        conclusionAvatar: selectedAvatars.conclusion?.avatar_id || '',
+        // Add the three selected avatars separately with avatar_id and avatarType in single structure
+        titleAvatar: {
+          avatar_id: selectedAvatars.title?.avatar_id || '',
+          avatarType: selectedAvatars.title?.avatarType || (selectedAvatars.title?.preview_video_url ? 'video_avatar' : 'photo_avatar')
+        },
+        bodyAvatar: {
+          avatar_id: selectedAvatars.body?.avatar_id || '',
+          avatarType: selectedAvatars.body?.avatarType || (selectedAvatars.body?.preview_video_url ? 'video_avatar' : 'photo_avatar')
+        },
+        conclusionAvatar: {
+          avatar_id: selectedAvatars.conclusion?.avatar_id || '',
+          avatarType: selectedAvatars.conclusion?.avatarType || (selectedAvatars.conclusion?.preview_video_url ? 'video_avatar' : 'photo_avatar')
+        },
         name: data.name,
         position: data.position,
         companyName: data.companyName,
@@ -1197,15 +1208,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           </div>
         </div>
         <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
-        
-        {/* Display real estate validation error */}
-        {keyPointsError && (
-          <RealEstateValidationError
-            message={keyPointsError}
-            onClose={() => setRealEstateValidationError(null)}
-          />
-        )}
-        
          <SubmitButton
            isLoading={isLoading}
            disabled={

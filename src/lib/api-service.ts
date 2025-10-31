@@ -86,6 +86,7 @@ export interface Avatar {
   age_group?: string;
   createdAt?: string;
   updatedAt?: string;
+  avatarType?: 'video_avatar' | 'photo_avatar';
 }
 
 export interface AvatarsResponse {
