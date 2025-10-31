@@ -737,13 +737,13 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           avatar_id: selectedAvatars.title.avatar_id,
           avatar_name: selectedAvatars.title.avatar_name || selectedAvatars.title.name || '',
           preview_image_url: selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || '',
-          avatarType: selectedAvatars.conclusion.avatarType || (selectedAvatars.title.preview_video_url ? 'video_avatar' : 'photo_avatar')
+          avatarType: selectedAvatars.title.avatarType || (selectedAvatars.title.preview_video_url ? 'video_avatar' : 'photo_avatar')
         },
         body: {
           avatar_id: selectedAvatars.body.avatar_id,
           avatar_name: selectedAvatars.body.avatar_name || selectedAvatars.body.name || '',
           preview_image_url: selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || '',
-          avatarType: selectedAvatars.conclusion.avatarType || (selectedAvatars.body.preview_video_url ? 'video_avatar' : 'photo_avatar')
+          avatarType: selectedAvatars.body.avatarType || (selectedAvatars.body.preview_video_url ? 'video_avatar' : 'photo_avatar')
         },
         conclusion: {
           avatar_id: selectedAvatars.conclusion.avatar_id,

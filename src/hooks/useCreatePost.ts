@@ -188,7 +188,7 @@ export const useCreatePost = ({
     e.preventDefault()
     
     // Re-validate before submission to check current time in user's timezone
-    let errors = validateForm()
+    const errors = validateForm()
     
     // Additional validation: Check if selected time is at least 20 minutes from now (for today only)
     if (date === minDate && time) {
