@@ -133,8 +133,30 @@ export const useCreatePost = ({
     // Validate time
     if (!time || time.trim() === '') {
       errors.push('Time is required')
-    } else if (date === minDate && time < minTimeForToday) {
-      errors.push('Cannot select a time less than 20 minutes from now for today')
+    } else if (date === minDate) {
+      // Check if selected time is at least 20 minutes from current time in user's timezone
+      const formattedTime = time.includes(':') && time.split(':').length === 2 
+        ? `${time}:00` 
+        : time;
+      
+      // Create selected date-time in user's local timezone
+      const [hours, minutes, seconds = 0] = formattedTime.split(':').map(Number)
+      const [year, month, day] = date.split('-').map(Number)
+      const selectedDateTime = new Date(year, month - 1, day, hours, minutes, seconds)
+      
+      // Get current time in user's local timezone
+      const now = new Date()
+      
+      // Calculate time difference in minutes
+      const timeDifference = selectedDateTime.getTime() - now.getTime()
+      const minutesDifference = timeDifference / (60 * 1000)
+      
+      // Require at least 20 minutes difference
+      if (minutesDifference < 19) {
+        const minTime = new Date(now.getTime() + 20 * 60 * 1000)
+        const minTimeString = minTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        errors.push(`Please select a time at least 20 minutes from now. Minimum time should be ${minTimeString}`)
+      }
     }
 
     // Caption validation removed - using empty string
@@ -154,7 +176,7 @@ export const useCreatePost = ({
     }
 
     return errors
-  }, [date, time, selectedAccountIds, video, minDate, minTime])
+  }, [date, time, selectedAccountIds, video, minDate])
 
   // Real-time validation
   useEffect(() => {
@@ -165,8 +187,43 @@ export const useCreatePost = ({
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Re-validate before submission to check current time in user's timezone
+    const errors = validateForm()
+    
+    // Additional validation: Check if selected time is at least 20 minutes from now (for today only)
+    if (date === minDate && time) {
+      const formattedTime = time.includes(':') && time.split(':').length === 2 
+        ? `${time}:00` 
+        : time;
+      
+      // Create selected date-time in user's local timezone
+      const [hours, minutes, seconds = 0] = formattedTime.split(':').map(Number)
+      const [year, month, day] = date.split('-').map(Number)
+      const selectedDateTime = new Date(year, month - 1, day, hours, minutes, seconds)
+      
+      // Get current time in user's local timezone
+      const now = new Date()
+      
+      // Calculate time difference in minutes
+      const timeDifference = selectedDateTime.getTime() - now.getTime()
+      const minutesDifference = timeDifference / (60 * 1000)
+      
+      // If less than 20 minutes, add error
+      if (minutesDifference < 19) {
+        const minTime = new Date(now.getTime() + 20 * 60 * 1000)
+        const minTimeString = minTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const errorMsg = `Please select a time at least 20 minutes from now. Minimum time should be ${minTimeString}`
+        if (!errors.includes(errorMsg)) {
+          errors.push(errorMsg)
+        }
+      }
+    }
+    
+    // Update validation errors state
+    setValidationErrors(errors)
+    
     // Check if there are any validation errors
-    if (validationErrors.length > 0) {
+    if (errors.length > 0) {
       return // Don't submit if there are validation errors
     }
 
@@ -176,27 +233,28 @@ export const useCreatePost = ({
 
     try {
       // Format time to include seconds
-      // const formattedTime = time.includes(':') && time.split(':').length === 2 
-      //   ? `${time}:00` 
-      //   : time
-        const formattedTime = time.includes(':') && time.split(':').length === 2 
+      const formattedTime = time.includes(':') && time.split(':').length === 2 
         ? `${time}:00` 
         : time;
       
-      // Combine with today's date (local)
-      const localDate = new Date();
-      const [hours, minutes, seconds] = formattedTime.split(':').map(Number);
-      localDate.setHours(hours, minutes, seconds || 0, 0);
+      // Create local date-time from selected date and time
+      // Format: YYYY-MM-DDTHH:mm:ss (local timezone)
+      const localDateTime = `${date}T${formattedTime}`;
+      const localDate = new Date(localDateTime);
       
       // Convert to UTC ISO string
       const utcTime = localDate.toISOString();
       
+      // Extract UTC date and time (date might have changed if timezone offset moves to previous day)
+      // e.g., if local is Nov 1 4:30 AM and timezone is UTC+5, UTC will be Oct 31 11:30 PM
+      const utcDate = utcTime.split('T')[0]; // YYYY-MM-DD format
       const timeOnly = utcTime.split('T')[1].split('.')[0];
+      
       const requestBody = {
         accountIds: selectedAccountIds,
         name: video.title || '',
         videoUrl: video.videoUrl || video.url || '',
-        date: date,
+        date: utcDate, // Use UTC date which may have shifted
         time: timeOnly,
         caption: 'Caption',
         userId: userId,
@@ -294,7 +352,7 @@ export const useCreatePost = ({
     } finally {
       setIsSubmitting(false)
     }
-  }, [validationErrors, time, selectedAccountIds, video, date, caption, userId, selectedAccounts, onPost])
+  }, [validateForm, date, time, selectedAccountIds, video, caption, userId, selectedAccounts, onPost, minDate])
 
   const handleClose = useCallback(() => {
     setDate('')

@@ -1,11 +1,24 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { X } from 'lucide-react'
-import { CreatePostModalProps } from '@/types/post-types'
+import { CreatePostModalProps, ConnectedAccount } from '@/types/post-types'
 import { useCreatePost } from '@/hooks/useCreatePost'
 import AccountSelection from './account-selection'
 import DatePicker from '../scheduled-post/DatePicker'
+
+// Helper function to map account type to caption field name
+const getCaptionFieldName = (accountType: string): 'instagram_caption' | 'facebook_caption' | 'linkedin_caption' | 'twitter_caption' | 'tiktok_caption' | 'youtube_caption' | null => {
+  const typeMap: Record<string, 'instagram_caption' | 'facebook_caption' | 'linkedin_caption' | 'twitter_caption' | 'tiktok_caption' | 'youtube_caption'> = {
+    'instagram.api': 'instagram_caption',
+    'facebook.page': 'facebook_caption',
+    'linkedin.profile': 'linkedin_caption',
+    'twitter.profile': 'twitter_caption',
+    'tiktok.profile': 'tiktok_caption',
+    'google.youtube': 'youtube_caption'
+  }
+  return typeMap[accountType] || null
+}
 
 export default function CreatePostModal({ 
   isOpen, 
@@ -14,6 +27,45 @@ export default function CreatePostModal({
   selectedAccounts, 
   video 
 }: CreatePostModalProps) {
+  // State to manage captions per account (by account ID)
+  const [accountCaptions, setAccountCaptions] = useState<Record<number, string>>({})
+
+  // Initialize captions from video's socialMediaCaptions
+  useEffect(() => {
+    if (video?.socialMediaCaptions && selectedAccounts.length > 0) {
+      const initialCaptions: Record<number, string> = {}
+      
+      selectedAccounts.forEach((account) => {
+        const captionField = getCaptionFieldName(account.type)
+        if (captionField && video.socialMediaCaptions?.[captionField]) {
+          initialCaptions[account.id] = video.socialMediaCaptions[captionField] || ''
+        }
+      })
+      
+      setAccountCaptions(initialCaptions)
+    }
+  }, [video?.socialMediaCaptions, selectedAccounts])
+
+  // Handle caption update
+  const handleCaptionUpdate = useCallback((accountId: number, caption: string) => {
+    setAccountCaptions((prev) => ({
+      ...prev,
+      [accountId]: caption
+    }))
+
+    // Also update the video's socialMediaCaptions if video prop is mutable
+    if (video) {
+      const account = selectedAccounts.find((acc) => acc.id === accountId)
+      if (account) {
+        const captionField = getCaptionFieldName(account.type)
+        if (captionField && video.socialMediaCaptions) {
+          // Update the caption in video's socialMediaCaptions
+          (video.socialMediaCaptions as any)[captionField] = caption
+        }
+      }
+    }
+  }, [video, selectedAccounts])
+
   const {
     date,
     setDate,
@@ -92,6 +144,8 @@ export default function CreatePostModal({
             selectedAccountIds={matchedSelectedAccounts?.map(account => account.id) || selectedAccountIds}
             isSubmitting={isSubmitting}
             onAccountToggle={handleAccountToggle}
+            accountCaptions={accountCaptions}
+            onCaptionUpdate={handleCaptionUpdate}
           />
           {video && (
             <div>
@@ -125,7 +179,7 @@ export default function CreatePostModal({
             {isSubmitting ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                Posting...
+                Scheduling...
               </>
             ) : validationErrors.length > 0 ? (
               'Continue'
