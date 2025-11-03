@@ -6,6 +6,7 @@ export interface SelectedAvatar {
   avatar_id: string
   avatar_name: string
   preview_image_url: string
+  avatarType?: 'video_avatar' | 'photo_avatar'
 }
 
 export interface SelectedAvatars {

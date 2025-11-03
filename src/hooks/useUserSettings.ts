@@ -6,9 +6,9 @@ import { API_CONFIG, getApiUrl, getAuthenticatedHeaders } from '@/lib/config'
 interface UserSettings {
   prompt: string
   avatar: string | string[]
-  titleAvatar?: string
-  bodyAvatar?: string
-  conclusionAvatar?: string
+  titleAvatar?: string | { avatar_id: string; avatarType?: 'video_avatar' | 'photo_avatar' }
+  bodyAvatar?: string | { avatar_id: string; avatarType?: 'video_avatar' | 'photo_avatar' }
+  conclusionAvatar?: string | { avatar_id: string; avatarType?: 'video_avatar' | 'photo_avatar' }
   name: string
   position: string
   companyName: string
@@ -118,13 +118,23 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
                 }
               }
             } else if (settings.titleAvatar || settings.bodyAvatar || settings.conclusionAvatar) {
-              // Fallback: individual avatar IDs (legacy support)
-              const titleAvatar = settings.titleAvatar ? 
-                [...avatars.custom, ...avatars.default].find(avatar => avatar.avatar_id === settings.titleAvatar) : null
-              const bodyAvatar = settings.bodyAvatar ? 
-                [...avatars.custom, ...avatars.default].find(avatar => avatar.avatar_id === settings.bodyAvatar) : null
-              const conclusionAvatar = settings.conclusionAvatar ? 
-                [...avatars.custom, ...avatars.default].find(avatar => avatar.avatar_id === settings.conclusionAvatar) : null
+              // Fallback: individual avatar IDs (legacy support) or new structure with avatar_id and avatarType
+              const getAvatarId = (avatar: string | { avatar_id: string; avatarType?: 'video_avatar' | 'photo_avatar' } | undefined): string => {
+                if (!avatar) return ''
+                if (typeof avatar === 'string') return avatar
+                return avatar.avatar_id || ''
+              }
+              
+              const titleAvatarId = getAvatarId(settings.titleAvatar)
+              const bodyAvatarId = getAvatarId(settings.bodyAvatar)
+              const conclusionAvatarId = getAvatarId(settings.conclusionAvatar)
+              
+              const titleAvatar = titleAvatarId ? 
+                [...avatars.custom, ...avatars.default].find(avatar => avatar.avatar_id === titleAvatarId) : null
+              const bodyAvatar = bodyAvatarId ? 
+                [...avatars.custom, ...avatars.default].find(avatar => avatar.avatar_id === bodyAvatarId) : null
+              const conclusionAvatar = conclusionAvatarId ? 
+                [...avatars.custom, ...avatars.default].find(avatar => avatar.avatar_id === conclusionAvatarId) : null
 
               setSelectedAvatars({
                 title: titleAvatar,
@@ -202,11 +212,25 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
     setSavingUserSettings(true)
     try {
       // Create a clean payload with proper array (matching curl request format)
+      // Handle new structure: avatar fields can be objects with avatar_id and avatarType
+      const getAvatarId = (avatar: string | { avatar_id: string; avatarType?: 'video_avatar' | 'photo_avatar' } | undefined): string => {
+        if (!avatar) return ''
+        if (typeof avatar === 'string') return avatar
+        return avatar.avatar_id || ''
+      }
+      
       const cleanPayload = {
         prompt: userSettingsData.prompt,
         avatar: Array.isArray(userSettingsData.avatar) ? userSettingsData.avatar : [],
-        titleAvatar: userSettingsData.titleAvatar || '',
-        conclusionAvatar: userSettingsData.conclusionAvatar || '',
+        titleAvatar: typeof userSettingsData.titleAvatar === 'object' && userSettingsData.titleAvatar !== null
+          ? userSettingsData.titleAvatar
+          : getAvatarId(userSettingsData.titleAvatar),
+        bodyAvatar: typeof userSettingsData.bodyAvatar === 'object' && userSettingsData.bodyAvatar !== null
+          ? userSettingsData.bodyAvatar
+          : getAvatarId(userSettingsData.bodyAvatar),
+        conclusionAvatar: typeof userSettingsData.conclusionAvatar === 'object' && userSettingsData.conclusionAvatar !== null
+          ? userSettingsData.conclusionAvatar
+          : getAvatarId(userSettingsData.conclusionAvatar),
         name: userSettingsData.name,
         position: userSettingsData.position,
         companyName: userSettingsData.companyName,
