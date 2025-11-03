@@ -1,5 +1,6 @@
 import React from 'react'
 import { X, Trash2 } from 'lucide-react'
+import { useModalScrollLock } from '@/hooks/useModalScrollLock'
 
 interface ScheduleDeleteModalProps {
     isOpen: boolean
@@ -8,10 +9,12 @@ interface ScheduleDeleteModalProps {
 }
 
 export default function ScheduleDeleteModal({ isOpen, onClose, onConfirm }: ScheduleDeleteModalProps) {
+    useModalScrollLock(isOpen)
+
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-6 max-w-xl w-full mx-4 relative">
                 <button
                     onClick={onClose}

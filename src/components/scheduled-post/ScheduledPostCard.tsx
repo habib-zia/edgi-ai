@@ -4,6 +4,7 @@ import { FaClock, FaChevronDown } from "react-icons/fa6";
 import EditPostModal from "./EditPostModal";
 import { apiService } from "@/lib/api-service";
 import { getPlatformIcon } from "../report-analytics/PlatformIcon";
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
 interface ScheduledPost {
   id: string;
@@ -41,6 +42,8 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const platformOptions = ['Instagram', 'Facebook', 'LinkedIn', 'X', 'TikTok', 'YouTube'];
+
+  useModalScrollLock(isEditModalOpen || isDeleteModalOpen)
 
   const formatDate = (dateString: string) => {
     if (!dateString) return dateString;
@@ -366,7 +369,7 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
 
     {/* Delete Confirmation Modal */}
     {isDeleteModalOpen && (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4">
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[70] p-4">
         <div className="bg-white rounded-xl max-w-md w-full">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">

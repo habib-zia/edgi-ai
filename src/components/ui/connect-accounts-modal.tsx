@@ -237,7 +237,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[600px] xl:h-fit md:h-full overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[550px] xl:h-fit md:h-full overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between md:p-6 p-4 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-black">Connect accounts</h2>

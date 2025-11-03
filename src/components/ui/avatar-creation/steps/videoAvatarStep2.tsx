@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowLeft } from 'lucide-react'
 import ConsentScript from "./components/ConsentScript";
 import ErrorDisplay from "./components/ErrorDisplay";
 import UploadArea from "./components/UploadArea";
@@ -21,11 +22,12 @@ interface AvatarData {
 
 interface VideoAvatarStep2Props {
   onNext: () => void
+  onBack?: () => void
   avatarData: AvatarData
   setAvatarData: (data: AvatarData) => void
 }
 
-export default function VideoAvatarStep2({ onNext, avatarData, setAvatarData }: VideoAvatarStep2Props) {
+export default function VideoAvatarStep2({ onNext, onBack, avatarData, setAvatarData }: VideoAvatarStep2Props) {
   const {
     // Refs
     videoRef,
@@ -178,18 +180,29 @@ export default function VideoAvatarStep2({ onNext, avatarData, setAvatarData }: 
           )}
         </div>
 
-        {/* Continue Button */}
-        <button
-          onClick={() => handleContinue(onNext)}
-          disabled={!canProceed}
-          className={`px-8 py-[11.3px] font-semibold text-[20px] mt-12 rounded-full transition-all duration-300 w-full border-2 ${
-            canProceed
-              ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
-              : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
-          }`}
-        >
-          {isProcessing ? 'Processing...' : 'Continue'}
-        </button>
+        {/* Navigation Buttons */}
+        <div className="flex flex-col gap-2 mt-12 w-full">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          )}
+          <button
+            onClick={() => handleContinue(onNext)}
+            disabled={!canProceed}
+            className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
+              canProceed
+                ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
+                : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
+            }`}
+          >
+            {isProcessing ? 'Processing...' : 'Continue'}
+          </button>
+        </div>
       </div>
     </div>
   );

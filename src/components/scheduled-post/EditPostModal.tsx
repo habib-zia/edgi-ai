@@ -11,6 +11,8 @@ import {
   isPostScheduledSoon, 
   getCleanDate 
 } from '@/utils/dateTimeUtils';
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -64,6 +66,9 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   const [timeAdjustmentMessage, setTimeAdjustmentMessage] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  useModalScrollLock(isOpen)
+
 
   // Get current date and time for restrictions
   const minDate = getCurrentDate();

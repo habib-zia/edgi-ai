@@ -4,11 +4,11 @@ import React, { useEffect, useState } from "react";
 import { FaLink, FaClock } from "react-icons/fa6";
 import PostCard from "./PostCard";
 import Link from "next/link";
-import ConnectAccountsModal from "../ui/connect-accounts-modal";
 import { useRecentPosts } from "@/hooks/useRecentPosts";
 import { recentPostsData } from "./SocialData";
 import apiService from "@/lib/api-service";
 import { emptyPlatformIcon, getPlatformIcon } from "./PlatformIcon";
+import ConnectAccountsModal from "../ui/connect-accounts-modal";
 
 interface RecentPostsProps {
   selectedPlatform: string;

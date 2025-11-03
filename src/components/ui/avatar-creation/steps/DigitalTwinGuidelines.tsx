@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Pause, Volume2, VolumeX, ArrowRight, CheckCircle, Mic, Camera, Grid3X3, Hand } from 'lucide-react'
+import { Play, Pause, Volume2, VolumeX, ArrowRight, CheckCircle, Mic, Camera, Grid3X3, Hand, ArrowLeft } from 'lucide-react'
 import VideoCard from './VideoCard'
 
 interface DigitalTwinGuidelinesProps {
@@ -154,7 +154,7 @@ export default function DigitalTwinGuidelines({ onNext, onBack }: DigitalTwinGui
             )
           })}
         </div>
-        <div className="w-full lg:w-1/2 p-4 lg:p-8 order-2 lg:order-1">
+        <div className="w-full lg:w-1/2 order-2 lg:order-1">
           <div className="space-y-6">
             {guidelines.map((guideline, index) => {
               const IconComponent = guideline.icon
@@ -182,16 +182,20 @@ export default function DigitalTwinGuidelines({ onNext, onBack }: DigitalTwinGui
           </div>
         </div>
       </div>
-      <div className="p-6">
-        <div className="flex justify-center">
+      <div className="px-6 pt-4">
+        <div className="flex flex-col gap-2 justify-between">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
           <button
             onClick={onNext}
-            disabled={!allVideosWatched}
-            className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 w-full ${
-              allVideosWatched
-                ? 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] cursor-pointer'
-                : 'bg-[#D1D5DB] text-[#9CA3AF] border-2 border-[#D1D5DB] cursor-not-allowed'
-            }`}
+            // disabled={!allVideosWatched}
+            className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 w-full bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] cursor-pointer
+            `}
           >
             Next
           </button>
