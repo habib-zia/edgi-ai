@@ -13,6 +13,8 @@ import VideoAvatarStep2 from './steps/videoAvatarStep2'
 import VideoAvatarStep4 from './steps/videoAvatarStep4'
 import VideoAvatarStep5 from './steps/videoAvatarStep5'
 import DigitalTwinGuidelines from './steps/DigitalTwinGuidelines'
+import TrainingVideoUpload from './steps/TrainingVideoUpload'
+import ConsentVideoUpload from './steps/ConsentVideoUpload'
 
 export type AvatarType = 'digital-twin' | 'photo-avatar'
 
@@ -51,13 +53,8 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
   useModalScrollLock(isOpen)
 
   const handleNext = () => {
-    // For digital-twin: Close modal after step 4 (VideoAvatarStep1)
-    if (selectedAvatarType === 'digital-twin' && currentStep === 4) {
-      handleClose()
-      return
-    }
-    
-    // For other cases: Normal progression through steps
+    // For digital-twin: Progress normally through steps 4 (TrainingVideoUpload) → 5 (ConsentVideoUpload)
+    // The modal will close after consent video is uploaded and avatar is created
     setCurrentStep(prev => prev + 1)
   }
 
@@ -145,7 +142,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 4:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep1 onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <TrainingVideoUpload onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step7PhotoUpload 
@@ -159,7 +156,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 5:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep2 onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <ConsentVideoUpload onNext={handleNext} onBack={handleBack} onClose={handleAvatarCreationSuccess} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step8Details 
