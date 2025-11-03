@@ -118,6 +118,7 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                   poster={avatarData.previewImageUrl}
                   className="w-full h-[400px] object-cover"
                   muted={isVideoMuted}
+                  controls={true}
                   onTimeUpdate={handleVideoTimeUpdate}
                   onLoadedMetadata={handleVideoLoadedMetadata}
                   onPlay={() => handleVideoPlayStateChange(true)}
@@ -125,18 +126,6 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                 >
                   Your browser does not support the video tag.
                 </video>
-                <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                  <button
-                    onClick={handleVideoPlay}
-                    className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-all duration-200"
-                  >
-                    {isVideoPlaying ? (
-                      <Pause className="w-8 h-8 text-white" />
-                    ) : (
-                      <Play className="w-8 h-8 text-white ml-1" />
-                    )}
-                  </button>
-                </div>
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-30">
                   <div
                     className="h-full bg-[#5046E5] transition-all duration-300"

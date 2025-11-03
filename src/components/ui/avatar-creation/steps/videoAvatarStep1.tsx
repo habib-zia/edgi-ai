@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { useVideoUpload } from "../../../../hooks/useVideoUpload";
 import { apiService } from "../../../../lib/api-service";
@@ -23,19 +23,84 @@ interface VideoAvatarStep1Props {
   setAvatarData: (data: AvatarData) => void
 }
 
-
-
 export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatarData }: VideoAvatarStep1Props) {
   const [avatarName, setAvatarName] = useState(avatarData.name || '');
   const [isCreating, setIsCreating] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<'training' | 'consent'>('training');
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debug error message changes
-  console.log('🔍 Current error message:', errorMessage);
+  useEffect(() => {
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    if (countdown !== null && countdown > 0) {
+      countdownIntervalRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            if (countdownIntervalRef.current) {
+              clearInterval(countdownIntervalRef.current);
+              countdownIntervalRef.current = null;
+            }
+            onNext();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
+  }, [countdown, onNext]);
 
   const consentUpload = useVideoUpload();
   const trainingUpload = useVideoUpload();
+  const trainingRestoredRef = useRef(false);
+  const consentRestoredRef = useRef(false);
+
+  const restoreTrainingVideo = useCallback(() => {
+    const { uploadState, handleFileSelect } = trainingUpload;
+    if (avatarData.videoFile && !uploadState.preview && !uploadState.isValidating && !trainingRestoredRef.current) {
+      handleFileSelect(avatarData.videoFile, 'training');
+      trainingRestoredRef.current = true;
+    }
+    if (!avatarData.videoFile) {
+      trainingRestoredRef.current = false;
+    }
+  }, [avatarData.videoFile, trainingUpload]);
+
+  const restoreConsentVideo = useCallback(() => {
+    const { uploadState, handleFileSelect } = consentUpload;
+    if (avatarData.consentVideoFile && !uploadState.preview && !uploadState.isValidating && !consentRestoredRef.current) {
+      handleFileSelect(avatarData.consentVideoFile, 'consent');
+      consentRestoredRef.current = true;
+    }
+    if (!avatarData.consentVideoFile) {
+      consentRestoredRef.current = false;
+    }
+  }, [avatarData.consentVideoFile, consentUpload]);
+  useEffect(() => {
+    restoreTrainingVideo();
+  }, [restoreTrainingVideo]);
+  useEffect(() => {
+    restoreConsentVideo();
+  }, [restoreConsentVideo]);
 
   const handleAvatarNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
@@ -67,6 +132,22 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
     setAvatarData({ ...avatarData, videoFile: null });
   };
 
+  const handleTrainingDrop = (e: React.DragEvent) => {
+    trainingUpload.handleDrop(e, 'training');
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      setAvatarData({ ...avatarData, videoFile: files[0] });
+    }
+  };
+
+  const handleConsentDrop = (e: React.DragEvent) => {
+    consentUpload.handleDrop(e, 'consent');
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      setAvatarData({ ...avatarData, consentVideoFile: files[0] });
+    }
+  };
+
   const handleTrainingNext = () => {
     if (avatarData.videoFile && trainingUpload.uploadState.isValid && !trainingUpload.uploadState.isValidating && avatarName.trim().length > 0) {
       setCurrentStep('consent');
@@ -80,31 +161,15 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
 
     setIsCreating(true);
     setErrorMessage(null);
+    setCountdown(40);
     
-    try {
-      const response = await apiService.createVideoAvatar(
-        avatarData.videoFile,
-        avatarData.consentVideoFile,
-        avatarName
-      );
-
-        if (response.success) {
-          setTimeout(async () => {
-            setIsCreating(false);
-            window.location.reload();
-          }, 5000)
-
-      } else {
-        setIsCreating(false);
-        console.error('❌ Failed to create video avatar:', response.message);
-        console.log('🔍 Setting error message:', response.message);
-        setErrorMessage(response.message || 'Failed to create video avatar');
-      }
-    } catch (error) {
-      setIsCreating(false);
+    apiService.createVideoAvatar(
+      avatarData.videoFile,
+      avatarData.consentVideoFile,
+      avatarName
+    ).catch((error) => {
       console.error('❌ Error creating video avatar:', error);
-      setErrorMessage('An unexpected error occurred. Please try again.');
-    }
+    });
   };
 
   const canProceedTraining = avatarData.videoFile && trainingUpload.uploadState.isValid && !trainingUpload.uploadState.isValidating && avatarName.trim().length > 0;
@@ -141,11 +206,16 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
             <div className="w-full max-w-2xl">
               <h3 className="text-[18px] font-semibold text-[#101010] mb-4">Drag and drop training video</h3>
               <div
-                className={`border-[2px] rounded-[8px] p-8 border-dashed transition-all min-h-[300px] duration-300 ${trainingUpload.getBorderClasses('training')}`}
+                className={`border-[2px] rounded-[8px] p-8 border-dashed transition-all min-h-[300px] duration-300 ${trainingUpload.getBorderClasses('training')} ${!avatarData.videoFile ? 'cursor-pointer' : ''}`}
                 onDragEnter={(e) => trainingUpload.handleDragEnter(e, 'training')}
                 onDragLeave={trainingUpload.handleDragLeave}
                 onDragOver={trainingUpload.handleDragOver}
-                onDrop={(e) => trainingUpload.handleDrop(e, 'training')}
+                onDrop={handleTrainingDrop}
+                onClick={() => {
+                  if (!avatarData.videoFile) {
+                    trainingUpload.fileInputRef.current?.click();
+                  }
+                }}
               >
                 {!avatarData.videoFile ? (
                   <div className="flex flex-col items-center justify-center gap-6 h-full">
@@ -157,7 +227,10 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
                         MP4 or MOV format, 2-3 minutes, minimum 720p
                       </p>
                       <button
-                        onClick={() => trainingUpload.fileInputRef.current?.click()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          trainingUpload.fileInputRef.current?.click();
+                        }}
                         className="text-[#6366F1] font-normal transition-colors duration-300 hover:text-[#5046E5] text-[16px]"
                       >
                         Browse local files
@@ -236,17 +309,28 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
               </div>
             </div>
 
-            <button
-              onClick={handleTrainingNext}
-              disabled={!canProceedTraining}
-              className={`px-8 py-[11.3px] font-semibold text-[20px] mt-12 rounded-full transition-all duration-300 w-full max-w-md border-2 ${
-                canProceedTraining
-                  ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
-                  : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
-              }`}
-            >
-              {trainingUpload.uploadState.isValidating ? 'Validating...' : 'Next'}
-            </button>
+            <div className="flex flex-col gap-2 mt-12 w-full max-w-md">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </button>
+              )}
+              <button
+                onClick={handleTrainingNext}
+                disabled={!canProceedTraining}
+                className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
+                  canProceedTraining
+                    ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
+                    : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
+                }`}
+              >
+                {trainingUpload.uploadState.isValidating ? 'Validating...' : 'Next'}
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -270,11 +354,16 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
               <div className="space-y-4">
                 <h3 className="text-[18px] font-semibold text-[#101010]">Drag and drop consent video</h3>
                 <div
-                  className={`border-[2px] rounded-[8px] p-8 border-dashed transition-all min-h-[300px] duration-300 ${consentUpload.getBorderClasses('consent')}`}
+                  className={`border-[2px] rounded-[8px] p-8 border-dashed transition-all min-h-[300px] duration-300 ${consentUpload.getBorderClasses('consent')} ${!avatarData.consentVideoFile ? 'cursor-pointer' : ''}`}
                   onDragEnter={(e) => consentUpload.handleDragEnter(e, 'consent')}
                   onDragLeave={consentUpload.handleDragLeave}
                   onDragOver={consentUpload.handleDragOver}
-                  onDrop={(e) => consentUpload.handleDrop(e, 'consent')}
+                  onDrop={handleConsentDrop}
+                  onClick={() => {
+                    if (!avatarData.consentVideoFile) {
+                      consentUpload.fileInputRef.current?.click();
+                    }
+                  }}
                 >
                   {!avatarData.consentVideoFile ? (
                     <div className="flex flex-col items-center justify-center gap-6 h-full">
@@ -286,7 +375,10 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
                           MP4 or MOV format, max 20 seconds, minimum 720p
                         </p>
                         <button
-                          onClick={() => consentUpload.fileInputRef.current?.click()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            consentUpload.fileInputRef.current?.click();
+                          }}
                           className="text-[#6366F1] font-normal transition-colors duration-300 hover:text-[#5046E5] text-[16px]"
                         >
                           Browse local files
@@ -380,17 +472,23 @@ export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatar
                   Back
                 </button>
               )}
-              <button
-                onClick={handleCreate}
-                disabled={!canProceedConsent || isCreating}
-                className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
-                  canProceedConsent && !isCreating
-                    ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
-                    : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
-                }`}
-              >
-                {isCreating ? 'Creating Avatar...' : consentUpload.uploadState.isValidating ? 'Validating...' : 'Create'}
-              </button>
+              {isCreating ? (
+                <p className="px-8 py-[11.3px] font-semibold text-[20px] text-center text-[#5F5F5F]">
+                Your avatar is being created and will be ready in about 25–35 seconds. You can close this window and continue exploring the site — we’ll notify you once your avatar is ready. {countdown !== null ? `Auto closing in ${countdown} seconds...` : ''}
+              </p>              
+              ) : (
+                <button
+                  onClick={handleCreate}  
+                  disabled={!canProceedConsent}
+                  className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
+                    canProceedConsent
+                      ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
+                      : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
+                  }`}
+                >
+                  {consentUpload.uploadState.isValidating ? 'Validating...' : 'Create'}
+                </button>
+              )}
             </div>
           </>
         )}
