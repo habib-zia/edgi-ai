@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ScheduledPostCard from "./ScheduledPostCard";
 import UpdateScheduleModal from "../ui/update-schedule-modal";
 import { useScheduledPosts } from "@/hooks/useScheduledPosts";
@@ -13,11 +13,12 @@ import { useSchedule } from "@/hooks/useSchedule";
 import ToggleButton from "../ui/toggle-button";
 import ManualScheduledPosts from "./ManualScheduledPosts";
 import { useManualPosts } from "@/hooks/useManualPosts";
+import { useUnifiedSocketContext } from "@/components/providers/UnifiedSocketProvider";
 
 export default function ScheduledPostsGrid() {
   const [isModalOpen, setIsModalOpen] = useState(false);  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [scheduleType, setScheduleType] = useState('manual');
+  const [scheduleType, setScheduleType] = useState('auto');
 
   const {
     scheduledPostsDurationData,
@@ -32,10 +33,29 @@ export default function ScheduledPostsGrid() {
 
   const { scheduleData, scheduleLoading, deleteSchedule } = useSchedule();
   const { posts: manualPosts, loading: manualPostsLoading } = useManualPosts();
+  
+  const { latestScheduleUpdate } = useUnifiedSocketContext();
+  
+  const lastRefreshedStatusRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchScheduledPosts();
   }, [fetchScheduledPosts]);
+
+  useEffect(() => {
+    if (latestScheduleUpdate && latestScheduleUpdate.status === 'ready') {
+      const scheduleId = latestScheduleUpdate.scheduleId;
+      const updateKey = `${scheduleId}-ready`;
+      
+      if (lastRefreshedStatusRef.current !== updateKey) {
+        lastRefreshedStatusRef.current = updateKey;
+        
+        setTimeout(() => {
+          refreshScheduledPosts();
+        }, 500);
+      }
+    }
+  }, [latestScheduleUpdate, refreshScheduledPosts]);
 
 
   const handleCloseModal = () => {

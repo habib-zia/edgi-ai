@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react";
-import { X, CheckCircle, AlertCircle } from "lucide-react";
+import { X, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { useVideoUpload } from "../../../../hooks/useVideoUpload";
 import { apiService } from "../../../../lib/api-service";
 
@@ -18,13 +18,14 @@ interface AvatarData {
 
 interface VideoAvatarStep1Props {
   onNext: () => void
+  onBack?: () => void
   avatarData: AvatarData
   setAvatarData: (data: AvatarData) => void
 }
 
 
 
-export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: VideoAvatarStep1Props) {
+export default function VideoAvatarStep1({ onNext, onBack, avatarData, setAvatarData }: VideoAvatarStep1Props) {
   const [avatarName, setAvatarName] = useState(avatarData.name || '');
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -369,17 +370,28 @@ export default function VideoAvatarStep1({ onNext, avatarData, setAvatarData }: 
                 <p className="text-red-600 text-[14px]">{errorMessage}</p>
               </div>
             )}
-            <button
-              onClick={handleCreate}
-              disabled={!canProceedConsent || isCreating}
-              className={`px-8 py-[11.3px] font-semibold text-[20px] mt-12 rounded-full transition-all duration-300 w-full max-w-md border-2 ${
-                canProceedConsent && !isCreating
-                  ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
-                  : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
-              }`}
-            >
-              {isCreating ? 'Creating Avatar...' : consentUpload.uploadState.isValidating ? 'Validating...' : 'Create'}
-            </button>
+            <div className="flex flex-col gap-2 mt-12 w-full max-w-md">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </button>
+              )}
+              <button
+                onClick={handleCreate}
+                disabled={!canProceedConsent || isCreating}
+                className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
+                  canProceedConsent && !isCreating
+                    ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
+                    : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
+                }`}
+              >
+                {isCreating ? 'Creating Avatar...' : consentUpload.uploadState.isValidating ? 'Validating...' : 'Create'}
+              </button>
+            </div>
           </>
         )}
       </div>

@@ -1,15 +1,18 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DatePicker from "./DatePicker";
 import TimePicker from "./TimePicker";
 import CaptionsTextarea from "./CaptionsTextarea";
 import CaptionsDropdown from "./CaptionsDropdown";
+import { apiService } from "@/lib/api-service";
 import { 
   getCurrentDate, 
   getMinTimeForToday, 
   isPostScheduledSoon, 
   getCleanDate 
 } from '@/utils/dateTimeUtils';
+import { useModalScrollLock } from "@/hooks/useModalScrollLock";
+
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -40,6 +43,7 @@ interface EditPostModalProps {
 }
 
 export default function EditPostModal({ isOpen, onClose, onEdit, postData }: EditPostModalProps) {
+  const originalVideoTopicRef = useRef<string>("");
 
   const [formData, setFormData] = useState({
     date: getCleanDate(postData?.date),
@@ -61,6 +65,10 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
   });
 
   const [timeAdjustmentMessage, setTimeAdjustmentMessage] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useModalScrollLock(isOpen)
+
 
   // Get current date and time for restrictions
   const minDate = getCurrentDate();
@@ -71,10 +79,13 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   useEffect(() => {
     if (postData) {
+      const initialVideoTopic = postData.videoTopic || "";
+      originalVideoTopicRef.current = initialVideoTopic;
+      
       setFormData({
         date: getCleanDate(postData.date),
         time: postData.time || "",
-        videoTopic: postData.videoTopic || "",
+        videoTopic: initialVideoTopic,
         captions: postData.captions || "",
         platform: postData.platform || "Youtube",
         instagram: typeof postData.captions === 'object' ? postData.captions?.instagram || "" : "",
@@ -178,30 +189,54 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUpdating(true);
     
-    const updateData = {
-      description: formData.videoTopic,
-      keypoints: formData.keypoints || '',
-      captions: {
-        instagram: formData.instagram || '',
-        facebook: formData.facebook || '',
-        linkedin: formData.linkedin || '',
-        twitter: formData.twitter || '',
-        tiktok: formData.tiktok || '',
-        youtube: formData.youtube || ''
-      },
-      scheduledFor: `${getCleanDate(formData.date)} ${formData.time}:00`
-    };
-    
-    if (onEdit) {
-      try {
+    try {
+      let updatedKeypoints = formData.keypoints || '';
+      
+      // Check if videoTopic has changed
+      const videoTopicChanged = formData.videoTopic.trim() !== originalVideoTopicRef.current.trim();
+      
+      if (videoTopicChanged && formData.videoTopic.trim()) {
+        // Call the trends API to get updated keypoints
+        try {
+          const trendsResponse = await apiService.getDescriptionKeypoints(formData.videoTopic.trim());
+          
+          if (trendsResponse.success && trendsResponse.data?.keypoints) {
+            updatedKeypoints = trendsResponse.data.keypoints;
+          } else {
+            console.warn('Failed to get keypoints from trends API, using existing keypoints');
+          }
+        } catch (error) {
+          console.error('Error fetching keypoints from trends API:', error);
+          // Continue with existing keypoints if API call fails
+        }
+      }
+      
+      const updateData = {
+        description: formData.videoTopic,
+        keypoints: updatedKeypoints,
+        captions: {
+          instagram: formData.instagram || '',
+          facebook: formData.facebook || '',
+          linkedin: formData.linkedin || '',
+          twitter: formData.twitter || '',
+          tiktok: formData.tiktok || '',
+          youtube: formData.youtube || ''
+        },
+        scheduledFor: `${getCleanDate(formData.date)} ${formData.time}:00`
+      };
+      
+      if (onEdit) {
         await onEdit(updateData);
         onClose();
-      } catch (error) {
-        console.error('Error updating post:', error);
+      } else {
+        onClose();
       }
-    } else {
-      onClose();
+    } catch (error) {
+      console.error('Error updating post:', error);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -309,14 +344,14 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
         <div className="px-6 pb-6 flex-shrink-0">
           <button
             onClick={handleSubmit}
-            disabled={isRestricted}
+            disabled={isRestricted || isUpdating}
             className={`w-full py-3 px-6 font-semibold rounded-full text-xl transition-colors duration-300 ${
-              isRestricted 
+              isRestricted || isUpdating
                 ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
                 : 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
             }`}
           >
-            {isRestricted ? 'Editing Restricted' : 'Updated'}
+            {isUpdating ? 'Updating post...' : isRestricted ? 'Editing Restricted' : 'Update'}
           </button>
         </div>
       </div>

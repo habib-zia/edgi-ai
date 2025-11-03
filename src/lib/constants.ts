@@ -16,6 +16,7 @@ export const NAVIGATION_ITEMS_MOBILE = [
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
   { label: "Contact", href: "#contact" },
+  { label: "Schedule Post", href: "/scheduled-post" },
   { label: "Report Analytics", href: "/report-analytics" },
 ];
 

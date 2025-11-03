@@ -11,6 +11,7 @@ import { useAvatarStorage } from '@/hooks/useAvatarStorage'
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
 import { useModalScrollLock } from '@/components/providers/ModalScrollLockProvider'
 
+
 interface CreateVideoModalProps {
   isOpen: boolean
   onClose: () => void

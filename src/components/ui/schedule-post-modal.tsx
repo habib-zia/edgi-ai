@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import { X, AlertCircle } from 'lucide-react'
+import { X, AlertCircle, Info } from 'lucide-react'
 import { useScheduleValidation } from '@/hooks/useScheduleValidation'
 import { type ScheduleData } from '@/types/post-types'
 import ScheduleInfoBanner from './schedule-info-banner'
@@ -141,14 +141,31 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
           const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1]
           
           if (selectedDay === currentDayName) {
+            // Get current local time
             const currentTime = new Date()
+            const currentHour = currentTime.getHours()
+            const currentMinute = currentTime.getMinutes()
+            
+            // Parse selected time (local time)
             const [selectedHour, selectedMinute] = newPosts[index].time.split(':').map(Number)
+            
+            // Create Date objects for comparison using local time
             const selectedTime = new Date()
             selectedTime.setHours(selectedHour, selectedMinute, 0, 0)
             
-            const minAllowedTime = new Date(currentTime.getTime() + 40 * 60 * 1000)
+            const currentTimeMs = new Date()
+            currentTimeMs.setHours(currentHour, currentMinute, 0, 0)
+            const minAllowedTime = new Date(currentTimeMs.getTime() + 40 * 60 * 1000)
             
-            if (selectedTime < minAllowedTime) {
+            // Check if selected time is 40+ minutes from current local time
+            if (selectedTime >= minAllowedTime) {
+              // Use today's date if time is 40+ minutes away
+              const todayDateStr = today.toISOString().split('T')[0]
+              newPosts[index].date = todayDateStr
+              newPosts[index]._isNextWeek = false
+              console.log('✅ Setting date to today (day selected with existing time):', todayDateStr)
+            } else {
+              // Use next week's date if time is less than 40 minutes away
               newPosts[index]._isNextWeek = true
             }
           }
@@ -162,17 +179,42 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
       const currentDayName = dayOptions[today.getDay() === 0 ? 6 : today.getDay() - 1]
       
       if (selectedDay === currentDayName) {
+        // Get current local time
         const currentTime = new Date()
+        const currentHour = currentTime.getHours()
+        const currentMinute = currentTime.getMinutes()
+        
+        // Parse selected time (local time)
         const [selectedHour, selectedMinute] = value.split(':').map(Number)
+        
+        // Create Date objects for comparison using local time
         const selectedTime = new Date()
         selectedTime.setHours(selectedHour, selectedMinute, 0, 0)
         
-        const minAllowedTime = new Date(currentTime.getTime() + 40 * 60 * 1000)
+        const currentTimeMs = new Date()
+        currentTimeMs.setHours(currentHour, currentMinute, 0, 0)
+        const minAllowedTime = new Date(currentTimeMs.getTime() + 40 * 60 * 1000)
         
-        if (selectedTime < minAllowedTime) {
-          newPosts[index]._isNextWeek = true
-        } else {
+        // Check if selected time is 40+ minutes from current local time
+        if (selectedTime >= minAllowedTime) {
+          // Use today's date if time is 40+ minutes away
+          const todayDateStr = today.toISOString().split('T')[0]
+          newPosts[index].date = todayDateStr
           newPosts[index]._isNextWeek = false
+          console.log('✅ Setting date to today:', todayDateStr, 'for time:', value, '(40+ min away)')
+        } else {
+          // Use next week's date if time is less than 40 minutes away
+          const currentDay = today.getDay()
+          const targetDay = dayOptions.indexOf(selectedDay) === 6 ? 0 : dayOptions.indexOf(selectedDay) + 1
+          let daysUntilTarget = targetDay - currentDay
+          if (daysUntilTarget <= 0) {
+            daysUntilTarget += 7
+          }
+          const targetDate = new Date(today)
+          targetDate.setDate(today.getDate() + daysUntilTarget)
+          newPosts[index].date = targetDate.toISOString().split('T')[0]
+          newPosts[index]._isNextWeek = true
+          console.log('⚠️ Setting date to next week:', targetDate.toISOString().split('T')[0], 'for time:', value, '(less than 40 min away)')
         }
       } else {
         newPosts[index]._isNextWeek = false
@@ -328,6 +370,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
             </div>
 
             {posts.map((post, index) => (
+              <>
               <div key={index} className={`grid gap-4 ${
                 frequency === 'Daily' 
                   ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
@@ -425,14 +468,20 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                       {getFieldError(`time_${index}`)}
                     </p>
                   )}
-                  {post._isNextWeek && (
-                    <p className="text-red-500 text-sm flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      This schedule will be applied next week
-                    </p>
-                  )}
+                 
                 </div>
               </div>
+              {post._isNextWeek && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-red-800 text-sm">
+                      <span className="font-bold">You have selected today</span> and this post will schedule to next week! If you want to schedule this today, you have to select a time at least 40 minutes from the current time.
+                    </p>
+                  </div>
+                </div>
+              )}
+              </>
             ))}
           </div>
         </div>

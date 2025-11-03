@@ -41,7 +41,7 @@ export default function VideoCard({
   formatDuration
 }: VideoCardProps) {
   return (
-    <div className="bg-white rounded-[12px] border border-gray-200 overflow-hidden">
+    <div className="bg-[#F2F2F2] rounded-[8px] overflow-hidden">
       <div className="p-4">
         <h3 className="text-[18px] font-semibold text-[#101010] mb-4">
           {video.title}
@@ -53,7 +53,7 @@ export default function VideoCard({
             className="w-full h-[230px] object-cover"
             poster={video.thumbnail}
             preload="metadata"
-            controls={false}
+            controls={true}
             muted={videoState.isMuted}
             onTimeUpdate={(e) => {
               const target = e.target as HTMLVideoElement
@@ -75,7 +75,7 @@ export default function VideoCard({
           </video>
           
           {/* Play Button Overlay */}
-          <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+          {/* <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
             <button
               onClick={() => onVideoPlay(video.id)}
               className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-all duration-200"
@@ -86,7 +86,7 @@ export default function VideoCard({
                 <Play className="w-6 h-6 text-white ml-1" />
               )}
             </button>
-          </div>
+          </div> */}
           
           {/* Progress Bar at Bottom */}
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-30">

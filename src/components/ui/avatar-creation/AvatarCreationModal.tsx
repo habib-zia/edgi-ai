@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useModalScrollLock } from '@/hooks/useModalScrollLock'
 import Step2ChooseType from './steps/Step2ChooseType'
-import Step5QRCode from './steps/Step5QRCode'
 import Step6PhotoInstructions from './steps/Step6PhotoInstructions'
 import Step7PhotoUpload from './steps/Step7PhotoUpload'
 import Step8Details from './steps/Step8Details'
@@ -35,7 +34,7 @@ interface AvatarCreationModalProps {
 }
 
 export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: AvatarCreationModalProps) {
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(2)
   const [selectedAvatarType, setSelectedAvatarType] = useState<AvatarType | null>(null)
   const [avatarData, setAvatarData] = useState<AvatarData>({
     name: '',
@@ -86,7 +85,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
   }
 
   const handleClose = () => {
-    setCurrentStep(1)
+    setCurrentStep(2)
     setSelectedAvatarType(null)
     setAvatarData({
       name: '',
@@ -146,7 +145,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 4:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep1 onNext={handleNext} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <VideoAvatarStep1 onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step7PhotoUpload 
@@ -160,7 +159,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 5:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep2 onNext={handleNext} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <VideoAvatarStep2 onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step8Details 
@@ -177,6 +176,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
           return (
             <VideoAvatarStep4
               onNext={handleNext}
+              onBack={handleBack}
             />
           )
         } else {
@@ -208,7 +208,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
 
       case 9:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep4 onNext={handleAvatarCreationSuccess} />
+          return <VideoAvatarStep4 onNext={handleAvatarCreationSuccess} onBack={handleBack} />
         }
         break
       
@@ -222,7 +222,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
   const getModalDimensions = () => {
     if (selectedAvatarType == 'digital-twin' && currentStep == 3) {
       return {
-        maxWidth: 'max-w-[1400px]',
+        maxWidth: 'max-w-[1100px]',
         maxHeight: 'max-h-[900px]',
         padding: ''
       }
@@ -247,8 +247,8 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
   if (!isOpen) return null
 
   return (
-    <div className={`fixed inset-0 bg-black/80 flex items-center justify-center z-50 ${modalDimensions.padding}`}>
-      <div className={`bg-white rounded-[12px] md:px-8 px-4 md:pb-8 pb-4 md:pt-6 pt-4 ${modalDimensions.maxWidth} w-full ${modalDimensions.maxHeight} h-full flex flex-col relative ${selectedAvatarType === 'digital-twin' ? 'avatar-dropdown-shadow' : ''}`}>
+    <div className={`fixed inset-0 bg-black/80 py-3 flex items-center justify-center z-50 ${modalDimensions.padding}`}>
+      <div className={`bg-white rounded-[12px] md:px-8 px-4 pb-6 md:pt-6 pt-4 ${modalDimensions.maxWidth} w-full ${modalDimensions.maxHeight} h-full flex flex-col relative ${selectedAvatarType === 'digital-twin' ? 'avatar-dropdown-shadow' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">Create Avatar</h2>

@@ -251,7 +251,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[600px] xl:h-fit md:h-full overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[550px] xl:h-fit md:h-full overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between md:p-6 p-4 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-black">Connect accounts</h2>
@@ -347,8 +347,8 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200">
-          <button
+        <div className="p-6">
+          {loading ? <></> : <button
             onClick={handleNext}
             disabled={isSubmitting}
             className="w-full bg-[#5046E5] text-white py-3 px-6 font-semibold rounded-full text-lg hover:bg-[#4338CA] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
@@ -364,7 +364,7 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
             ) : (
               buttonText
             )}
-          </button>
+          </button>}
           
           {/* API Response Display */}
           {apiResponse && (

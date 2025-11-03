@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle, X, AlertCircle, Clock, Calendar } from 'lucide-react'
 import { ScheduleStatusUpdate } from '@/hooks/useUnifiedSocket'
+import { usePathname } from 'next/navigation'
 
 interface ScheduleStatusNotificationProps {
   updates: ScheduleStatusUpdate[]
@@ -20,6 +21,8 @@ export default function ScheduleStatusNotification({
   
   const [isVisible, setIsVisible] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+
+  const pathname = usePathname()
 
   // Show notification when we have updates
   useEffect(() => {
@@ -109,40 +112,44 @@ export default function ScheduleStatusNotification({
   const latestUpdate = updates[updates.length - 1]
 
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-sm ${className}`}>
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
+    <div className={`fixed top-24 right-8 z-30 max-w-xs bg-transparent w-full ${className}`}>
+      <div className={`backdrop-blur-sm bg-white/60 rounded-lg shadow-lg border-2 p-4 ${latestUpdate.status === 'ready' ? 'border-green-500' : 'border-gray-200'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start space-x-8 space-y-[2px] flex-col">
+            <div className="flex items-center space-x-2">
             {getStatusIcon(latestUpdate.status)}
             <h3 className="font-semibold text-gray-900">Video Schedule</h3>
-            <div className={`text-sm font-medium ${getStatusColor(latestUpdate.status)}`}>
+            </div>
+            <div className={`text-sm font-medium ml-5 ${getStatusColor(latestUpdate.status)}`}>
               {getStatusText(latestUpdate.status)}
             </div>
           </div>
-          <button
-            onClick={() => {
-              onClear()
-              setIsVisible(false)
-            }}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          {latestUpdate.status === 'ready' && (
+            <button
+              onClick={() => {
+                onClear()
+                setIsVisible(false)
+              }}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Connection Status */}
-        <div className="flex items-center space-x-2 mb-3">
+        {/* <div className="flex items-center space-x-2 mb-3">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
           <span className="text-xs text-gray-600">
             {isConnected ? 'Connected' : 'Disconnected'}
           </span>
-        </div>
+        </div> */}
 
         {/* Schedule ID */}
-        <div className="text-sm text-gray-600 mb-2">
+        {/* <div className="text-sm text-gray-600 mb-2">
           Schedule ID: <span className="font-mono text-xs">{latestUpdate.scheduleId}</span>
-        </div>
+        </div> */}
 
         {/* Message */}
         <div className="text-sm text-gray-700 mb-3">
@@ -160,6 +167,14 @@ export default function ScheduleStatusNotification({
         {latestUpdate.status === 'ready' && latestUpdate.data?.generationTime && (
           <div className="mt-2 text-xs text-gray-500">
             Generated in {latestUpdate.data.generationTime}s
+          </div>
+        )}
+
+        {latestUpdate.status === 'ready' && pathname !== '/scheduled-post' && (
+          <div className="mt-2 text-xs text-gray-500">
+            <a href={`/scheduled-post`} className="text-blue-600 hover:text-blue-800 font-medium">
+              View Schedule
+            </a>
           </div>
         )}
 
