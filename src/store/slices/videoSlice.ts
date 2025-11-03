@@ -6,6 +6,8 @@ export interface VideoRequest {
   avatar: string;
   name: string;
   position: string;
+  language: string;
+  preset: string;
   companyName: string;
   license: string;
   tailoredFit: string;
@@ -16,6 +18,7 @@ export interface VideoRequest {
   preferredTone: string;
   callToAction: string;
   email: string;
+  voice: string;
   timestamp: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   webhookResponse?: any;

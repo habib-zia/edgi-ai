@@ -89,6 +89,11 @@ const nextConfig: NextConfig = {
         hostname: "licdn.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+        pathname: "/**",
+      },
     ],
   },
 

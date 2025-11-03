@@ -24,6 +24,14 @@ export const useTopPostsInsights = (): UseTopPostsInsightsReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTopPostsInsights = useCallback(async (startDate: string, endDate: string, postType: string = 'video') => {
+    // Check if user is authenticated before making API call
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!accessToken) {
+      console.log('🔐 useTopPostsInsights: No access token, skipping API call');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
