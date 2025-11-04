@@ -76,34 +76,25 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
     setAvatarData({ ...avatarData, consentVideoFile: null });
   };
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!avatarData.consentVideoFile || !avatarData.videoFile) {
       return;
     }
 
+    // Immediately set creating state to hide buttons and show message
     setIsCreating(true);
     setErrorMessage(null);
-
-    try {
-      const response = await apiService.createVideoAvatar(
-        avatarData.videoFile,
-        avatarData.consentVideoFile,
-        avatarData.name
-      );
-
-      if (response.success) {
-        setIsCreating(false);
-        setCountdown(40); // Start 40-second countdown
-      } else {
-        setIsCreating(false);
-        console.error('❌ Failed to create video avatar:', response.message);
-        setErrorMessage(response.message || 'Failed to create video avatar');
-      }
-    } catch (error) {
-      setIsCreating(false);
+    setCountdown(40); // Start 40-second countdown
+    
+    // Fire and forget - call API without waiting for response
+    apiService.createVideoAvatar(
+      avatarData.videoFile,
+      avatarData.consentVideoFile,
+      avatarData.name
+    ).catch((error) => {
       console.error('❌ Error creating video avatar:', error);
-      setErrorMessage('An unexpected error occurred. Please try again.');
-    }
+      // Don't reset state on error - let user continue and they'll get notification via WebSocket
+    });
   };
 
   const canProceedConsent = avatarData.consentVideoFile && consentUpload.uploadState.isValid && !consentUpload.uploadState.isValidating;
@@ -237,31 +228,33 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
             <p className="text-red-600 text-[14px]">{errorMessage}</p>
           </div>
         )}
-        <div className="w-full flex flex-col gap-4 mt-12">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-[#5F5F5F] hover:text-[#101010] transition-colors duration-200 font-medium text-[14px] self-start"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={!canProceedConsent || isCreating || countdown !== null}
-            className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
-              canProceedConsent && !isCreating && countdown === null
-                ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
-                : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
-            }`}
-          >
-            {countdown !== null 
-              ? `Closing in ${countdown}s...` 
-              : isCreating 
-                ? 'Creating...' 
-                : consentUpload.uploadState.isValidating 
-                  ? 'Validating...' 
-                  : 'Create'}
-          </button>
+        <div className="w-full flex flex-col gap-4 mt-12 max-w-md">
+          {isCreating ? (
+            <p className="px-8 py-[11.3px] font-semibold text-[20px] text-center text-[#5F5F5F]">
+              Your avatar is being created and will be ready in about 25–35 seconds. You can close this window and continue exploring the site — we&apos;ll notify you once your avatar is ready. {countdown !== null ? `Auto closing in ${countdown} seconds...` : ''}
+            </p>
+          ) : (
+            <>
+              <button
+                onClick={onBack}
+                className="flex items-center gap-2 text-[#5F5F5F] hover:text-[#101010] transition-colors duration-200 font-medium text-[14px] self-start"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={!canProceedConsent}
+                className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
+                  canProceedConsent
+                    ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
+                    : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
+                }`}
+              >
+                {consentUpload.uploadState.isValidating ? 'Validating...' : 'Create'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
