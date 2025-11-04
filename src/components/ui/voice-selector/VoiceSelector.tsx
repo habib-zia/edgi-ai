@@ -35,6 +35,8 @@ interface VoiceSelectorProps {
   typeSelectorLowLabel?: string
   typeSelectorMediumLabel?: string
   typeSelectorHighLabel?: string
+  typeSelectorCustomLabel?: string
+  hasCustomVoices?: boolean
   listTitle?: string
   listLoadingText?: string
   listEmptyText?: string
@@ -68,6 +70,8 @@ export default function VoiceSelector({
   typeSelectorLowLabel,
   typeSelectorMediumLabel,
   typeSelectorHighLabel,
+  typeSelectorCustomLabel,
+  hasCustomVoices = false,
   listTitle,
   listLoadingText,
   listEmptyText,
@@ -251,7 +255,7 @@ export default function VoiceSelector({
 
       {isOpen && (
         <div className="absolute z-50 w-full lg:w-[685px] mt-2 bg-white rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden lg:left-0">
-          <div className="flex divide-x divide-[#E0E0E0] py-7 lg:flex-row flex-col lg:h-[500px] h-[700px]">
+          <div className="flex divide-x divide-[#E0E0E0] py-7 lg:flex-row flex-col lg:h-[500px] h-[700px] overflow-hidden">
             <VoiceTypeSelector
               currentType={voiceType}
               onTypeChange={handleVoiceTypeChange}
@@ -261,6 +265,8 @@ export default function VoiceSelector({
               lowLabel={typeSelectorLowLabel}
               mediumLabel={typeSelectorMediumLabel}
               highLabel={typeSelectorHighLabel}
+              customLabel={typeSelectorCustomLabel}
+              hasCustomVoices={hasCustomVoices}
             />
 
             <VoiceList

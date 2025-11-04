@@ -186,18 +186,23 @@ export default function ScheduledPostsGrid() {
             />
           </div>
           
-          <div className="bg-[#EF99431A] rounded-lg px-5 py-[10px] max-w-fit mx-auto mb-24">
-            <p className="text-center text-[#EF9943] text-xl font-normal">
-              Your content is lined up and will go live within the week
-            </p>
-          </div>
+          {/* Show message only when there are posts (auto or manual) */}
+          {((scheduleType === 'auto' && scheduledPosts.length > 0 && status === 'ready') || 
+            (scheduleType === 'manual' && manualPosts && manualPosts.length > 0)) && (
+            <div className="bg-[#EF99431A] rounded-lg px-5 py-[10px] max-w-fit mx-auto mb-24">
+              <p className="text-center text-[#EF9943] text-xl font-normal">
+                Your content is lined up and will go live within the week
+              </p>
+            </div>
+          )}
         </>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="flex items-center justify-between w-full md:flex-row flex-col gap-4">
           <Link href="/report-analytics" className="flex group items-center gap-2 text-[#5046E5] rounded-full text-lg font-semibold w-fit"> <ArrowLeftIcon className="w-6 h-6 group-hover:-translate-x-1 transition-transform duration-300" /> Reports Analytics</Link>
 
-          {scheduledPosts.length > 0 && status == 'ready' && (
+          {/* Show Schedule Delete button only on Auto Scheduled tab */}
+          {scheduleType === 'auto' && scheduledPosts.length > 0 && status == 'ready' && (
             <button
               onClick={handleDeleteClick}
               className="flex items-center gap-2 px-4 py-[8px] border-2 border-[#FF3131] text-[#FF3131] bg-[#FF313110] rounded-full text-lg font-medium hover:bg-[#FF3131] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -208,9 +213,28 @@ export default function ScheduledPostsGrid() {
           )}
         </div>
       </div>
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5]"></div>
+      {loading && scheduleType === 'auto' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((index) => (
+            <div key={index} className="bg-[#EEEEEE] rounded-xl p-4 flex flex-col h-full animate-pulse">
+              <div className="flex-1 space-y-4">
+                <div className="h-5 bg-gray-300 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-300 rounded w-full"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-gray-300 rounded w-20"></div>
+                  <div className="h-8 bg-gray-300 rounded w-24"></div>
+                </div>
+                <div className="h-16 bg-gray-300 rounded"></div>
+              </div>
+              <div className="flex justify-between items-center gap-3 mt-3">
+                <div className="h-4 bg-gray-300 rounded w-32"></div>
+                <div className="flex gap-2">
+                  <div className="h-8 w-8 bg-gray-300 rounded-full"></div>
+                  <div className="h-8 w-20 bg-gray-300 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : error && scheduleType === 'auto' ? (
         <div className="text-center py-20">
@@ -256,7 +280,7 @@ export default function ScheduledPostsGrid() {
         </div>
       ) : null}
       {scheduleType === 'manual' && (
-        <ManualScheduledPosts posts={manualPosts} />
+        <ManualScheduledPosts posts={manualPosts} loading={manualPostsLoading} />
       )}
       <UpdateScheduleModal
         isOpen={isModalOpen}

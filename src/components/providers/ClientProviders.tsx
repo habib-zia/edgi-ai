@@ -8,6 +8,7 @@ import TokenValidator from '@/components/features/auth/TokenValidator'
 import { useAuthErrorHandler } from '@/hooks/useAuthErrorHandler'
 import ApiServiceProvider from './ApiServiceProvider'
 import { UnifiedSocketProvider } from './UnifiedSocketProvider'
+import { ModalScrollLockProvider } from './ModalScrollLockProvider'
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -29,13 +30,15 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ErrorBoundary>
       <Provider store={store}>
-        <ApiServiceProvider>
-          <UnifiedSocketProvider>
-            <ClientProvidersContent>
-              {children}
-            </ClientProvidersContent>
-          </UnifiedSocketProvider>
-        </ApiServiceProvider>
+        <ModalScrollLockProvider>
+          <ApiServiceProvider>
+            <UnifiedSocketProvider>
+              <ClientProvidersContent>
+                {children}
+              </ClientProvidersContent>
+            </UnifiedSocketProvider>
+          </ApiServiceProvider>
+        </ModalScrollLockProvider>
       </Provider>
     </ErrorBoundary>
   )

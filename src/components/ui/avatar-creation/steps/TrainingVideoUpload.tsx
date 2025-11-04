@@ -1,19 +1,9 @@
 'use client'
 
-import { useState } from "react";
-import { X, CheckCircle, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { useVideoUpload } from "../../../../hooks/useVideoUpload";
-
-interface AvatarData {
-  name: string
-  age: string
-  gender: string
-  ethnicity: string
-  videoFile: File | null
-  consentVideoFile: File | null
-  photoFiles: File[]
-  avatarType: 'digital-twin' | 'photo-avatar' | null
-}
+import { AvatarData } from '../AvatarCreationModal'
 
 interface TrainingVideoUploadProps {
   onNext: () => void
@@ -25,6 +15,14 @@ interface TrainingVideoUploadProps {
 export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAvatarData }: TrainingVideoUploadProps) {
   const [avatarName, setAvatarName] = useState(avatarData.name || '');
   const trainingUpload = useVideoUpload();
+
+  // Restore video preview when navigating back if videoFile exists
+  useEffect(() => {
+    if (avatarData.videoFile && !trainingUpload.uploadState.preview) {
+      // Create preview URL and validate the video
+      trainingUpload.handleFileSelect(avatarData.videoFile, 'training');
+    }
+  }, [avatarData.videoFile]);
 
   const handleAvatarNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
@@ -39,6 +37,14 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
     }
   };
 
+  const handleTrainingDrop = async (e: React.DragEvent) => {
+    trainingUpload.handleDrop(e, 'training');
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      setAvatarData({ ...avatarData, videoFile: files[0] });
+    }
+  };
+
   const clearTrainingSelection = () => {
     trainingUpload.clearSelection();
     setAvatarData({ ...avatarData, videoFile: null });
@@ -48,21 +54,10 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
 
   return (
     <div className="bg-white flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
-        <h2 className="text-[32px] font-bold text-[#101010]">
-          Digital Twin
-        </h2>
-        <button
-          onClick={onBack}
-          className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors duration-200"
-        >
-          <span className="text-xl font-bold text-gray-600">×</span>
-        </button>
-      </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 w-full max-w-2xl mx-auto">
+          
           <h2 className="text-[24px] font-semibold text-[#101010] mb-6 tracking-[-2%] leading-[120%]">
             Upload your footage
           </h2>
@@ -71,7 +66,7 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
           </p>
         </div>
 
-        <div className="w-full max-w-md mb-8">
+        <div className="w-full mb-8">
           <label htmlFor="avatarName" className="block text-[14px] font-medium text-[#101010] mb-2">
             Avatar Name
           </label>
@@ -85,14 +80,14 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
           />
         </div>
 
-        <div className="w-full max-w-2xl">
+        <div className="w-full">
           <h3 className="text-[18px] font-semibold text-[#101010] mb-4">Drag and drop training video</h3>
           <div
             className={`border-[2px] rounded-[8px] p-8 border-dashed transition-all min-h-[300px] duration-300 ${trainingUpload.getBorderClasses('training')}`}
             onDragEnter={(e) => trainingUpload.handleDragEnter(e, 'training')}
             onDragLeave={trainingUpload.handleDragLeave}
             onDragOver={trainingUpload.handleDragOver}
-            onDrop={(e) => trainingUpload.handleDrop(e, 'training')}
+            onDrop={handleTrainingDrop}
           >
             {!avatarData.videoFile ? (
               <div className="flex flex-col items-center justify-center gap-6 h-full">
@@ -120,11 +115,11 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {trainingUpload.uploadState.preview && (
+                {(trainingUpload.uploadState.preview || avatarData.videoFile) && (
                   <div className="relative rounded-lg overflow-hidden bg-black">
                     <video
                       ref={trainingUpload.videoRef}
-                      src={trainingUpload.uploadState.preview}
+                      src={trainingUpload.uploadState.preview || (avatarData.videoFile ? URL.createObjectURL(avatarData.videoFile) : '')}
                       controls
                       className="w-full max-h-[200px] object-contain"
                     />
@@ -182,18 +177,26 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
             )}
           </div>
         </div>
-
-        <button
-          onClick={onNext}
-          disabled={!canProceed}
-          className={`px-8 py-[11.3px] font-semibold text-[20px] mt-12 rounded-full transition-all duration-300 w-full max-w-md border-2 ${
-            canProceed
-              ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
-              : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
-          }`}
-        >
-          {trainingUpload.uploadState.isValidating ? 'Validating...' : 'Next'}
-        </button>
+        <div className="w-full flex flex-col gap-4 mt-12">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-[#5F5F5F] hover:text-[#101010] transition-colors duration-200 font-medium text-[14px] self-start"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <button
+            onClick={onNext}
+            disabled={!canProceed}
+            className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
+              canProceed
+                ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
+                : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
+            }`}
+          >
+            {trainingUpload.uploadState.isValidating ? 'Validating...' : 'Next'}
+          </button>
+        </div>
       </div>
     </div>
   );

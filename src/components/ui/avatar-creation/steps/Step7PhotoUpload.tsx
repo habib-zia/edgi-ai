@@ -3,17 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
-
-interface AvatarData {
-  name: string
-  age: string
-  gender: string
-  ethnicity: string
-  videoFile: File | null
-  consentVideoFile: File | null
-  photoFiles: File[]
-  avatarType: 'digital-twin' | 'photo-avatar' | null
-}
+import { AvatarData } from '../AvatarCreationModal'
 
 interface Step7PhotoUploadProps {
   onNext: () => void

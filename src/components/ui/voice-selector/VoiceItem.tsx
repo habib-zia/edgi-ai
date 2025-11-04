@@ -67,7 +67,7 @@ export default function VoiceItem({
         )}
       </div>
 
-      {voice.previewUrl && (
+      {(voice.previewUrl || voice.preview_url) && (
         <button
           onClick={(e) => {
             e.stopPropagation() // Prevent triggering the container's onClick
@@ -79,6 +79,7 @@ export default function VoiceItem({
               : 'border-2 border-[#212121] bg-transparent hover:bg-[#212121] text-[#212121] hover:text-white'
           }`}
           aria-label={isPlaying ? `Pause preview for ${voice.name}` : `Play preview for ${voice.name}`}
+          type="button"
         >
           {isPlaying ? (
             <>

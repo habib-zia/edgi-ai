@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { apiService } from '@/lib/api-service'
-import { API_CONFIG } from '@/lib/config'
+import { API_CONFIG, getAuthenticatedHeaders } from '@/lib/config'
 import { useAvatarStorage } from '@/hooks/useAvatarStorage'
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
+import { useModalScrollLock } from '@/components/providers/ModalScrollLockProvider'
 
 
 interface CreateVideoModalProps {
@@ -63,35 +64,52 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   })
   const [isDownloading, setIsDownloading] = useState(false)
   const [countdown, setCountdown] = useState(20)
+  const [videoGenerationreDirected, setVideoGenerationreDirected] = useState(false)
   const [avatarError, setAvatarError] = useState<string>('')
-  const [isRedirecting, setIsRedirecting] = useState(false)
-  const hasRedirectedThisModalRef = useRef(false)
+  const REDIRECT_KEY = 'videoModalRedirectExecuted'
 
-  // Clear redirect flag when component mounts to allow fresh redirects
-  // Only clear if we haven't redirected for this specific modal instance
-  useEffect(() => {
-    if (!hasRedirectedThisModalRef.current) {
-      sessionStorage.removeItem('modalRedirectExecuted')
-    }
-  }, [])
+  function redirectToCreateVideoOnce() {
+    if (typeof window === 'undefined') return
+    // Avoid duplicate redirects within the same session and if already on target page
+    if (sessionStorage.getItem(REDIRECT_KEY)) return
+    if (window.location.pathname === '/create-video') return
+    sessionStorage.setItem(REDIRECT_KEY, 'true')
+    window.location.href = '/create-video'
+  }
 
   // Custom hook for avatar storage
   const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
 
   // Get unified socket context for video processing updates
-  const { 
-    latestVideoUpdate, 
+  const {
+    latestVideoUpdate,
     clearVideoUpdates,
-    clearCompletedVideoUpdates 
+    clearCompletedVideoUpdates
   } = useUnifiedSocketContext()
+
+  // Use global modal scroll lock
+  const { openModal, closeModal } = useModalScrollLock()
 
   // Get video topic and user info from Redux store
   const videoTopic = useSelector((state: RootState) => state.video.videoTopic)
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      openModal()
+    } else {
+      closeModal()
+    }
+
+    // Cleanup function to close modal when component unmounts
+    return () => {
+      closeModal()
+    }
+  }, [isOpen, openModal, closeModal])
+
   // Update form data when webhookResponse changes
   useEffect(() => {
-    if (webhookResponse)
-    {
+    if (webhookResponse) {
       const newFormData = {
         prompt: webhookResponse.prompt || '',
         description: webhookResponse.description || '',
@@ -102,13 +120,20 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   }, [webhookResponse])
 
   // Listen for video processing updates from socket
+  // But ignore updates when viewing a completed video (modal opened with videoData)
   useEffect(() => {
     if (!latestVideoUpdate) return
 
+    // Don't respond to socket updates when viewing a completed video
+    // The modal should stay in 'complete' state when opened for viewing
+    if (startAtComplete || videoData) {
+      return
+    }
+
     const { status, message } = latestVideoUpdate
-    
+
     console.log('🎥 Create Video Modal received update:', { status, message })
-    
+
     if (status === 'processing' || status === 'pending') {
       // Video is being processed - ensure we're in loading state
       if (currentStep !== 'loading') {
@@ -126,18 +151,13 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       // Don't clear all updates - let notification handle its own lifecycle
       // clearVideoUpdates() // Removed to prevent notification flickering
     }
-  }, [latestVideoUpdate, currentStep, clearVideoUpdates])
+  }, [latestVideoUpdate, currentStep, clearVideoUpdates, startAtComplete, videoData])
 
   const handleClose = useCallback(() => {
-    // Prevent multiple redirects
-    if (isRedirecting) return
-    
-    // Set redirect flag immediately to prevent any race conditions
-    if (!sessionStorage.getItem('modalRedirectExecuted')) {
-      sessionStorage.setItem('modalRedirectExecuted', 'true')
-      console.log('🔄 Setting redirect flag immediately to prevent race conditions')
-    }
-    
+    const wasLoading = currentStep === 'loading'
+    // Check if we're viewing a completed video (not creating a new one)
+    const isViewingVideo = startAtComplete || !!videoData
+
     setCurrentStep(startAtComplete ? 'complete' : 'form')
     setFormData({
       prompt: webhookResponse?.prompt || '',
@@ -145,57 +165,40 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       conclusion: webhookResponse?.conclusion || ''
     })
     setErrors({ prompt: '', description: '', conclusion: '' })
-    
-    // Clear only completed video updates and localStorage keys when modal is closed
-    // Preserve processing updates so they continue to show in the gallery
-    clearCompletedVideoUpdates()
-    localStorage.removeItem('videoGenerationStarted')
-    localStorage.removeItem('videoProgress')
-    console.log('🧹 Modal closed: Cleared completed video updates and localStorage keys')
-    
+
+    // Only clear localStorage keys and completed updates when closing after creating a new video
+    // Don't clear these when just viewing a completed video
+    if (!isViewingVideo) {
+      clearCompletedVideoUpdates()
+      localStorage.removeItem('videoGenerationStarted')
+      localStorage.removeItem('videoProgress')
+    }
+
     onClose()
-    
-    // Use window.location.href for page reload redirect with proper timing
-    setTimeout(() => {
-      // Only redirect if we're not already on the target page
-      if (window.location.pathname !== '/create-video' && !isRedirecting) {
-        // Double-check the flag hasn't been set by another process
-        if (!sessionStorage.getItem('modalRedirectExecuted')) {
-          setIsRedirecting(true)
-          hasRedirectedThisModalRef.current = true // Mark that we've redirected for this modal instance
-          // Set a flag in sessionStorage to prevent repeated redirects - set immediately before redirect
-          sessionStorage.setItem('modalRedirectExecuted', 'true')
-          console.log('🔄 Setting redirect flag and redirecting to /create-video')
-          window.location.href = '/create-video'
-        } else {
-          console.log('🚫 Redirect blocked - flag already set by another process')
-        }
-      } else {
-        console.log('🚫 Redirect blocked - already on target page or redirecting')
-      }
-    }, 200) // Slightly longer delay to ensure modal closes and state is cleared
-  }, [startAtComplete, webhookResponse, onClose, clearCompletedVideoUpdates, isRedirecting])
+
+    // Only redirect if modal was visible, was in loading state, and we're creating a new video (not viewing)
+    if (isOpen && wasLoading && !isViewingVideo) {
+      setTimeout(redirectToCreateVideoOnce, 100)
+    }
+  }, [currentStep, startAtComplete, webhookResponse, onClose, clearCompletedVideoUpdates, isOpen, videoData])
 
   // Auto close modal with countdown when in loading state
   useEffect(() => {
     let countdownTimer: NodeJS.Timeout
 
-    if (currentStep === 'loading')
-    {
+    if (currentStep === 'loading') {
       // Start countdown
       countdownTimer = setInterval(() => {
         setCountdown(prev => {
-          if (prev <= 1)
-          {
+          if (prev <= 1) {
             clearInterval(countdownTimer!)
             // Close modal and navigate to /create-video when countdown reaches 0
             setTimeout(() => {
               // Close the modal first
               onClose()
-              
-              // Navigate to /create-video
               setTimeout(() => {
-                if (window.location.pathname !== '/create-video') {
+                if (window.location.pathname !== '/create-video' && videoGenerationreDirected) {
+                  setVideoGenerationreDirected(false);
                   window.location.href = '/create-video'
                 }
               }, 100)
@@ -205,15 +208,13 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           return prev - 1
         })
       }, 1000)
-    } else
-    {
+    } else {
       // Reset countdown when not in loading state
       setCountdown(20)
     }
 
     return () => {
-      if (countdownTimer)
-      {
+      if (countdownTimer) {
         clearInterval(countdownTimer)
       }
     }
@@ -226,8 +227,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }))
 
     // Clear error when user starts typing
-    if (errors[field])
-    {
+    if (errors[field]) {
       setErrors(prev => ({
         ...prev,
         [field]: ''
@@ -243,16 +243,13 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       conclusion: ''
     }
 
-    if (!formData.prompt.trim())
-    {
+    if (!formData.prompt.trim()) {
       newErrors.prompt = 'Prompt is required'
     }
-    if (!formData.description.trim())
-    {
+    if (!formData.description.trim()) {
       newErrors.description = 'Description is required'
     }
-    if (!formData.conclusion.trim())
-    {
+    if (!formData.conclusion.trim()) {
       newErrors.conclusion = 'Conclusion is required'
     }
 
@@ -288,7 +285,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       const videoGenerationData: VideoGenerationData = {
         hook: formData.prompt,
         body: formData.description,
-        text:formData.description,
+        text: formData.description,
         conclusion: formData.conclusion,
         company_name: webhookResponse?.company_name || '',
         social_handles: webhookResponse?.social_handles || '',
@@ -315,10 +312,10 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
             conclusion: formData.conclusion,
             output_format: 'mp3_44100_128'
           }
-          console.log(JSON?.stringify(textToSpeechData,null,2))
+          console.log(JSON?.stringify(textToSpeechData, null, 2))
           textToSpeechResponse = await apiService.textToSpeech(textToSpeechData)
           console.log('🎙️ Text-to-speech API response:', textToSpeechResponse)
-          
+
           // Update videoGenerationData with URLs from text-to-speech response
           if (textToSpeechResponse?.success && textToSpeechResponse?.data) {
             videoGenerationData.hook = textToSpeechResponse.data.hook_url || formData.prompt
@@ -341,51 +338,50 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         videoTitle: videoTopic || 'Custom Video'
       }))
       console.log('🎬 Video generation API called - localStorage key set')
-
+      setVideoGenerationreDirected(true);
       // Just stay in loading state - modal will auto-close after countdown
 
     } catch (error: any) {
       console.error('Video creation failed:', error)
-      
+
       // Clear localStorage key on error
       localStorage.removeItem('videoGenerationStarted')
       console.log('🧹 Cleared localStorage key due to API error')
-      
+
       // Set appropriate error message
       if (error.message.includes('Missing avatar selection')) {
         setAvatarError(error.message)
       } else {
         setAvatarError('Failed to create video. Please try again.')
       }
-      
+
       setCurrentStep('form') // Go back to form on error
     }
   }
 
   const handleDownload = async () => {
-    if (!videoData?.youtubeUrl)
-    {
+    if (!videoData?.youtubeUrl) {
       return
     }
 
 
-    try
-    {
+    try {
       // Set loading state
       setIsDownloading(true)
 
       // Use our proxy to avoid CORS issues
-      if (!videoData?.youtubeUrl)
-      {
+      if (!videoData?.youtubeUrl) {
         throw new Error('No video URL available for download')
       }
       const proxyUrl = `${API_CONFIG.BACKEND_URL}/api/video/download-proxy?url=${encodeURIComponent(videoData.youtubeUrl)}`
 
-      // Fetch the video through our proxy
-      const response = await fetch(proxyUrl)
+      const headers = getAuthenticatedHeaders()
+      delete headers['Content-Type']
+      const response = await fetch(proxyUrl, {
+        headers: headers
+      })
 
-      if (!response.ok)
-      {
+      if (!response.ok) {
         throw new Error(`Failed to download video: ${response.status} ${response.statusText}`)
       }
 
@@ -409,12 +405,10 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       window.URL.revokeObjectURL(blobUrl)
 
 
-    } catch (err)
-    {
+    } catch (err) {
       console.error('Download failed:', err)
       alert('Download failed. Please try again.')
-    } finally
-    {
+    } finally {
       // Reset loading state
       setIsDownloading(false)
     }
@@ -433,14 +427,17 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
             {currentStep === 'complete' && `${videoData ? `${videoData.title}` : 'Your video is Rendered'}`}
           </h3>
 
-          <button
-            onClick={handleClose}
-            className="cursor-pointer"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          {/* Hide close button when in loading state */}
+          {currentStep !== 'loading' && (
+            <button
+              onClick={() => handleClose()}
+              className="cursor-pointer"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
         </div>
         {currentStep === 'complete' && !videoData && (
           <p className='md:text-[20px] text-[16px] font-normal text-[#5F5F5F] pl-6'>

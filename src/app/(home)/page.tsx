@@ -57,11 +57,12 @@ function HomePageContent() {
   const { user } = useSelector((state: RootState) => state.user);
   const { showNotification } = useNotificationStore();
   const { checkVideoUsageLimit } = useSubscription();
-  const { isAvatarProcessing } = useUnifiedSocketContext();
+  const { isAvatarProcessing, isVideoAvatarProcessing } = useUnifiedSocketContext();
+  const isAnyAvatarProcessing = isAvatarProcessing || isVideoAvatarProcessing;
 
 
     // Modal handler functions
-    const handleCloseSigninModal = () => {
+    const handleCloseSigninModal = () => {  
       setIsSigninModalOpen(false);
     };
   
@@ -134,12 +135,10 @@ function HomePageContent() {
   };
 
   const handleCustomAvatarClick = async () => {
-    // Prevent action if avatar is currently being processed
-    if (isAvatarProcessing) {
+    if (isAnyAvatarProcessing) {
       showNotification('Please wait for your current avatar to finish processing', 'warning');
       return;
     }
-
     if (user?.id) {
       // Check payment status before allowing avatar creation
       try {
@@ -194,13 +193,13 @@ function HomePageContent() {
                 <>
                 <button 
             onClick={handleCustomAvatarClick}
-            disabled={isAvatarProcessing}
+            disabled={isAnyAvatarProcessing}
             className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
-              isAvatarProcessing 
+              isAnyAvatarProcessing 
                 ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
                 : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
             }`}>
-                    {isAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
+                    {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
                   </button>
                   <Link href="/create-video/new" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
                     Create Video
@@ -220,13 +219,13 @@ function HomePageContent() {
                 <>
                 <button 
             onClick={handleCustomAvatarClick}
-            disabled={isAvatarProcessing}
+            disabled={isAnyAvatarProcessing}
             className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
-              isAvatarProcessing 
+              isAnyAvatarProcessing 
                 ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
                 : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
             }`}>
-                    {isAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
+                    {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
                   </button> 
                   <button
                     onClick={handleGetStartedClick}

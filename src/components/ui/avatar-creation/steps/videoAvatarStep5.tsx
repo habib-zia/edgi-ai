@@ -8,17 +8,7 @@ import { RootState } from '@/store'
 import { apiService } from '@/lib/api-service'
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
 import Checkbox from '../../checkbox'
-
-interface AvatarData {
-  name: string
-  age: string
-  gender: string
-  ethnicity: string
-  videoFile: File | null
-  consentVideoFile: File | null
-  photoFiles: File[]
-  avatarType: 'digital-twin' | 'photo-avatar' | null
-}
+import { AvatarData } from '../AvatarCreationModal'
 
 interface VideoAvatarStep5Props {
   onBack: () => void

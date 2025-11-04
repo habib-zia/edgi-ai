@@ -35,8 +35,11 @@ export function useAudioPlayer() {
       
     }
     
-    if (!voice.previewUrl) {
-      console.warn('No preview URL for voice:', voice.name)
+    // Check both previewUrl and preview_url for compatibility
+    const previewUrl = voice.previewUrl || voice.preview_url
+    
+    if (!previewUrl) {
+      console.warn('No preview URL for voice/music:', voice.name)
       return
     }
 
@@ -59,11 +62,12 @@ export function useAudioPlayer() {
     
     const voiceId = voice.id
     const voiceName = voice.name
-    const previewUrl = voice.previewUrl
     
     if (!audio) {
       audio = new Audio()
-      audio.crossOrigin = 'anonymous'
+      // Don't set crossOrigin for S3 URLs - they often don't have CORS configured
+      // Audio can still play without crossOrigin, but won't be accessible via Canvas API
+      // Since we're just playing audio (not analyzing), we don't need crossOrigin
       audio.preload = 'metadata'
       
       const handlePlaying = () => {
@@ -104,6 +108,32 @@ export function useAudioPlayer() {
             const errorCode = audioElement.error.code
             const errorMessage = String(audioElement.error.message || 'Unknown error')
             
+            // Check if it's a CORS error - try retrying without crossOrigin
+            if (errorCode === 4 || errorMessage.includes('CORS') || errorMessage.includes('cross-origin')) {
+              console.warn('CORS error detected, retrying without crossOrigin:', previewUrl)
+              
+              // Remove crossOrigin and try again
+              try {
+                audioElement.crossOrigin = null
+                audioElement.load()
+                audioElement.play().catch(() => {
+                  // If it still fails, show the error
+                  const errorDetails: Record<string, string | number> = {
+                    error: String(errorCode || 'unknown'),
+                    message: 'CORS error: Audio cannot be played due to CORS policy. Please configure S3 bucket CORS settings.',
+                    voiceName: String(voiceName || ''),
+                    url: String(previewUrl || '')
+                  }
+                  console.error('Audio CORS error:', errorDetails)
+                  setPlayingVoiceId((current) => current === voiceId ? null : current)
+                  setVoiceProgress((prev) => ({ ...prev, [voiceId]: 0 }))
+                })
+                return // Don't set error state yet, let it try to play
+              } catch {
+                // Fall through to normal error handling
+              }
+            }
+            
             const errorDetails: Record<string, string | number> = {
               error: String(errorCode || 'unknown'),
               message: errorMessage,
@@ -129,7 +159,7 @@ export function useAudioPlayer() {
       audio.addEventListener('error', handleError)
       
       
-      audio.src = voice.previewUrl
+      audio.src = previewUrl
       audioRefs.current.set(voice.id, audio)
     } else {
 

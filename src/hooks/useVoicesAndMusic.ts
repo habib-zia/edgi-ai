@@ -61,14 +61,27 @@ export function useVoicesAndMusic({ preset, selectedAvatars }: UseVoicesAndMusic
         
         // Map API response to Voice interface
         // API returns 'energy' field (not energyCategory), use it to determine type
-        const transformedVoices: Voice[] = apiVoices.map((voice: any) => ({
-          id: voice.voice_id || voice.id || voice._id || '',
-          name: voice.name || '',
-          artist: voice.artist || undefined,
-          type: (voice.energy?.toLowerCase() || 'low') as 'low' | 'medium' | 'high',
-          previewUrl: voice.preview_url || voice.previewUrl || voice.preview || undefined,
-          thumbnailUrl: voice.thumbnail_url || voice.thumbnailUrl || voice.thumbnail || undefined
-        }))
+        // Check if voice is custom (has isCustom property or userId)
+        const transformedVoices: Voice[] = apiVoices.map((voice: any) => {
+          const isCustom = voice.isCustom === true || (voice.userId && voice.userId.trim() !== '')
+          
+          return {
+            id: voice.voice_id || voice.id || voice._id || '',
+            _id: voice._id || voice.id || undefined,
+            voice_id: voice.voice_id || voice.id || undefined,
+            name: voice.name || '',
+            artist: voice.artist || undefined,
+            type: isCustom ? 'custom' as const : ((voice.energy?.toLowerCase() || 'low') as 'low' | 'medium' | 'high'),
+            previewUrl: voice.preview_url || voice.previewUrl || voice.preview || undefined,
+            preview_url: voice.preview_url || voice.previewUrl || voice.preview || undefined,
+            thumbnailUrl: voice.thumbnail_url || voice.thumbnailUrl || voice.thumbnail || undefined,
+            isCustom: isCustom,
+            gender: voice.gender || undefined,
+            energy: voice.energy || undefined,
+            description: voice.description || undefined,
+            userId: voice.userId || voice.user_id || undefined
+          }
+        })
         
         setAllVoices(transformedVoices)
         setVoicesError(null)
@@ -99,16 +112,22 @@ export function useVoicesAndMusic({ preset, selectedAvatars }: UseVoicesAndMusic
         
         // Transform music data according to the API response structure
         // API should return energyCategory in the response, use it to determine type
-        const transformedMusic: Voice[] = musicData.map((music: any) => ({
-          id: music.trackId || music.track_id || music.id || music._id || '',
-          _id: music._id || '', // Store the MongoDB _id for saving
-          name: music.name || '',
-          artist: music.metadata?.artist || music.artist || undefined,
-          type: (music.energyCategory?.toLowerCase() || 'low') as 'low' | 'medium' | 'high',
-          previewUrl: music.s3PreviewUrl || music.s3_preview_url || music.preview_url || music.previewUrl || music.preview || undefined,
-          thumbnailUrl: music.thumbnail_url || music.thumbnailUrl || music.thumbnail || undefined,
-          s3FullTrackUrl: music.s3FullTrackUrl || music.s3_full_track_url || music.fullTrackUrl || undefined
-        }))
+        const transformedMusic: Voice[] = musicData.map((music: any) => {
+          // Map s3PreviewUrl to preview_url and previewUrl for compatibility
+          const previewUrl = music.s3PreviewUrl || music.s3_preview_url || music.preview_url || music.previewUrl || music.preview || undefined
+          
+          return {
+            id: music.trackId || music.track_id || music.id || music._id || '',
+            _id: music._id || '', // Store the MongoDB _id for saving
+            name: music.name || '',
+            artist: music.metadata?.artist || music.artist || undefined,
+            type: (music.energyCategory?.toLowerCase() || 'low') as 'low' | 'medium' | 'high',
+            previewUrl: previewUrl,
+            preview_url: previewUrl, // Use s3PreviewUrl as preview_url
+            thumbnailUrl: music.thumbnail_url || music.thumbnailUrl || music.thumbnail || undefined,
+            s3FullTrackUrl: music.s3FullTrackUrl || music.s3_full_track_url || music.fullTrackUrl || undefined
+          }
+        })
         
         setAllMusic(transformedMusic)
         setMusicError(null)

@@ -1,28 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useModalScrollLock } from '@/hooks/useModalScrollLock'
 import Step2ChooseType from './steps/Step2ChooseType'
 import Step6PhotoInstructions from './steps/Step6PhotoInstructions'
 import Step7PhotoUpload from './steps/Step7PhotoUpload'
 import Step8Details from './steps/Step8Details'
 import Step9AvatarReady from './steps/Step9AvatarReady'
 import Step1Intro from './steps/Step1Intro'
-import VideoAvatarStep1 from './steps/videoAvatarStep1'
-import VideoAvatarStep2 from './steps/videoAvatarStep2'
 import VideoAvatarStep4 from './steps/videoAvatarStep4'
 import VideoAvatarStep5 from './steps/videoAvatarStep5'
 import DigitalTwinGuidelines from './steps/DigitalTwinGuidelines'
+import TrainingVideoUpload from './steps/TrainingVideoUpload'
+import ConsentVideoUpload from './steps/ConsentVideoUpload'
+import VoiceAudioUpload from './steps/VoiceAudioUpload'
+import VoiceAvatarDetails from './steps/VoiceAvatarDetails'
 
-export type AvatarType = 'digital-twin' | 'photo-avatar'
+export type AvatarType = 'digital-twin' | 'photo-avatar' | 'voice-avatar'
 
-interface AvatarData {
+export interface AvatarData {
   name: string
   age: string
   gender: string
   ethnicity: string
+  description: string
+  language: string
   videoFile: File | null
   consentVideoFile: File | null
   photoFiles: File[]
+  audioFile: File | null
   avatarType: AvatarType | null
 }
 
@@ -40,34 +46,21 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     age: '',
     gender: '',
     ethnicity: '',
+    description: '',
+    language: '',
     videoFile: null,
     consentVideoFile: null,
     photoFiles: [],
+    audioFile: null,
     avatarType: null
   })
 
-    // Prevent body scroll when modal is open
-    useEffect(() => {
-      if (isOpen) {
-        document.body.style.overflow = 'hidden'
-      } else {
-        document.body.style.overflow = 'unset'
-      }
-  
-      // Cleanup function to reset overflow when component unmounts
-      return () => {
-        document.body.style.overflow = 'unset'
-      }
-    }, [isOpen])
+  // Lock body scroll when modal is open (handles multiple modals globally)
+  useModalScrollLock(isOpen)
 
   const handleNext = () => {
-    // For digital-twin: Close modal after step 4 (VideoAvatarStep1)
-    if (selectedAvatarType === 'digital-twin' && currentStep === 4) {
-      handleClose()
-      return
-    }
-    
-    // For other cases: Normal progression through steps
+    // For digital-twin: Progress normally through steps 4 (TrainingVideoUpload) → 5 (ConsentVideoUpload)
+    // The modal will close after consent video is uploaded and avatar is created
     setCurrentStep(prev => prev + 1)
   }
 
@@ -102,9 +95,12 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       age: '',
       gender: '',
       ethnicity: '',
+      description: '',
+      language: '',
       videoFile: null,
       consentVideoFile: null,
       photoFiles: [],
+      audioFile: null,
       avatarType: null
     })
     onClose()
@@ -119,14 +115,16 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     setAvatarData(data)
   }
 
-  // Helper function to check if current step needs narrow width (Step6PhotoInstructions, Step7PhotoUpload, Step8Details, or Step9AvatarReady)
+  // Helper function to check if current step needs narrow width
   const isNarrowWidth = () => {
     return (currentStep === 3 && selectedAvatarType === 'photo-avatar') ||
            (currentStep === 4 && selectedAvatarType === 'photo-avatar') ||
            (currentStep === 5 && selectedAvatarType === 'photo-avatar') ||
            (currentStep === 5 && selectedAvatarType === 'digital-twin') ||
            (currentStep === 6 && selectedAvatarType === 'photo-avatar') ||
-           (currentStep === 9 && selectedAvatarType === 'digital-twin')
+           (currentStep === 9 && selectedAvatarType === 'digital-twin') ||
+           (currentStep === 3 && selectedAvatarType === 'voice-avatar') ||
+           (currentStep === 4 && selectedAvatarType === 'voice-avatar')
   }
 
   const renderStep = () => {
@@ -144,6 +142,8 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       case 3:
         if (selectedAvatarType === 'digital-twin') {
           return <DigitalTwinGuidelines onNext={handleNext} onBack={handleBack} />
+        } else if (selectedAvatarType === 'voice-avatar') {
+          return <VoiceAudioUpload onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step6PhotoInstructions 
@@ -155,7 +155,9 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 4:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep1 onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <TrainingVideoUpload onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+        } else if (selectedAvatarType === 'voice-avatar') {
+          return <VoiceAvatarDetails onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} onClose={handleAvatarCreationSuccess} />
         } else {
           return (
             <Step7PhotoUpload 
@@ -169,7 +171,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 5:
         if (selectedAvatarType === 'digital-twin') {
-          return <VideoAvatarStep2 onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <ConsentVideoUpload onNext={handleNext} onBack={handleBack} onClose={handleAvatarCreationSuccess} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else {
           return (
             <Step8Details 

@@ -1,7 +1,8 @@
 'use client'
 
 import { UseFormWatch, UseFormRegister, FieldErrors, UseFormTrigger } from 'react-hook-form'
-import VoiceSelector, { Voice, VoiceType } from './voice-selector'
+import VoiceSelector from './voice-selector/VoiceSelector'
+import { Voice, VoiceType } from './voice-selector/types'
 import { CreateVideoFormData } from './form-validation-schema'
 
 interface VoiceSelectorWrapperProps {
@@ -63,6 +64,9 @@ export default function VoiceSelectorWrapper({
   // This ensures selectedVoice always takes priority over form state
   const currentValue = selectedVoice?.id || formValue
   
+  // Check if there are any custom voices
+  const hasCustomVoices = voices.some(voice => voice.isCustom === true)
+  
   console.log('🎤 VoiceSelectorWrapper - Rendering:', {
     field: field,
     formValue: formValue,
@@ -71,7 +75,8 @@ export default function VoiceSelectorWrapper({
     selectedVoiceId: selectedVoice?.id,
     displayedVoiceName: displayedVoice?.name,
     displayedVoiceId: displayedVoice?.id,
-    voicesCount: voices.length
+    voicesCount: voices.length,
+    hasCustomVoices: hasCustomVoices
   })
 
   return (
@@ -98,6 +103,7 @@ export default function VoiceSelectorWrapper({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      hasCustomVoices={hasCustomVoices}
     />
   )
 }

@@ -10,20 +10,15 @@ export default function ReportAnalyticsPage() {
   const [selectedPlatform, setSelectedPlatform] = React.useState("All");
   const [hasPosts, setHasPosts] = React.useState(false);
   const [postsData, setPostsData] = React.useState<any[]>([]);
-  const { isAuthenticated, isLoading: authLoading } = useAppSelector((state) => state.user);
+  const { isAuthenticated } = useAppSelector((state) => state.user);
 
-  // Initialize the top posts insights hook
   const { topPostsData, loading: insightsLoading, fetchTopPostsInsights } = useTopPostsInsights();
 
-  // Fetch insights data only when authenticated and auth check is complete
   React.useEffect(() => {
-    // Don't fetch if auth is still loading or user is not authenticated
-    if (authLoading || !isAuthenticated) {
-      return;
-    }
-
+    if (!isAuthenticated) return;
+    
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30); // Last 30 days
+    startDate.setDate(startDate.getDate() - 30);
     const endDate = new Date();
     
     fetchTopPostsInsights(
@@ -31,7 +26,8 @@ export default function ReportAnalyticsPage() {
       endDate.toISOString().split('T')[0],
       'reel'
     );
-  }, [isAuthenticated, authLoading, fetchTopPostsInsights]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   return (
     <ProtectedRoute>

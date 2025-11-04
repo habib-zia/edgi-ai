@@ -31,10 +31,9 @@ import { createVideoSchema, type CreateVideoFormData } from './form-validation-s
 import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
-import RealEstateValidationError from './real-estate-validation-error'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
-import VoiceSelector, { Voice } from './voice-selector'
 import VoiceSelectorWrapper from './voice-selector-wrapper'
+import { Voice, VoiceType } from './voice-selector/types'
 import MusicSelectorWrapper from './music-selector-wrapper'
 import { useVoicesAndMusic } from '@/hooks/useVoicesAndMusic'
 
@@ -77,15 +76,15 @@ const positionOptions = [
   { value: 'Loan Officer', label: 'Loan Officer' }
 ]
 
-const languageOptions = [
-  { value: 'English', label: 'English' },
-  { value: 'Spanish', label: 'Spanish' }
-]
-
 const presetOptions = [
   { value: 'Low', label: 'Low' },
   { value: 'Medium', label: 'Medium' },
   { value: 'High', label: 'High' }
+]
+
+const languageOptions = [
+  { value: 'English', label: 'English' },
+  { value: 'Spanish', label: 'Spanish' },
 ]
 
 interface CreateVideoFormProps {
@@ -387,10 +386,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     trigger('voice')
     
     // Update voice type to match selected voice
-    setCurrentVoiceType(voice.type as 'low' | 'medium' | 'high')
+    setCurrentVoiceType(voice.type)
     
-    // ALSO update music type and auto-select random music of same type
-    setCurrentMusicType(voice.type as 'low' | 'medium' | 'high')
+    // ALSO update music type and auto-select random music of same type (only if not custom)
+    if (voice.type !== 'custom') {
+      setCurrentMusicType(voice.type as 'low' | 'medium' | 'high')
+    }
     const filteredMusic = allMusic.filter(m => m.type === voice.type)
     if (filteredMusic.length > 0) {
       const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
@@ -584,8 +585,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       avatar: '',
       name: '',
       position: '',
-      language: '',
-      preset: '',
       companyName: '',
       license: '',
       tailoredFit: '',
@@ -596,8 +595,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       preferredTone: '',
       callToAction: '',
       email: '',
+      preset: '',
       voice: '',
-      music: ''
+      music: '',
+      language: ''
     }
   })
 
@@ -618,7 +619,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   })
   
   // Track current filter type for voice/music dropdowns
-  const [currentVoiceType, setCurrentVoiceType] = useState<'low' | 'medium' | 'high' | null>(null)
+  const [currentVoiceType, setCurrentVoiceType] = useState<VoiceType | null>(null)
   const [currentMusicType, setCurrentMusicType] = useState<'low' | 'medium' | 'high' | null>(null)
 
   // Mark form as manually touched when any form field changes
@@ -826,7 +827,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }, [preset, allVoices, allMusic, watch, setValue, trigger, selectedVoice, selectedMusic, currentVoiceType, isVoiceManuallySelected])
   
   // Handle voice type change from VoiceSelector (when user clicks low/medium/high buttons)
-  const handleVoiceTypeChange = useCallback((type: 'low' | 'medium' | 'high') => {
+  const handleVoiceTypeChange = useCallback((type: VoiceType) => {
     console.log('🎤 create-video-form - handleVoiceTypeChange called with type:', type)
     
     // Mark that user has manually changed voice type (prevents auto-select from overriding)
@@ -835,32 +836,49 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     // Update voice type filter
     setCurrentVoiceType(type)
     
-    // ALSO update music type to match voice type
-    setCurrentMusicType(type)
-    
-    // Filter voices
-    const filteredVoices = allVoices.filter(v => v.type === type)
-    if (filteredVoices.length > 0) {
-      const randomVoice = filteredVoices[Math.floor(Math.random() * filteredVoices.length)]
-      setSelectedVoice(randomVoice)
-      setValue('voice', randomVoice.id, { shouldValidate: true })
-      trigger('voice')
-    }
-    
-    // Filter music and auto-select random music of the same type
-    const filteredMusic = allMusic.filter(m => m.type === type)
-    if (filteredMusic.length > 0) {
-      const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
-      setSelectedMusic(randomMusic)
-      setValue('music', randomMusic.id, { shouldValidate: true })
-      trigger('music')
+    // Filter voices - handle custom type specially
+    if (type === 'custom') {
+      // For custom voices, filter by isCustom property
+      const filteredVoices = allVoices.filter(v => v.isCustom === true)
+      if (filteredVoices.length > 0) {
+        const randomVoice = filteredVoices[Math.floor(Math.random() * filteredVoices.length)]
+        setSelectedVoice(randomVoice)
+        setValue('voice', randomVoice.id, { shouldValidate: true })
+        trigger('voice')
+      }
+      // Don't update music type for custom voices - keep current music type
+    } else {
+      // For low/medium/high, update music type to match voice type
+      setCurrentMusicType(type)
+      
+      // Filter voices
+      const filteredVoices = allVoices.filter(v => v.type === type)
+      if (filteredVoices.length > 0) {
+        const randomVoice = filteredVoices[Math.floor(Math.random() * filteredVoices.length)]
+        setSelectedVoice(randomVoice)
+        setValue('voice', randomVoice.id, { shouldValidate: true })
+        trigger('voice')
+      }
+      
+      // Filter music and auto-select random music of the same type
+      const filteredMusic = allMusic.filter(m => m.type === type)
+      if (filteredMusic.length > 0) {
+        const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
+        setSelectedMusic(randomMusic)
+        setValue('music', randomMusic.id, { shouldValidate: true })
+        trigger('music')
+      }
     }
   }, [allVoices, allMusic, setValue, trigger])
   
   // Handle music type change from MusicSelector (when user clicks low/medium/high buttons)
-  const handleMusicTypeChange = useCallback((type: 'low' | 'medium' | 'high') => {
+  const handleMusicTypeChange = useCallback((type: VoiceType) => {
+    // Music only supports low/medium/high, not custom
+    if (type === 'custom') {
+      return // Ignore custom type for music
+    }
     // Update music type filter only (don't sync voice)
-    setCurrentMusicType(type)
+    setCurrentMusicType(type as 'low' | 'medium' | 'high')
     
     // Filter music
     const filteredMusic = allMusic.filter(m => m.type === type)
@@ -1007,17 +1025,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         title: {
           avatar_id: selectedAvatars.title.avatar_id,
           avatar_name: selectedAvatars.title.avatar_name || selectedAvatars.title.name || '',
-          preview_image_url: selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || ''
+          preview_image_url: selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || '',
+          avatarType: selectedAvatars.title.avatarType || (selectedAvatars.title.preview_video_url ? 'video_avatar' : 'photo_avatar')
         },
         body: {
           avatar_id: selectedAvatars.body.avatar_id,
           avatar_name: selectedAvatars.body.avatar_name || selectedAvatars.body.name || '',
-          preview_image_url: selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || ''
+          preview_image_url: selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || '',
+          avatarType: selectedAvatars.body.avatarType || (selectedAvatars.body.preview_video_url ? 'video_avatar' : 'photo_avatar')
         },
         conclusion: {
           avatar_id: selectedAvatars.conclusion.avatar_id,
           avatar_name: selectedAvatars.conclusion.avatar_name || selectedAvatars.conclusion.name || '',
-          preview_image_url: selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || ''
+          preview_image_url: selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || '',
+          avatarType: selectedAvatars.conclusion.avatarType || (selectedAvatars.conclusion.preview_video_url ? 'video_avatar' : 'photo_avatar')
         }
       }
       
@@ -1064,8 +1085,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         avatar: data.avatar,
         name: data.name,
         position: data.position,
-        language: data.language,
-        preset: data.preset,
         companyName: data.companyName,
         license: data.license,
         tailoredFit: data.tailoredFit,
@@ -1076,7 +1095,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         preferredTone: data.preferredTone,
         callToAction: data.callToAction,
         email: data.email,
-        voice: data.voice,
         timestamp: result.data.timestamp,
         status: result.data.status,
         webhookResponse: result.data.webhookResponse
@@ -1093,10 +1111,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           selectedAvatars.body?.avatar_id || '',
           selectedAvatars.conclusion?.avatar_id || ''
         ].filter(id => id !== ''), // Filter out empty strings
-        // Add the three selected avatars separately
-        titleAvatar: selectedAvatars.title?.avatar_id || '',
-        bodyAvatar: selectedAvatars.body?.avatar_id || '',
-        conclusionAvatar: selectedAvatars.conclusion?.avatar_id || '',
+        // Add the three selected avatars separately with avatar_id and avatarType in single structure
+        titleAvatar: {
+          avatar_id: selectedAvatars.title?.avatar_id || '',
+          avatarType: selectedAvatars.title?.avatarType || (selectedAvatars.title?.preview_video_url ? 'video_avatar' : 'photo_avatar')
+        },
+        bodyAvatar: {
+          avatar_id: selectedAvatars.body?.avatar_id || '',
+          avatarType: selectedAvatars.body?.avatarType || (selectedAvatars.body?.preview_video_url ? 'video_avatar' : 'photo_avatar')
+        },
+        conclusionAvatar: {
+          avatar_id: selectedAvatars.conclusion?.avatar_id || '',
+          avatarType: selectedAvatars.conclusion?.avatarType || (selectedAvatars.conclusion?.preview_video_url ? 'video_avatar' : 'photo_avatar')
+        },
         name: data.name,
         position: data.position,
         language: data.language,
@@ -1512,7 +1539,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             fetchCityTrends(city, positionValue)
           }}
         />
-        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
@@ -1595,15 +1621,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           </div>
         </div>
         <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
-        
-        {/* Display real estate validation error */}
-        {keyPointsError && (
-          <RealEstateValidationError
-            message={keyPointsError}
-            onClose={() => setRealEstateValidationError(null)}
-          />
-        )}
-        
          <SubmitButton
            isLoading={isLoading}
            disabled={

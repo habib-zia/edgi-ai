@@ -1,7 +1,8 @@
 'use client'
 
 import { UseFormWatch, UseFormRegister, FieldErrors, UseFormTrigger } from 'react-hook-form'
-import VoiceSelector, { Voice, VoiceType } from './voice-selector'
+import VoiceSelector from './voice-selector/VoiceSelector'
+import { Voice, VoiceType } from './voice-selector/types'
 import { CreateVideoFormData } from './form-validation-schema'
 
 interface MusicSelectorWrapperProps {

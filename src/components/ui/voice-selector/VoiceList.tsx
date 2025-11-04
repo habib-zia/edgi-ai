@@ -45,21 +45,9 @@ export default function VoiceList({
   // Filter voices by the selected voiceType
   const filteredVoices = voices.filter(voice => {
     const matches = voice.type === voiceType
-    console.log('🎵 VoiceList - Filtering voice:', {
-      name: voice.name,
-      voiceType: voice.type,
-      selectedType: voiceType,
-      matches: matches
-    })
     return matches
   })
-  
-  console.log('🎵 VoiceList - Filtered results:', {
-    voiceType: voiceType,
-    totalVoices: voices.length,
-    filteredCount: filteredVoices.length,
-    filteredNames: filteredVoices.map(v => v.name)
-  })
+
 
   const handleDragOverInner = (e: React.DragEvent) => {
     try {
@@ -110,6 +98,11 @@ export default function VoiceList({
   return (
     <div 
       className="flex-1 bg-white px-6 overflow-y-auto"
+      style={{ 
+        maxHeight: '100%',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch'
+      }}
       onDragOver={handleDragOverInner}
       onDragLeave={handleDragLeaveInner}
       onDrop={handleDropInner}
