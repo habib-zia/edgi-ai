@@ -125,6 +125,21 @@ export interface CreateVideoAvatarResponse {
   avatar_group_id: string;
 }
 
+// Voice Avatar Types
+export interface CreateVoiceAvatarRequest {
+  audio: File;
+  name: string;
+  description: string;
+  gender: string;
+  language: string;
+  userId: string;
+}
+
+export interface CreateVoiceAvatarResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface VideoAvatarStatusResponse {
   avatar_id: string;
   status: 'in_progress' | 'completed' | 'failed';
@@ -967,6 +982,40 @@ class ApiService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create video avatar';
       console.error('❌ Error creating video avatar:', error);
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async createVoiceAvatar(formData: FormData): Promise<ApiResponse<CreateVoiceAvatarResponse>> {
+    try {
+      const headers = getAuthenticatedHeaders();
+      delete headers['Content-Type'];
+
+      const url = getApiUrl(API_CONFIG.ENDPOINTS.AVATAR.CREATE_VOICE_AVATAR);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          this.showNotification(errorData.message || 'Failed to create voice avatar', 'error');
+          return { success: false, message: errorData.message || 'Failed to create voice avatar', error: errorData.message };
+        } catch {
+          this.showNotification(errorText || 'Failed to create voice avatar', 'error');
+          return { success: false, message: errorText || 'Failed to create voice avatar', error: errorText };
+        }
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create voice avatar';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }

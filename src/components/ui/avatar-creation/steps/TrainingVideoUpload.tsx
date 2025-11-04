@@ -3,17 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { useVideoUpload } from "../../../../hooks/useVideoUpload";
-
-interface AvatarData {
-  name: string
-  age: string
-  gender: string
-  ethnicity: string
-  videoFile: File | null
-  consentVideoFile: File | null
-  photoFiles: File[]
-  avatarType: 'digital-twin' | 'photo-avatar' | null
-}
+import { AvatarData } from '../AvatarCreationModal'
 
 interface TrainingVideoUploadProps {
   onNext: () => void

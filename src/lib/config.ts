@@ -62,6 +62,7 @@ export const API_CONFIG = {
     AVATAR: {
       GET_AVATARS: '/api/video/avatars',
       CREATE_PHOTO_AVATAR: '/api/video/photo-avatar',
+      CREATE_VOICE_AVATAR: '/api/video/voice-avatar',
     },
     
     // Video Avatar endpoints (HeyGen API)

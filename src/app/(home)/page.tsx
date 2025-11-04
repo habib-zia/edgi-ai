@@ -268,7 +268,7 @@ function HomePageContent() {
         <FeaturesSection />
       </section>
 
-      <section id="pricing" data-aos="fade-up">
+      <section id="pricing" data-aos="fade-up" className="mb-[300px]">
         <PricingSection />
       </section>
 
