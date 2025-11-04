@@ -32,6 +32,7 @@ import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
+import VoiceSelector, { Voice } from './voice-selector'
 
 const promptOptions = [
   { value: 'Shawheen V1', label: 'Shawheen V1' },
@@ -70,6 +71,17 @@ const positionOptions = [
   { value: 'Real Estate Broker', label: 'Real Estate Broker' },
   { value: 'Loan Broker', label: 'Loan Broker' },
   { value: 'Loan Officer', label: 'Loan Officer' }
+]
+
+const languageOptions = [
+  { value: 'English', label: 'English' },
+  { value: 'Spanish', label: 'Spanish' }
+]
+
+const presetOptions = [
+  { value: 'Low', label: 'Low' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'High', label: 'High' }
 ]
 
 interface CreateVideoFormProps {
@@ -163,6 +175,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   
   // Track if form has been manually touched to avoid showing validation errors on prefilled forms
   const [formManuallyTouched, setFormManuallyTouched] = useState(false)
+  
+  // Voice state
+  const [voices, setVoices] = useState<Voice[]>([])
+  const [voicesLoading, setVoicesLoading] = useState(false)
+  const [voicesError, setVoicesError] = useState<string | null>(null)
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null)
+  const [draggedVoice, setDraggedVoice] = useState<Voice | null>(null)
+
+  // Music state (reusing Voice type structure)
+  const [musicList, setMusicList] = useState<Voice[]>([])
+  const [musicLoading, setMusicLoading] = useState(false)
+  const [musicError, setMusicError] = useState<string | null>(null)
+  const [selectedMusic, setSelectedMusic] = useState<Voice | null>(null)
+  const [draggedMusic, setDraggedMusic] = useState<Voice | null>(null)
 
 
   // Check if user came from Default Avatar button
@@ -211,10 +237,240 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setAvatarsLoading(false)
     }
   }, [])
+
+  // Fetch voices function
+  const fetchVoices = useCallback(async () => {
+    try {
+      setVoicesLoading(true)
+      setVoicesError(null)
+      
+      // TODO: Replace with actual API call when endpoint is available
+      // const response = await apiService.getVoices()
+      // For now, using mock data
+      // Updated mock voices with preview URLs and thumbnails
+const mockVoices: Voice[] = [
+  { 
+    id: 'voice-1', 
+    name: 'Redbull', 
+    artist: 'Isam Ft Koorosh', 
+    type: 'low', 
+    previewUrl: 'https://storage.googleapis.com/eleven-public-prod/premade/voices/2EiwWnXFnvU5JabPnv8n/65d80f52-703f-4cae-a91d-75d4e200ed02.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/redbull1/200/200' 
+  },
+  { 
+    id: 'voice-2', 
+    name: 'Nakhla', 
+    artist: 'Arta Ft Koorosh & Smokepurpp', 
+    type: 'low', 
+    previewUrl: 'https://cdn.freesound.org/previews/612/612090_11861866-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/nakhla1/200/200' 
+  },
+  { 
+    id: 'voice-3', 
+    name: 'Baadpooli', 
+    artist: 'Isam Ft Koorosh', 
+    type: 'low', 
+    previewUrl: 'https://cdn.freesound.org/previews/612/612089_11861866-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/baadpooli1/200/200' 
+  },
+  { 
+    id: 'voice-4', 
+    name: 'tttpttt', 
+    artist: 'Arta Ft Koorosh', 
+    type: 'low', 
+    previewUrl: 'https://cdn.freesound.org/previews/612/612088_11861866-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/tttpttt1/200/200' 
+  },
+  { 
+    id: 'voice-5', 
+    name: 'First Class', 
+    artist: 'Isam Ft Koorosh', 
+    type: 'low', 
+    previewUrl: 'https://cdn.freesound.org/previews/612/612087_11861866-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/firstclass1/200/200' 
+  },
+  { 
+    id: 'voice-6', 
+    name: 'Redbull Medium', 
+    artist: 'Isam Ft Koorosh', 
+    type: 'medium', 
+    previewUrl: 'https://cdn.freesound.org/previews/341/341695_5121236-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/redbull2/200/200' 
+  },
+  { 
+    id: 'voice-7', 
+    name: 'Nakhla Medium', 
+    artist: 'Arta Ft Koorosh', 
+    type: 'medium', 
+    previewUrl: 'https://cdn.freesound.org/previews/341/341696_5121236-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/nakhla2/200/200' 
+  },
+  { 
+    id: 'voice-8', 
+    name: 'Baadpooli Medium', 
+    artist: 'Isam Ft Koorosh', 
+    type: 'medium', 
+    previewUrl: 'https://cdn.freesound.org/previews/341/341697_5121236-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/baadpooli2/200/200' 
+  },
+  { 
+    id: 'voice-9', 
+    name: 'Redbull High', 
+    artist: 'Isam Ft Koorosh', 
+    type: 'high', 
+    previewUrl: 'https://cdn.freesound.org/previews/387/387232_7255534-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/redbull3/200/200' 
+  },
+  { 
+    id: 'voice-10', 
+    name: 'Nakhla High', 
+    artist: 'Arta Ft Koorosh', 
+    type: 'high', 
+    previewUrl: 'https://cdn.freesound.org/previews/387/387233_7255534-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/nakhla3/200/200' 
+  },
+  { 
+    id: 'voice-11', 
+    name: 'Baadpooli High', 
+    artist: 'Isam Ft Koorosh', 
+    type: 'high', 
+    previewUrl: 'https://cdn.freesound.org/previews/387/387234_7255534-lq.mp3', 
+    thumbnailUrl: 'https://picsum.photos/seed/baadpooli3/200/200' 
+  },
+]
+      
+      setVoices(mockVoices)
+      setVoicesError(null)
+    } catch (error: any) {
+      setVoicesError(error.message || 'Failed to load voices')
+    } finally {
+      setVoicesLoading(false)
+    }
+  }, [])
+
+  // Fetch music function
+  const fetchMusic = useCallback(async () => {
+    try {
+      setMusicLoading(true)
+      setMusicError(null)
+      
+      // TODO: Replace with actual API call when endpoint is available
+      // const response = await apiService.getMusic()
+      // For now, using mock data with Voice type structure
+      const mockMusic: Voice[] = [
+        { 
+          id: 'music-1', 
+          name: 'Redbull', 
+          artist: 'Isam Ft Koorosh', 
+          type: 'low', 
+          previewUrl: 'https://storage.googleapis.com/eleven-public-prod/premade/voices/2EiwWnXFnvU5JabPnv8n/65d80f52-703f-4cae-a91d-75d4e200ed02.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/redbull-music1/200/200' 
+        },
+        { 
+          id: 'music-2', 
+          name: 'Redbull', 
+          artist: 'Arta Ft Koorosh & Smokepurpp', 
+          type: 'low', 
+          previewUrl: 'https://cdn.freesound.org/previews/612/612090_11861866-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/nakhla-music1/200/200' 
+        },
+        { 
+          id: 'music-3', 
+          name: 'Nakhla', 
+          artist: 'Hidden & Khalse & Sijal', 
+          type: 'low', 
+          previewUrl: 'https://cdn.freesound.org/previews/612/612089_11861866-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/nakhla-music2/200/200' 
+        },
+        { 
+          id: 'music-4', 
+          name: 'Baadpooli', 
+          artist: 'Hiphopologist x Kagan', 
+          type: 'low', 
+          previewUrl: 'https://cdn.freesound.org/previews/612/612088_11861866-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/baadpooli-music1/200/200' 
+        },
+        { 
+          id: 'music-5', 
+          name: 'tttpttt', 
+          artist: 'Poori', 
+          type: 'low', 
+          previewUrl: 'https://cdn.freesound.org/previews/612/612087_11861866-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/tttpttt-music1/200/200' 
+        },
+        { 
+          id: 'music-6', 
+          name: 'First Class', 
+          artist: 'Koorosh 420VII', 
+          type: 'low', 
+          previewUrl: 'https://cdn.freesound.org/previews/341/341695_5121236-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/firstclass-music1/200/200' 
+        },
+        { 
+          id: 'music-7', 
+          name: 'Redbull Medium', 
+          artist: 'Isam Ft Koorosh', 
+          type: 'medium', 
+          previewUrl: 'https://cdn.freesound.org/previews/341/341696_5121236-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/redbull-medium1/200/200' 
+        },
+        { 
+          id: 'music-8', 
+          name: 'Nakhla Medium', 
+          artist: 'Arta Ft Koorosh', 
+          type: 'medium', 
+          previewUrl: 'https://cdn.freesound.org/previews/341/341697_5121236-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/nakhla-medium1/200/200' 
+        },
+        { 
+          id: 'music-9', 
+          name: 'Baadpooli Medium', 
+          artist: 'Isam Ft Koorosh', 
+          type: 'medium', 
+          previewUrl: 'https://cdn.freesound.org/previews/387/387232_7255534-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/baadpooli-medium1/200/200' 
+        },
+        { 
+          id: 'music-10', 
+          name: 'Redbull High', 
+          artist: 'Isam Ft Koorosh', 
+          type: 'high', 
+          previewUrl: 'https://cdn.freesound.org/previews/387/387233_7255534-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/redbull-high1/200/200' 
+        },
+        { 
+          id: 'music-11', 
+          name: 'Nakhla High', 
+          artist: 'Arta Ft Koorosh', 
+          type: 'high', 
+          previewUrl: 'https://cdn.freesound.org/previews/387/387234_7255534-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/nakhla-high1/200/200' 
+        },
+        { 
+          id: 'music-12', 
+          name: 'Baadpooli High', 
+          artist: 'Isam Ft Koorosh', 
+          type: 'high', 
+          previewUrl: 'https://cdn.freesound.org/previews/387/387232_7255534-lq.mp3', 
+          thumbnailUrl: 'https://picsum.photos/seed/baadpooli-high1/200/200' 
+        },
+      ]
+      
+      setMusicList(mockMusic)
+      setMusicError(null)
+    } catch (error: any) {
+      setMusicError(error.message || 'Failed to load music')
+    } finally {
+      setMusicLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchAvatars()
     fetchSchedule()
-  }, [fetchAvatars, fetchSchedule])
+    fetchVoices()
+    fetchMusic()
+  }, [fetchAvatars, fetchSchedule, fetchVoices, fetchMusic])
 
   useEffect(() => {
     if (latestAvatarUpdate) {
@@ -345,6 +601,102 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     trigger('avatar')
   }
 
+  // Voice handlers
+  const handleVoiceClick = (voice: Voice) => {
+    setSelectedVoice(voice)
+    setValue('voice', voice.id)
+    trigger('voice')
+  }
+
+  const handleVoiceDragStart = (e: React.DragEvent, voice: Voice) => {
+    setDraggedVoice(voice)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', voice.id)
+    const target = e.target as HTMLElement
+    target.classList.add('dragging')
+  }
+
+  const handleVoiceDragEnd = (e: React.DragEvent) => {
+    const target = e.target as HTMLElement
+    target.classList.remove('dragging')
+    setDraggedVoice(null)
+  }
+
+  const handleVoiceDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    const target = e.currentTarget as HTMLElement
+    target.classList.add('drag-over')
+  }
+
+  const handleVoiceDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation()
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+  }
+
+  const handleVoiceDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+    
+    if (draggedVoice) {
+      handleVoiceClick(draggedVoice)
+    }
+    setDraggedVoice(null)
+  }
+
+  // Music handlers (reusing same structure as voice)
+  const handleMusicClick = (music: Voice) => {
+    setSelectedMusic(music)
+    setValue('music', music.id)
+    trigger('music')
+  }
+
+  const handleMusicDragStart = (e: React.DragEvent, music: Voice) => {
+    setDraggedMusic(music)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', music.id)
+    const target = e.target as HTMLElement
+    target.classList.add('dragging')
+  }
+
+  const handleMusicDragEnd = (e: React.DragEvent) => {
+    const target = e.target as HTMLElement
+    target.classList.remove('dragging')
+    setDraggedMusic(null)
+  }
+
+  const handleMusicDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    const target = e.currentTarget as HTMLElement
+    target.classList.add('drag-over')
+  }
+
+  const handleMusicDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation()
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+  }
+
+  const handleMusicDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+    
+    if (draggedMusic) {
+      handleMusicClick(draggedMusic)
+    }
+    setDraggedMusic(null)
+  }
+
   // Click-to-select functionality - automatically assigns to drag & drop slots
   const handleAvatarClick = (avatar: Avatar) => {
     if (isAvatarPending(avatar)) {
@@ -436,6 +788,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       avatar: '',
       name: '',
       position: '',
+      language: '',
+      preset: '',
       companyName: '',
       license: '',
       tailoredFit: '',
@@ -445,7 +799,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       city: '',
       preferredTone: '',
       callToAction: '',
-      email: ''
+      email: '',
+      voice: '',
+      music: ''
     }
   })
 
@@ -794,6 +1150,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         avatar: data.avatar,
         name: data.name,
         position: data.position,
+        language: data.language,
+        preset: data.preset,
         companyName: data.companyName,
         license: data.license,
         tailoredFit: data.tailoredFit,
@@ -804,6 +1162,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         preferredTone: data.preferredTone,
         callToAction: data.callToAction,
         email: data.email,
+        voice: data.voice,
         timestamp: result.data.timestamp,
         status: result.data.status,
         webhookResponse: result.data.webhookResponse
@@ -835,6 +1194,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         },
         name: data.name,
         position: data.position,
+        language: data.language,
+        preset: data.preset,
         companyName: data.companyName,
         license: data.license,
         tailoredFit: data.tailoredFit,
@@ -842,7 +1203,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         city: data.city,
         preferredTone: data.preferredTone,
         callToAction: data.callToAction,
-        email: data.email
+        email: data.email,
+        voice: data.voice
       }
 
       const userSettingsResult = await saveUserSettings(userSettingsPayload)
@@ -873,6 +1235,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       if (field === 'avatar') {
         setValue('avatar', '')
       setValue('avatar', value)
+      } else if (field === 'voice') {
+        const voice = voices.find(v => v.id === value)
+        if (voice) {
+          setSelectedVoice(voice)
+        }
+        setValue('voice', value)
+        trigger('voice')
+      } else if (field === 'music') {
+        const music = musicList.find(m => m.id === value)
+        if (music) {
+          setSelectedMusic(music)
+        }
+        setValue('music', value)
+        trigger('music')
       } else if (field === 'videoTopic') {
       setValue('videoTopic', value, { shouldValidate: true, shouldDirty: true })
       
@@ -944,7 +1320,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     options: { value: string; label: string }[],
     placeholder: string
   ) => {
-    const currentValue = watch(field)
+    const currentValue = watch(field) || ''
     const isOpen = openDropdown === field
     const hasError = errors[field]
 
@@ -972,9 +1348,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         onFetchAvatars={fetchAvatars}
         onAvatarClick={handleAvatarClick}
         onDragStart={handleDragStart}
-                                    onDragEnd={handleDragEnd}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onRemoveAvatar={handleRemoveAvatar}
         onClearAllAvatars={handleClearAllAvatars}
@@ -983,6 +1359,88 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         isAvatarPending={isAvatarPending}
         getAvatarSelectionNumber={getAvatarSelectionNumber}
         getAvatarType={getAvatarType}
+      />
+    )
+  }
+
+  const renderVoiceSelector = (
+    field: keyof CreateVideoFormData,
+    placeholder: string
+  ) => {
+    const currentValue = watch(field) || ''
+    const isOpen = openDropdown === field
+    const hasError = errors[field]
+    
+    // Find selected voice from state or by ID
+    const displayedVoice = selectedVoice || voices.find(v => v.id === currentValue)
+
+    return (
+      <VoiceSelector
+        field={field}
+        placeholder={placeholder}
+        currentValue={currentValue}
+        isOpen={isOpen}
+        hasError={hasError}
+        register={register}
+        errors={errors}
+        onToggle={handleDropdownToggle}
+        onSelect={handleDropdownSelect}
+        onBlur={(field) => trigger(field)}
+        voices={voices}
+        voicesLoading={voicesLoading}
+        voicesError={voicesError}
+        selectedVoice={displayedVoice || null}
+        onVoiceClick={handleVoiceClick}
+        onDragStart={handleVoiceDragStart}
+        onDragEnd={handleVoiceDragEnd}
+        onDragOver={handleVoiceDragOver}
+        onDragLeave={handleVoiceDragLeave}
+        onDrop={handleVoiceDrop}
+      />
+    )
+  }
+
+  const renderMusicSelector = (
+    field: keyof CreateVideoFormData,
+    placeholder: string
+  ) => {
+    const currentValue = watch(field) || ''
+    const isOpen = openDropdown === field
+    const hasError = errors[field]
+    
+    // Find selected music from state or by ID
+    const displayedMusic = selectedMusic || musicList.find(m => m.id === currentValue)
+
+    return (
+      <VoiceSelector
+        field={field}
+        placeholder={placeholder}
+        currentValue={currentValue}
+        isOpen={isOpen}
+        hasError={hasError}
+        register={register}
+        errors={errors}
+        onToggle={handleDropdownToggle}
+        onSelect={handleDropdownSelect}
+        onBlur={(field) => trigger(field)}
+        voices={musicList}
+        voicesLoading={musicLoading}
+        voicesError={musicError}
+        selectedVoice={displayedMusic || null}
+        onVoiceClick={handleMusicClick}
+        onDragStart={handleMusicDragStart}
+        onDragEnd={handleMusicDragEnd}
+        onDragOver={handleMusicDragOver}
+        onDragLeave={handleMusicDragLeave}
+        onDrop={handleMusicDrop}
+        typeSelectorTitle="Music"
+        typeSelectorDescription="Select the level of music and search the best music for your video"
+        typeSelectorLowLabel="Low Music"
+        typeSelectorMediumLabel="Medium Music"
+        typeSelectorHighLabel="High Music"
+        listTitle="Recommended Music"
+        listLoadingText="Loading music..."
+        listEmptyText="No music available"
       />
     )
   }
@@ -1013,7 +1471,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       <HybridTopicInput
         field={field}
         placeholder={placeholder}
-        currentValue={displayValue}
+        currentValue={displayValue || ''}
         selectedTrend={selectedTrend}
         isOpen={isOpen}
         hasError={hasError}
@@ -1157,7 +1615,36 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             fetchCityTrends(city, positionValue)
           }}
         />
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+       
+          <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Voice <span className="text-red-500">*</span>
+            </label>
+            {renderVoiceSelector('voice', 'Select Voice')}
+          </div>
+          {/* Music dropdown - only shown when a voice is selected */}
+          {selectedVoice && (
+            <div>
+              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+                Music
+              </label>
+              {renderMusicSelector('music', 'Select Music')}
+            </div>
+          )}
+           <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Language <span className="text-red-500">*</span>
+            </label>
+            {renderDropdown('language', languageOptions, 'Select Language')}
+          </div>
+          <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Preset <span className="text-red-500">*</span>
+            </label>
+            {renderDropdown('preset', presetOptions, 'Select Preset')}
+          </div>
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Video Topic <span className="text-red-500">*</span>
