@@ -27,7 +27,9 @@ interface CreateVideoModalProps {
     license?: string
     avatar?: string
     email?: string
-  } | null
+    voice_id?: string
+    music_url?: string
+  } | null;
 }
 
 type ModalStep = 'form' | 'loading' | 'complete'
@@ -44,6 +46,8 @@ interface VideoGenerationData {
   avatar_title: string
   avatar_body: string
   avatar_conclusion: string
+  music?: string
+  text?: string
 }
 
 export default function CreateVideoModal({ isOpen, onClose, startAtComplete = false, videoData, webhookResponse }: CreateVideoModalProps) {
@@ -60,6 +64,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   })
   const [isDownloading, setIsDownloading] = useState(false)
   const [countdown, setCountdown] = useState(20)
+  const [videoGenerationreDirected, setVideoGenerationreDirected] = useState(false)
   const [avatarError, setAvatarError] = useState<string>('')
   const REDIRECT_KEY = 'videoModalRedirectExecuted'
 
@@ -76,10 +81,10 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const { getAvatarIds, validateAvatarSelection } = useAvatarStorage()
 
   // Get unified socket context for video processing updates
-  const { 
-    latestVideoUpdate, 
+  const {
+    latestVideoUpdate,
     clearVideoUpdates,
-    clearCompletedVideoUpdates 
+    clearCompletedVideoUpdates
   } = useUnifiedSocketContext()
 
   // Use global modal scroll lock
@@ -95,7 +100,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     } else {
       closeModal()
     }
-    
+
     // Cleanup function to close modal when component unmounts
     return () => {
       closeModal()
@@ -104,8 +109,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
 
   // Update form data when webhookResponse changes
   useEffect(() => {
-    if (webhookResponse)
-    {
+    if (webhookResponse) {
       const newFormData = {
         prompt: webhookResponse.prompt || '',
         description: webhookResponse.description || '',
@@ -119,7 +123,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   // But ignore updates when viewing a completed video (modal opened with videoData)
   useEffect(() => {
     if (!latestVideoUpdate) return
-    
+
     // Don't respond to socket updates when viewing a completed video
     // The modal should stay in 'complete' state when opened for viewing
     if (startAtComplete || videoData) {
@@ -127,9 +131,9 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }
 
     const { status, message } = latestVideoUpdate
-    
+
     console.log('🎥 Create Video Modal received update:', { status, message })
-    
+
     if (status === 'processing' || status === 'pending') {
       // Video is being processed - ensure we're in loading state
       if (currentStep !== 'loading') {
@@ -169,7 +173,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       localStorage.removeItem('videoGenerationStarted')
       localStorage.removeItem('videoProgress')
     }
-    
+
     onClose()
 
     // Only redirect if modal was visible, was in loading state, and we're creating a new video (not viewing)
@@ -182,36 +186,39 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   useEffect(() => {
     let countdownTimer: NodeJS.Timeout
 
-    if (currentStep === 'loading')
-    {
+    if (currentStep === 'loading') {
       // Start countdown
       countdownTimer = setInterval(() => {
         setCountdown(prev => {
-          if (prev <= 1)
-          {
+          if (prev <= 1) {
             clearInterval(countdownTimer!)
-            // Close modal and trigger redirect after countdown reaches 0
+            // Close modal and navigate to /create-video when countdown reaches 0
             setTimeout(() => {
-              handleClose()
+              // Close the modal first
+              onClose()
+              setTimeout(() => {
+                if (window.location.pathname !== '/create-video' && videoGenerationreDirected) {
+                  setVideoGenerationreDirected(false);
+                  window.location.href = '/create-video'
+                }
+              }, 100)
             }, 1000)
             return 0
           }
           return prev - 1
         })
       }, 1000)
-    } else
-    {
+    } else {
       // Reset countdown when not in loading state
       setCountdown(20)
     }
 
     return () => {
-      if (countdownTimer)
-      {
+      if (countdownTimer) {
         clearInterval(countdownTimer)
       }
     }
-  }, [currentStep, handleClose])
+  }, [currentStep, onClose])
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
@@ -220,8 +227,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }))
 
     // Clear error when user starts typing
-    if (errors[field])
-    {
+    if (errors[field]) {
       setErrors(prev => ({
         ...prev,
         [field]: ''
@@ -237,16 +243,13 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       conclusion: ''
     }
 
-    if (!formData.prompt.trim())
-    {
+    if (!formData.prompt.trim()) {
       newErrors.prompt = 'Prompt is required'
     }
-    if (!formData.description.trim())
-    {
+    if (!formData.description.trim()) {
       newErrors.description = 'Description is required'
     }
-    if (!formData.conclusion.trim())
-    {
+    if (!formData.conclusion.trim()) {
       newErrors.conclusion = 'Conclusion is required'
     }
 
@@ -282,6 +285,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       const videoGenerationData: VideoGenerationData = {
         hook: formData.prompt,
         body: formData.description,
+        text: formData.description,
         conclusion: formData.conclusion,
         company_name: webhookResponse?.company_name || '',
         social_handles: webhookResponse?.social_handles || '',
@@ -290,14 +294,39 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         title: videoTopic || 'Custom Video',
         avatar_title: avatarIds.avatar_title,
         avatar_body: avatarIds.avatar_body,
-        avatar_conclusion: avatarIds.avatar_conclusion
+        avatar_conclusion: avatarIds.avatar_conclusion,
+        music: webhookResponse?.music_url || ''
       }
 
       console.log('videoGenerationData', videoGenerationData)
 
-      // Clear redirect flag to allow redirect for this new video creation
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem(REDIRECT_KEY)
+      // Call ElevenLabs text-to-speech API if voice_id is available
+      let textToSpeechResponse = null
+      if (webhookResponse?.voice_id) {
+        try {
+          console.log('🎙️ Calling ElevenLabs text-to-speech API with voice_id:', webhookResponse.voice_id)
+          const textToSpeechData = {
+            voice_id: webhookResponse.voice_id,
+            hook: formData.prompt,
+            body: formData.description,
+            conclusion: formData.conclusion,
+            output_format: 'mp3_44100_128'
+          }
+          console.log(JSON?.stringify(textToSpeechData, null, 2))
+          textToSpeechResponse = await apiService.textToSpeech(textToSpeechData)
+          console.log('🎙️ Text-to-speech API response:', textToSpeechResponse)
+
+          // Update videoGenerationData with URLs from text-to-speech response
+          if (textToSpeechResponse?.success && textToSpeechResponse?.data) {
+            videoGenerationData.hook = textToSpeechResponse.data.hook_url || formData.prompt
+            videoGenerationData.body = textToSpeechResponse.data.body_url || formData.description
+            videoGenerationData.conclusion = textToSpeechResponse.data.conclusion_url || formData.conclusion
+            console.log('🎙️ Updated videoGenerationData with text-to-speech URLs:', videoGenerationData)
+          }
+        } catch (error) {
+          console.error('Text-to-speech API failed:', error)
+          // Continue with video generation even if text-to-speech fails (use original text)
+        }
       }
 
       // Call the video generation API using apiService
@@ -309,42 +338,39 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         videoTitle: videoTopic || 'Custom Video'
       }))
       console.log('🎬 Video generation API called - localStorage key set')
-
+      setVideoGenerationreDirected(true);
       // Just stay in loading state - modal will auto-close after countdown
 
     } catch (error: any) {
       console.error('Video creation failed:', error)
-      
+
       // Clear localStorage key on error
       localStorage.removeItem('videoGenerationStarted')
       console.log('🧹 Cleared localStorage key due to API error')
-      
+
       // Set appropriate error message
       if (error.message.includes('Missing avatar selection')) {
         setAvatarError(error.message)
       } else {
         setAvatarError('Failed to create video. Please try again.')
       }
-      
+
       setCurrentStep('form') // Go back to form on error
     }
   }
 
   const handleDownload = async () => {
-    if (!videoData?.youtubeUrl)
-    {
+    if (!videoData?.youtubeUrl) {
       return
     }
 
 
-    try
-    {
+    try {
       // Set loading state
       setIsDownloading(true)
 
       // Use our proxy to avoid CORS issues
-      if (!videoData?.youtubeUrl)
-      {
+      if (!videoData?.youtubeUrl) {
         throw new Error('No video URL available for download')
       }
       const proxyUrl = `${API_CONFIG.BACKEND_URL}/api/video/download-proxy?url=${encodeURIComponent(videoData.youtubeUrl)}`
@@ -355,8 +381,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         headers: headers
       })
 
-      if (!response.ok)
-      {
+      if (!response.ok) {
         throw new Error(`Failed to download video: ${response.status} ${response.statusText}`)
       }
 
@@ -380,12 +405,10 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       window.URL.revokeObjectURL(blobUrl)
 
 
-    } catch (err)
-    {
+    } catch (err) {
       console.error('Download failed:', err)
       alert('Download failed. Please try again.')
-    } finally
-    {
+    } finally {
       // Reset loading state
       setIsDownloading(false)
     }

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, Play, Pause, Volume2, VolumeX, Download } from 'lucide-react'
-import { tr } from 'zod/v4/locales'
+import { useEffect, useRef } from 'react'
+import { X, SkipBack, SkipForward, Download } from 'lucide-react'
 
 interface AvatarCompletionData {
   avatarId: string
@@ -19,10 +18,7 @@ interface AvatarCompletionModalProps {
 }
 
 export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: AvatarCompletionModalProps) {
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
-  const [isVideoMuted, setIsVideoMuted] = useState(true)
-  const [videoProgress, setVideoProgress] = useState(0)
-  const [videoDuration, setVideoDuration] = useState(0)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -36,44 +32,17 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
     }
   }, [isOpen])
 
-  const handleVideoPlay = () => {
-    const video = document.getElementById('avatar-preview-video') as HTMLVideoElement
-    if (video) {
-      if (isVideoPlaying) {
-        video.pause()
-      } else {
-        video.play()
-      }
-      setIsVideoPlaying(!isVideoPlaying)
+  const handleSkipBack = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10)
     }
   }
 
-  const handleVideoMute = () => {
-    const video = document.getElementById('avatar-preview-video') as HTMLVideoElement
-    if (video) {
-      video.muted = !isVideoMuted
-      setIsVideoMuted(!isVideoMuted)
+  const handleSkipForward = () => {
+    if (videoRef.current) {
+      const newTime = Math.min(videoRef.current.duration, videoRef.current.currentTime + 10)
+      videoRef.current.currentTime = newTime
     }
-  }
-
-  const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget
-    setVideoProgress((video.currentTime / video.duration) * 100)
-  }
-
-  const handleVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget
-    setVideoDuration(video.duration)
-  }
-
-  const handleVideoPlayStateChange = (isPlaying: boolean) => {
-    setIsVideoPlaying(isPlaying)
-  }
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   const handleDownload = () => {
@@ -114,38 +83,36 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
               <h3 className="text-[20px] font-semibold text-[#101010]">Preview Video</h3>
               <div className="relative rounded-[12px] overflow-hidden bg-black">
                 <video
-                  id="avatar-preview-video"
+                  ref={videoRef}
                   src={avatarData.previewVideoUrl}
                   poster={avatarData.previewImageUrl}
                   className="w-full h-[400px] object-cover"
-                  muted={isVideoMuted}
-                  controls={true}
-                  onTimeUpdate={handleVideoTimeUpdate}
-                  onLoadedMetadata={handleVideoLoadedMetadata}
-                  onPlay={() => handleVideoPlayStateChange(true)}
-                  onPause={() => handleVideoPlayStateChange(false)}
+                  controls
                 >
                   Your browser does not support the video tag.
                 </video>
-                
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-30">
-                  <div
-                    className="h-full bg-[#5046E5] transition-all duration-300"
-                    style={{ width: `${videoProgress}%` }}
-                  />
-                </div>
-                <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white text-sm px-3 py-1 rounded">
-                  {videoDuration > 0 ? formatDuration(videoDuration) : 'Loading...'}
-                </div>
-              
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-4 items-center justify-center">
+                <button
+                  onClick={handleSkipBack}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
+                >
+                  <SkipBack className="w-4 h-4" />
+                  Back (10s)
+                </button>
                 <button
                   onClick={handleDownload}
                   className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
                 >
                   <Download className="w-4 h-4" />
                   Download
+                </button>
+                <button
+                  onClick={handleSkipForward}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
+                >
+                  <SkipForward className="w-4 h-4" />
+                  Next (10s)
                 </button>
               </div>
             </div>

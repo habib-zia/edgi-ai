@@ -39,7 +39,11 @@ export const createVideoSchema = z.object({
     .max(200, 'Call to action must be less than 200 characters'),
   email: z.string()
     .email('Please enter a valid email address')
-    .max(255, 'Email must be less than 255 characters')
+    .max(255, 'Email must be less than 255 characters'),
+  preset: z.string().optional(),
+  voice: z.string().optional(),
+  music: z.string().optional(),
+  language: z.string().optional()
 })
 
 // Type inference from schema

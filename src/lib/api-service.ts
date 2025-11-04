@@ -125,6 +125,21 @@ export interface CreateVideoAvatarResponse {
   avatar_group_id: string;
 }
 
+// Voice Avatar Types
+export interface CreateVoiceAvatarRequest {
+  audio: File;
+  name: string;
+  description: string;
+  gender: string;
+  language: string;
+  userId: string;
+}
+
+export interface CreateVoiceAvatarResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface VideoAvatarStatusResponse {
   avatar_id: string;
   status: 'in_progress' | 'completed' | 'failed';
@@ -537,6 +552,78 @@ class ApiService {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get avatars';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  // Voices and Music Methods
+  async getVoices(energyCategory?: string, gender?: string | null): Promise<ApiResponse<any>> {
+    try {
+      const params = new URLSearchParams()
+      if (energyCategory) {
+        params.append('energyCategory', energyCategory)
+      }
+      if (gender) {
+        params.append('gender', gender)
+      }
+      
+      const queryString = params.toString()
+      const url = queryString ? `/api/elevenlabs/voices?${queryString}` : '/api/elevenlabs/voices'
+      
+      const response = await this.request<any>(url, {
+        method: 'GET',
+      }, true)
+      return response
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get voices'
+      this.showNotification(errorMessage, 'error')
+      return { success: false, message: errorMessage, error: errorMessage }
+    }
+  }
+
+  async getMusicTracks(energyCategory?: string): Promise<ApiResponse<any>> {
+    try {
+      const params = new URLSearchParams()
+      if (energyCategory) {
+        params.append('energyCategory', energyCategory)
+      }
+      
+      const queryString = params.toString()
+      const url = queryString ? `/api/music/tracks?${queryString}` : '/api/music/tracks'
+      
+      const response = await this.request<any>(url, {
+        method: 'GET',
+      }, true)
+      return response
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get music tracks'
+      this.showNotification(errorMessage, 'error')
+      return { success: false, message: errorMessage, error: errorMessage }
+    }
+  }
+
+  async textToSpeech(data: {
+    voice_id: string
+    hook: string
+    body: string
+    conclusion: string
+    output_format?: string
+  }): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>('/api/elevenlabs/text-to-speech', {
+        method: 'POST',
+        body: JSON.stringify({
+          voice_id: data.voice_id,
+          hook: data.hook,
+          body: data.body,
+          conclusion: data.conclusion,
+          output_format: data.output_format || 'mp3_44100_128'
+        }),
+      }, true)
+      return response
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate text-to-speech'
+      this.showNotification(errorMessage, 'error')
+      return { success: false, message: errorMessage, error: errorMessage }
     }
   }
 
@@ -967,6 +1054,40 @@ class ApiService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create video avatar';
       console.error('❌ Error creating video avatar:', error);
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async createVoiceAvatar(formData: FormData): Promise<ApiResponse<CreateVoiceAvatarResponse>> {
+    try {
+      const headers = getAuthenticatedHeaders();
+      delete headers['Content-Type'];
+
+      const url = getApiUrl(API_CONFIG.ENDPOINTS.ELEVENLABS.ADD_VOICE);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          this.showNotification(errorData.message || 'Failed to create voice avatar', 'error');
+          return { success: false, message: errorData.message || 'Failed to create voice avatar', error: errorData.message };
+        } catch {
+          this.showNotification(errorText || 'Failed to create voice avatar', 'error');
+          return { success: false, message: errorText || 'Failed to create voice avatar', error: errorText };
+        }
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create voice avatar';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }

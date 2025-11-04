@@ -36,6 +36,15 @@ export default function Step2ChooseType({ onAvatarTypeSelect, onAvatarTypeNext, 
       remaining: null,
       preview: '/images/avatars/photo.png',
       realistic: false
+    },
+    {
+      type: 'voice-avatar' as AvatarType,
+      title: 'Custom Voice',
+      subtitle: 'Voice-based avatar',
+      description: 'Clone your voice with only 30 seconds of voice recording.',
+      remaining: null,
+      preview: '/images/avatars/voice.png',
+      realistic: false
     }
   ] 
 

@@ -32,6 +32,10 @@ import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
+import VoiceSelectorWrapper from './voice-selector-wrapper'
+import { Voice, VoiceType } from './voice-selector/types'
+import MusicSelectorWrapper from './music-selector-wrapper'
+import { useVoicesAndMusic } from '@/hooks/useVoicesAndMusic'
 
 const promptOptions = [
   { value: 'Shawheen V1', label: 'Shawheen V1' },
@@ -72,6 +76,17 @@ const positionOptions = [
   { value: 'Loan Officer', label: 'Loan Officer' }
 ]
 
+const presetOptions = [
+  { value: 'Low', label: 'Low' },
+  { value: 'Medium', label: 'Medium' },
+  { value: 'High', label: 'High' }
+]
+
+const languageOptions = [
+  { value: 'English', label: 'English' },
+  { value: 'Spanish', label: 'Spanish' },
+]
+
 interface CreateVideoFormProps {
   className?: string
 }
@@ -104,6 +119,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     license?: string
     avatar?: string
     email?: string
+    voice_id?: string
   } | null>(null)
   const [isFromDefaultAvatar, setIsFromDefaultAvatar] = useState(false)
   const [avatars, setAvatars] = useState<{ custom: Avatar[], default: Avatar[] }>({ custom: [], default: [] })
@@ -163,6 +179,15 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   
   // Track if form has been manually touched to avoid showing validation errors on prefilled forms
   const [formManuallyTouched, setFormManuallyTouched] = useState(false)
+  
+  // Voice selection state
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null)
+  const [draggedVoice, setDraggedVoice] = useState<Voice | null>(null)
+  const [isVoiceManuallySelected, setIsVoiceManuallySelected] = useState(false)
+
+  // Music selection state
+  const [selectedMusic, setSelectedMusic] = useState<Voice | null>(null)
+  const [draggedMusic, setDraggedMusic] = useState<Voice | null>(null)
 
 
   // Check if user came from Default Avatar button
@@ -211,6 +236,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setAvatarsLoading(false)
     }
   }, [])
+
   useEffect(() => {
     fetchAvatars()
     fetchSchedule()
@@ -245,7 +271,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   // All avatar types are allowed to mix (custom image, custom video, default)
   const isAvatarTypeAllowed = (_avatar: Avatar): boolean => {
-    return true
+      return true
   }
 
   // Drag and drop handlers
@@ -343,6 +369,129 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     })
     setValue('avatar', '')
     trigger('avatar')
+  }
+
+  // Voice handlers
+  const handleVoiceClick = (voice: Voice) => {
+    console.log('🎤 create-video-form - handleVoiceClick called:', voice.name, voice.id, voice.type)
+    
+    // Mark that user has manually selected a voice (prevents auto-select from overriding)
+    setIsVoiceManuallySelected(true)
+    
+    // Update selected voice FIRST (this is the source of truth)
+    setSelectedVoice(voice)
+    
+    // Then update form value to match selected voice
+    setValue('voice', voice.id, { shouldValidate: true, shouldDirty: true })
+    trigger('voice')
+    
+    // Update voice type to match selected voice
+    setCurrentVoiceType(voice.type)
+    
+    // ALSO update music type and auto-select random music of same type (only if not custom)
+    if (voice.type !== 'custom') {
+      setCurrentMusicType(voice.type as 'low' | 'medium' | 'high')
+    }
+    const filteredMusic = allMusic.filter(m => m.type === voice.type)
+    if (filteredMusic.length > 0) {
+      const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
+      setSelectedMusic(randomMusic)
+      setValue('music', randomMusic.id, { shouldValidate: true })
+      trigger('music')
+    }
+    
+    console.log('🎤 create-video-form - Updated selectedVoice to:', voice.name, voice.id, 'Form value updated to:', voice.id)
+  }
+
+  const handleVoiceDragStart = (e: React.DragEvent, voice: Voice) => {
+    setDraggedVoice(voice)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', voice.id)
+    const target = e.target as HTMLElement
+    target.classList.add('dragging')
+  }
+
+  const handleVoiceDragEnd = (e: React.DragEvent) => {
+    const target = e.target as HTMLElement
+    target.classList.remove('dragging')
+    setDraggedVoice(null)
+  }
+
+  const handleVoiceDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    const target = e.currentTarget as HTMLElement
+    target.classList.add('drag-over')
+  }
+
+  const handleVoiceDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation()
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+  }
+
+  const handleVoiceDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+    
+    if (draggedVoice) {
+      handleVoiceClick(draggedVoice)
+    }
+    setDraggedVoice(null)
+  }
+
+  // Music handlers (reusing same structure as voice)
+  const handleMusicClick = (music: Voice) => {
+    // Ensure we're setting the correct music - use the music object passed from the click
+    setSelectedMusic(music)
+    setValue('music', music.id, { shouldValidate: true })
+    trigger('music')
+    // Don't sync voice - voice and music are independent
+  }
+
+  const handleMusicDragStart = (e: React.DragEvent, music: Voice) => {
+    setDraggedMusic(music)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', music.id)
+    const target = e.target as HTMLElement
+    target.classList.add('dragging')
+  }
+
+  const handleMusicDragEnd = (e: React.DragEvent) => {
+    const target = e.target as HTMLElement
+    target.classList.remove('dragging')
+    setDraggedMusic(null)
+  }
+
+  const handleMusicDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    const target = e.currentTarget as HTMLElement
+    target.classList.add('drag-over')
+  }
+
+  const handleMusicDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation()
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+  }
+
+  const handleMusicDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const target = e.currentTarget as HTMLElement
+    target.classList.remove('drag-over')
+    
+    if (draggedMusic) {
+      handleMusicClick(draggedMusic)
+    }
+    setDraggedMusic(null)
   }
 
   // Click-to-select functionality - automatically assigns to drag & drop slots
@@ -445,9 +594,33 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       city: '',
       preferredTone: '',
       callToAction: '',
-      email: ''
+      email: '',
+      preset: '',
+      voice: '',
+      music: '',
+      language: ''
     }
   })
+
+  // Voice and Music state - using hook
+  const preset = watch('preset')
+  const {
+    voices,  // Filtered voices based on preset
+    voicesLoading,
+    voicesError,
+    musicList,  // Filtered music based on preset
+    musicLoading,
+    musicError,
+    allVoices,  // All voices (low, medium, high)
+    allMusic  // All music (low, medium, high)
+  } = useVoicesAndMusic({
+    preset,
+    selectedAvatars
+  })
+  
+  // Track current filter type for voice/music dropdowns
+  const [currentVoiceType, setCurrentVoiceType] = useState<VoiceType | null>(null)
+  const [currentMusicType, setCurrentMusicType] = useState<'low' | 'medium' | 'high' | null>(null)
 
   // Mark form as manually touched when any form field changes
   const handleFormFieldChange = () => {
@@ -506,7 +679,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setCityTrendsError(null)
       return
     }
-    
+
     // Clear missing fields error if both are present
     setMissingFieldsError(null)
     
@@ -606,6 +779,122 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setMissingFieldsError('Please select the position and city first')
     }
   }, [watchedPosition, fetchCityTrends, watch])
+
+  // Auto-select random voice and music when preset is selected and data is loaded
+  // ONLY if user hasn't manually selected a voice
+  useEffect(() => {
+    if (preset && allVoices.length > 0 && allMusic.length > 0 && !isVoiceManuallySelected) {
+      const currentVoice = watch('voice')
+      const currentMusic = watch('music')
+      
+      // Check if we need to auto-select based on preset
+      const presetLower = preset.toLowerCase()
+      const selectedVoiceType = selectedVoice?.type
+      const selectedMusicType = selectedMusic?.type
+      
+      // Reset type filters when preset changes
+      if (!currentVoiceType || currentVoiceType !== presetLower) {
+        setCurrentVoiceType(presetLower as 'low' | 'medium' | 'high')
+        setCurrentMusicType(presetLower as 'low' | 'medium' | 'high')
+      }
+      
+      // Auto-select voice if not selected or if type doesn't match preset
+      if (!currentVoice || (selectedVoiceType && selectedVoiceType !== presetLower)) {
+        const matchingVoices = allVoices.filter(v => v.type === presetLower)
+        if (matchingVoices.length > 0) {
+          const randomVoice = matchingVoices[Math.floor(Math.random() * matchingVoices.length)]
+          if (randomVoice) {
+            setSelectedVoice(randomVoice)
+            setValue('voice', randomVoice.id)
+            trigger('voice')
+          }
+        }
+      }
+      
+      // Auto-select music if not selected or if type doesn't match preset
+      if (!currentMusic || (selectedMusicType && selectedMusicType !== presetLower)) {
+        const matchingMusic = allMusic.filter(m => m.type === presetLower)
+        if (matchingMusic.length > 0) {
+          const randomMusic = matchingMusic[Math.floor(Math.random() * matchingMusic.length)]
+          if (randomMusic) {
+            setSelectedMusic(randomMusic)
+            setValue('music', randomMusic.id)
+            trigger('music')
+          }
+        }
+      }
+    }
+  }, [preset, allVoices, allMusic, watch, setValue, trigger, selectedVoice, selectedMusic, currentVoiceType, isVoiceManuallySelected])
+  
+  // Handle voice type change from VoiceSelector (when user clicks low/medium/high buttons)
+  const handleVoiceTypeChange = useCallback((type: VoiceType) => {
+    console.log('🎤 create-video-form - handleVoiceTypeChange called with type:', type)
+    
+    // Mark that user has manually changed voice type (prevents auto-select from overriding)
+    setIsVoiceManuallySelected(true)
+    
+    // Update voice type filter
+    setCurrentVoiceType(type)
+    
+    // Filter voices - handle custom type specially
+    if (type === 'custom') {
+      // For custom voices, filter by isCustom property
+      const filteredVoices = allVoices.filter(v => v.isCustom === true)
+      if (filteredVoices.length > 0) {
+        const randomVoice = filteredVoices[Math.floor(Math.random() * filteredVoices.length)]
+        setSelectedVoice(randomVoice)
+        setValue('voice', randomVoice.id, { shouldValidate: true })
+        trigger('voice')
+      }
+      // Don't update music type for custom voices - keep current music type
+    } else {
+      // For low/medium/high, update music type to match voice type
+      setCurrentMusicType(type)
+      
+      // Filter voices
+      const filteredVoices = allVoices.filter(v => v.type === type)
+      if (filteredVoices.length > 0) {
+        const randomVoice = filteredVoices[Math.floor(Math.random() * filteredVoices.length)]
+        setSelectedVoice(randomVoice)
+        setValue('voice', randomVoice.id, { shouldValidate: true })
+        trigger('voice')
+      }
+      
+      // Filter music and auto-select random music of the same type
+      const filteredMusic = allMusic.filter(m => m.type === type)
+      if (filteredMusic.length > 0) {
+        const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
+        setSelectedMusic(randomMusic)
+        setValue('music', randomMusic.id, { shouldValidate: true })
+        trigger('music')
+      }
+    }
+  }, [allVoices, allMusic, setValue, trigger])
+  
+  // Handle music type change from MusicSelector (when user clicks low/medium/high buttons)
+  const handleMusicTypeChange = useCallback((type: VoiceType) => {
+    // Music only supports low/medium/high, not custom
+    if (type === 'custom') {
+      return // Ignore custom type for music
+    }
+    // Update music type filter only (don't sync voice)
+    setCurrentMusicType(type as 'low' | 'medium' | 'high')
+    
+    // Filter music
+    const filteredMusic = allMusic.filter(m => m.type === type)
+    
+    // Auto-select random music from the filtered list
+    if (filteredMusic.length > 0) {
+      const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
+      setSelectedMusic(randomMusic)
+      setValue('music', randomMusic.id, { shouldValidate: true })
+      trigger('music')
+    } else {
+      setSelectedMusic(null)
+      setValue('music', '', { shouldValidate: true })
+      trigger('music')
+    }
+  }, [allMusic, setValue, trigger])
 
   // Auto-fill form when avatars are loaded and user has settings
   useEffect(() => {
@@ -783,7 +1072,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         social_handles: webhookData?.social_handles || webhookData?.socialHandles || data.socialHandles,
         license: webhookData?.license || data.license,
         avatar: webhookData?.avatar || data.avatar,
-        email: webhookData?.email || data.email
+        email: webhookData?.email || data.email,
+        voice_id: selectedVoice?.id || data.voice || '',
+        music_url: selectedMusic?.s3FullTrackUrl || ''
       }
       setWebhookResponse(decodedResponse)
 
@@ -835,6 +1126,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         },
         name: data.name,
         position: data.position,
+        language: data.language,
+        preset: data.preset || '',
         companyName: data.companyName,
         license: data.license,
         tailoredFit: data.tailoredFit,
@@ -842,9 +1135,14 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         city: data.city,
         preferredTone: data.preferredTone,
         callToAction: data.callToAction,
-        email: data.email
+        email: data.email,
+        voice: data.voice,
+        selectedVoiceId: selectedVoice?.id || data.voice || '',
+        selectedMusicTrackId: selectedMusic?._id || selectedMusic?.id || data.music || '',
+        selectedVoicePreset: (selectedVoice as any)?.energy || selectedVoice?.type || '',
+        selectedMusicPreset: (selectedMusic as any)?.energyCategory || selectedMusic?.type || ''
       }
-
+      console.log('userSettingsPayload', userSettingsPayload)
       const userSettingsResult = await saveUserSettings(userSettingsPayload)
       if (!userSettingsResult.success) {
         console.error('Failed to store user settings:', userSettingsResult.error)
@@ -873,6 +1171,24 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       if (field === 'avatar') {
         setValue('avatar', '')
       setValue('avatar', value)
+      } else if (field === 'voice') {
+        const voice = voices.find(v => v.id === value)
+        if (voice) {
+          // Mark that user has manually selected a voice (prevents auto-select from overriding)
+          setIsVoiceManuallySelected(true)
+          setSelectedVoice(voice)
+          // Don't sync music - voice and music are independent
+        }
+        setValue('voice', value)
+        trigger('voice')
+      } else if (field === 'music') {
+        const music = musicList.find(m => m.id === value)
+        if (music) {
+          setSelectedMusic(music)
+          // Don't sync voice - voice and music are independent
+        }
+        setValue('music', value)
+        trigger('music')
       } else if (field === 'videoTopic') {
       setValue('videoTopic', value, { shouldValidate: true, shouldDirty: true })
       
@@ -944,7 +1260,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     options: { value: string; label: string }[],
     placeholder: string
   ) => {
-    const currentValue = watch(field)
+    const currentValue = watch(field) || ''
     const isOpen = openDropdown === field
     const hasError = errors[field]
 
@@ -987,6 +1303,72 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     )
   }
 
+  const renderVoiceSelector = (
+    field: keyof CreateVideoFormData,
+    placeholder: string
+  ) => {
+    // Pass ALL voices to VoiceSelector - it will filter internally based on voiceType
+    // VoiceSelector has its own voiceType state that controls filtering
+    return (
+      <VoiceSelectorWrapper
+        field={field}
+        placeholder={placeholder}
+        watch={watch}
+        register={register}
+        errors={errors}
+        trigger={trigger}
+        openDropdown={openDropdown}
+        selectedVoice={selectedVoice}
+        voices={allVoices.length > 0 ? allVoices : voices}  // Pass all voices, let VoiceSelector filter
+        voicesLoading={voicesLoading}
+        voicesError={voicesError}
+        preset={preset}
+        onToggle={handleDropdownToggle}
+        onSelect={handleDropdownSelect}
+        onVoiceClick={handleVoiceClick}
+        onVoiceTypeChange={handleVoiceTypeChange}
+        onDragStart={handleVoiceDragStart}
+        onDragEnd={handleVoiceDragEnd}
+        onDragOver={handleVoiceDragOver}
+        onDragLeave={handleVoiceDragLeave}
+        onDrop={handleVoiceDrop}
+      />
+    )
+  }
+
+  const renderMusicSelector = (
+    field: keyof CreateVideoFormData,
+    placeholder: string
+  ) => {
+    // Pass ALL music to MusicSelector - it will filter internally based on voiceType (used for music too)
+    // VoiceSelector component (used for music) has its own voiceType state that controls filtering
+    return (
+      <MusicSelectorWrapper
+        field={field}
+        placeholder={placeholder}
+        watch={watch}
+        register={register}
+        errors={errors}
+        trigger={trigger}
+        openDropdown={openDropdown}
+        selectedMusic={selectedMusic}
+        musicList={allMusic.length > 0 ? allMusic : musicList}  // Pass all music, let VoiceSelector filter
+        musicLoading={musicLoading}
+        musicError={musicError}
+        preset={preset}
+        onToggle={handleDropdownToggle}
+        onSelect={handleDropdownSelect}
+        onMusicClick={handleMusicClick}
+        onMusicTypeChange={handleMusicTypeChange}
+        onDragStart={handleMusicDragStart}
+        onDragEnd={handleMusicDragEnd}
+        onDragOver={handleMusicDragOver}
+        onDragLeave={handleMusicDragLeave}
+        onDrop={handleMusicDrop}
+      />
+    )
+  }
+
   const renderTrendsDropdown = (
     field: keyof CreateVideoFormData,
     placeholder: string
@@ -1013,7 +1395,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       <HybridTopicInput
         field={field}
         placeholder={placeholder}
-        currentValue={displayValue}
+        currentValue={displayValue || ''}
         selectedTrend={selectedTrend}
         isOpen={isOpen}
         hasError={hasError}
@@ -1116,7 +1498,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-           <div>
+          <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Name <span className="text-red-500">*</span>
             </label>
@@ -1158,6 +1540,37 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           }}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Preset <span className="text-red-500">*</span>
+            </label>
+            {renderDropdown('preset', presetOptions, 'Select Preset')}
+          </div>
+          {/* Voice field - only shown when preset is selected */}
+          {watch('preset') && (
+            <div>
+              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+                Voice <span className="text-red-500">*</span>
+              </label>
+              {renderVoiceSelector('voice', 'Select Voice')}
+            </div>
+          )}
+          {/* Music dropdown - only shown when a voice is selected */}
+          {selectedVoice && (
+            <div>
+              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+                Music
+              </label>
+              {renderMusicSelector('music', 'Select Music')}
+            </div>
+          )}
+           <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Language <span className="text-red-500">*</span>
+            </label>
+            {renderDropdown('language', languageOptions, 'Select Language')}
+          </div>
+
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Video Topic <span className="text-red-500">*</span>
@@ -1214,7 +1627,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
              !selectedAvatars.title || 
              !selectedAvatars.body || 
              !selectedAvatars.conclusion ||
-             (!watch('videoTopic')?.trim() && !customTopicValue.trim())
+             (!watch('videoTopic')?.trim() && !customTopicValue.trim()) ||
+             !watch('preset') ||
+             !watch('voice') ||
+             !watch('music') ||
+             !watch('language')
            }
            loadingText="This Proccess will take up to 30-50 seconds"
            buttonText="Submit"

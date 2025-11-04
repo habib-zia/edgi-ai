@@ -3,6 +3,7 @@ export const API_CONFIG = {
   // Express Backend URL
   // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
   BACKEND_URL: 'https://backend.edgeairealty.com',
+  // BACKEND_URL: 'http://192.168.3.35:4000',
   // BACKEND_URL: 'http://192.168.1.88:4000',
   // BACKEND_URL: 'http://localhost:4000',
   
@@ -62,6 +63,12 @@ export const API_CONFIG = {
     AVATAR: {
       GET_AVATARS: '/api/video/avatars',
       CREATE_PHOTO_AVATAR: '/api/video/photo-avatar',
+      CREATE_VOICE_AVATAR: '/api/video/voice-avatar',
+    },
+    
+    // ElevenLabs endpoints
+    ELEVENLABS: {
+      ADD_VOICE: '/api/elevenlabs/voices/add',
     },
     
     // Video Avatar endpoints (HeyGen API)
