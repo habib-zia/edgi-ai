@@ -72,12 +72,11 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
   const { user } = useSelector((state: RootState) => state.user);
   const { showNotification } = useNotificationStore();
   const { checkVideoUsageLimit } = useSubscription();
-  const { isAvatarProcessing, isVideoAvatarProcessing } = useUnifiedSocketContext();
-  const isAnyAvatarProcessing = isAvatarProcessing || isVideoAvatarProcessing;
+  const { isAvatarProcessing } = useUnifiedSocketContext();
 
   const handleCustomAvatarClick = async () => {
     // Prevent action if avatar is currently being processed
-    if (isAnyAvatarProcessing) {
+    if (isAvatarProcessing) {
       showNotification('Please wait for your current avatar to finish processing', 'warning');
       return;
     }
@@ -271,14 +270,14 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
           </Link> */}
           <button 
             onClick={handleCustomAvatarClick}
-            disabled={isAnyAvatarProcessing}
+            disabled={isAvatarProcessing}
             className={`inline-flex md:w-fit w-full items-center gap-3 border-2 py-[7.4px] rounded-full text-[20px] font-semibold transition-colors duration-300 group md:max-w-[192px] max-w-full text-center justify-center px-4 ${
-              isAnyAvatarProcessing 
+              isAvatarProcessing 
                 ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
                 : 'bg-transparent border-[#5046E5] text-[#5046E5] hover:bg-[#5046E5] hover:text-white'
             }`}
           >
-            {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
+            {isAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
           </button>
           <button 
             onClick={handleDefaultAvatarClick}
