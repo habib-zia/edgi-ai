@@ -19,6 +19,11 @@ interface UserSettings {
   preferredTone: string
   callToAction: string
   email: string
+  preset?: string
+  selectedVoiceId?: string
+  selectedMusicTrackId?: string
+  selectedVoicePreset?: string
+  selectedMusicPreset?: string
 }
 
 interface UserSettingsResponse {
@@ -216,7 +221,12 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         city: userSettingsData.city,
         preferredTone: userSettingsData.preferredTone,
         callToAction: userSettingsData.callToAction,
-        email: userSettingsData.email
+        email: userSettingsData.email,
+        preset: userSettingsData.preset || '',
+        selectedVoiceId: userSettingsData.selectedVoiceId || '',
+        selectedMusicTrackId: userSettingsData.selectedMusicTrackId || '',
+        selectedVoicePreset: userSettingsData.selectedVoicePreset || '',
+        selectedMusicPreset: userSettingsData.selectedMusicPreset || ''
       }
       
       const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.USER_SETTINGS), {

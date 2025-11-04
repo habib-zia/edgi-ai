@@ -42,7 +42,24 @@ export default function VoiceList({
   loadingText = 'Loading voices...',
   emptyText
 }: VoiceListProps) {
-  const filteredVoices = voices.filter(voice => voice.type === voiceType)
+  // Filter voices by the selected voiceType
+  const filteredVoices = voices.filter(voice => {
+    const matches = voice.type === voiceType
+    console.log('🎵 VoiceList - Filtering voice:', {
+      name: voice.name,
+      voiceType: voice.type,
+      selectedType: voiceType,
+      matches: matches
+    })
+    return matches
+  })
+  
+  console.log('🎵 VoiceList - Filtered results:', {
+    voiceType: voiceType,
+    totalVoices: voices.length,
+    filteredCount: filteredVoices.length,
+    filteredNames: filteredVoices.map(v => v.name)
+  })
 
   const handleDragOverInner = (e: React.DragEvent) => {
     try {

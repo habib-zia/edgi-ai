@@ -69,7 +69,10 @@ export default function VoiceItem({
 
       {voice.previewUrl && (
         <button
-          onClick={(e) => onPlay(e, voice)}
+          onClick={(e) => {
+            e.stopPropagation() // Prevent triggering the container's onClick
+            onPlay(e, voice)
+          }}
           className={`relative flex-shrink-0 w-[30px] h-[30px] rounded-full flex items-center justify-center transition-all duration-200 ${
             isPlaying
               ? 'bg-[#EBE9FE] hover:bg-[#E0DDFE]'

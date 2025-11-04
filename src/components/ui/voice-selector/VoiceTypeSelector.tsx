@@ -5,6 +5,7 @@ import { VoiceType } from './types'
 interface VoiceTypeSelectorProps {
   currentType: VoiceType
   onTypeChange: (type: VoiceType) => void
+  disabled?: boolean
   title?: string
   description?: string
   lowLabel?: string
@@ -15,6 +16,7 @@ interface VoiceTypeSelectorProps {
 export default function VoiceTypeSelector({ 
   currentType, 
   onTypeChange,
+  disabled = false,
   title = 'Voice Energy',
   description = 'Select the level of music and search the best voice for your video',
   lowLabel = 'Low Voice',
@@ -32,8 +34,11 @@ export default function VoiceTypeSelector({
       
       <div className="space-y-4 flex-1 lg:flex-col flex-row flex-wrap">
         <button
-          onClick={() => onTypeChange('low')}
+          onClick={() => !disabled && onTypeChange('low')}
+          disabled={disabled}
           className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
+            disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+          } ${
             currentType === 'low'
               ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
               : 'bg-transparent hover:bg-white/50'
@@ -52,8 +57,11 @@ export default function VoiceTypeSelector({
         </button>
 
         <button
-          onClick={() => onTypeChange('medium')}
+          onClick={() => !disabled && onTypeChange('medium')}
+          disabled={disabled}
           className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
+            disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+          } ${
             currentType === 'medium'
               ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
               : 'bg-transparent hover:bg-white/50'
@@ -74,8 +82,11 @@ export default function VoiceTypeSelector({
         </button>
 
         <button
-          onClick={() => onTypeChange('high')}
+          onClick={() => !disabled && onTypeChange('high')}
+          disabled={disabled}
           className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
+            disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+          } ${
             currentType === 'high'
               ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
               : 'bg-transparent hover:bg-white/50'

@@ -26,6 +26,8 @@ interface CreateVideoModalProps {
     license?: string
     avatar?: string
     email?: string
+    voice_id?: string
+    music_url?: string
   } | null;
 }
 
@@ -43,6 +45,8 @@ interface VideoGenerationData {
   avatar_title: string
   avatar_body: string
   avatar_conclusion: string
+  music?: string
+  text?: string
 }
 
 export default function CreateVideoModal({ isOpen, onClose, startAtComplete = false, videoData, webhookResponse }: CreateVideoModalProps) {
@@ -58,7 +62,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     conclusion: ''
   })
   const [isDownloading, setIsDownloading] = useState(false)
-  const [countdown, setCountdown] = useState(60)
+  const [countdown, setCountdown] = useState(20)
   const [avatarError, setAvatarError] = useState<string>('')
   const [isRedirecting, setIsRedirecting] = useState(false)
   const hasRedirectedThisModalRef = useRef(false)
@@ -184,9 +188,17 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           if (prev <= 1)
           {
             clearInterval(countdownTimer!)
-            // Close modal without redirect after countdown reaches 0
+            // Close modal and navigate to /create-video when countdown reaches 0
             setTimeout(() => {
-              handleClose()
+              // Close the modal first
+              onClose()
+              
+              // Navigate to /create-video
+              setTimeout(() => {
+                if (window.location.pathname !== '/create-video') {
+                  window.location.href = '/create-video'
+                }
+              }, 100)
             }, 1000)
             return 0
           }
@@ -196,7 +208,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     } else
     {
       // Reset countdown when not in loading state
-      setCountdown(60)
+      setCountdown(20)
     }
 
     return () => {
@@ -205,7 +217,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         clearInterval(countdownTimer)
       }
     }
-  }, [currentStep, handleClose])
+  }, [currentStep, onClose])
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
@@ -276,6 +288,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       const videoGenerationData: VideoGenerationData = {
         hook: formData.prompt,
         body: formData.description,
+        text:formData.description,
         conclusion: formData.conclusion,
         company_name: webhookResponse?.company_name || '',
         social_handles: webhookResponse?.social_handles || '',
@@ -284,10 +297,40 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         title: videoTopic || 'Custom Video',
         avatar_title: avatarIds.avatar_title,
         avatar_body: avatarIds.avatar_body,
-        avatar_conclusion: avatarIds.avatar_conclusion
+        avatar_conclusion: avatarIds.avatar_conclusion,
+        music: webhookResponse?.music_url || ''
       }
 
       console.log('videoGenerationData', videoGenerationData)
+
+      // Call ElevenLabs text-to-speech API if voice_id is available
+      let textToSpeechResponse = null
+      if (webhookResponse?.voice_id) {
+        try {
+          console.log('🎙️ Calling ElevenLabs text-to-speech API with voice_id:', webhookResponse.voice_id)
+          const textToSpeechData = {
+            voice_id: webhookResponse.voice_id,
+            hook: formData.prompt,
+            body: formData.description,
+            conclusion: formData.conclusion,
+            output_format: 'mp3_44100_128'
+          }
+          console.log(JSON?.stringify(textToSpeechData,null,2))
+          textToSpeechResponse = await apiService.textToSpeech(textToSpeechData)
+          console.log('🎙️ Text-to-speech API response:', textToSpeechResponse)
+          
+          // Update videoGenerationData with URLs from text-to-speech response
+          if (textToSpeechResponse?.success && textToSpeechResponse?.data) {
+            videoGenerationData.hook = textToSpeechResponse.data.hook_url || formData.prompt
+            videoGenerationData.body = textToSpeechResponse.data.body_url || formData.description
+            videoGenerationData.conclusion = textToSpeechResponse.data.conclusion_url || formData.conclusion
+            console.log('🎙️ Updated videoGenerationData with text-to-speech URLs:', videoGenerationData)
+          }
+        } catch (error) {
+          console.error('Text-to-speech API failed:', error)
+          // Continue with video generation even if text-to-speech fails (use original text)
+        }
+      }
 
       // Call the video generation API using apiService
       await apiService.generateVideo(videoGenerationData)

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useTransition } from 'react'
+import React, { useState, useMemo, useTransition, useEffect } from 'react'
 import { IoMdArrowDropdown } from "react-icons/io"
 import { UseFormRegister, FieldErrors } from 'react-hook-form'
 import { Voice, VoiceType } from './types'
@@ -23,6 +23,7 @@ interface VoiceSelectorProps {
   voicesLoading?: boolean
   voicesError?: string | null
   selectedVoice?: Voice | null
+  preset?: string | null
   onVoiceClick?: (voice: Voice) => void
   onDragStart?: (e: React.DragEvent, voice: Voice) => void
   onDragEnd?: (e: React.DragEvent) => void
@@ -37,6 +38,7 @@ interface VoiceSelectorProps {
   listTitle?: string
   listLoadingText?: string
   listEmptyText?: string
+  onVoiceTypeChange?: (type: VoiceType) => void
 }
 
 export default function VoiceSelector({
@@ -54,6 +56,7 @@ export default function VoiceSelector({
   voicesLoading = false,
   voicesError = null,
   selectedVoice = null,
+  preset = null,
   onVoiceClick,
   onDragStart,
   onDragEnd,
@@ -67,17 +70,49 @@ export default function VoiceSelector({
   typeSelectorHighLabel,
   listTitle,
   listLoadingText,
-  listEmptyText
+  listEmptyText,
+  onVoiceTypeChange
 }: VoiceSelectorProps) {
-  const [voiceType, setVoiceType] = useState<VoiceType>('low')
+  // Initialize voiceType based on preset, default to 'low'
+  const getInitialVoiceType = (): VoiceType => {
+    if (preset) {
+      const presetLower = preset.toLowerCase()
+      if (presetLower === 'medium') return 'medium'
+      if (presetLower === 'high') return 'high'
+      return 'low'
+    }
+    return 'low'
+  }
+  
+  const [voiceType, setVoiceType] = useState<VoiceType>(getInitialVoiceType())
   const [draggedVoice, setDraggedVoice] = useState<Voice | null>(null)
   const [, startTransition] = useTransition()
   
   const { playingVoiceId, voiceProgress, handlePlayPreview, stopAllAudio } = useAudioPlayer()
 
-  const displayValue = selectedVoice?.name || currentValue || placeholder
+  // Get preset from parent if available
+  const presetValue = preset || null
+  // ALWAYS prioritize selectedVoice - it's the source of truth
+  // Only use currentValue if selectedVoice is null
+  const displayValue = selectedVoice?.name || (currentValue ? voices.find(v => v.id === currentValue)?.name : null) || presetValue || placeholder
+  
+  // Update voiceType when preset changes
+  useEffect(() => {
+    if (preset) {
+      const presetLower = preset.toLowerCase()
+      let newType: VoiceType = 'low'
+      if (presetLower === 'medium') newType = 'medium'
+      else if (presetLower === 'high') newType = 'high'
+      setVoiceType(newType)
+    }
+  }, [preset])
 
   const handleVoiceTypeChange = (type: VoiceType) => {
+    console.log('🎤 VoiceSelector - handleVoiceTypeChange called with type:', type)
+    console.log('🎤 VoiceSelector - Current voiceType:', voiceType, 'Current selectedVoice:', selectedVoice?.name, 'selectedVoiceType:', selectedVoice?.type)
+    
+    // Don't auto-select if user is manually changing type - let them select manually
+    // Only update the type filter, don't trigger auto-selection
     try {
       stopAllAudio()
     } catch {
@@ -85,18 +120,39 @@ export default function VoiceSelector({
     
     startTransition(() => {
       try {
+        console.log('🎤 VoiceSelector - Setting voiceType to:', type)
         setVoiceType(type)
+        // Call the callback - but this will now check if current voice matches type before auto-selecting
+        if (onVoiceTypeChange) {
+          console.log('🎤 VoiceSelector - Calling onVoiceTypeChange callback with type:', type)
+          onVoiceTypeChange(type)
+        }
       } catch {
         setVoiceType(type)
+        if (onVoiceTypeChange) {
+          onVoiceTypeChange(type)
+        }
       }
     })
   }
 
   const handleVoiceSelection = (voice: Voice) => {
+    console.log('🎤 VoiceSelector - handleVoiceSelection called:', {
+      voiceName: voice.name,
+      voiceId: voice.id,
+      voiceType: voice.type,
+      field: field,
+      currentValue: currentValue,
+      selectedVoiceId: selectedVoice?.id
+    })
+    // Ensure we're using the correct voice object from the filtered list
     if (onVoiceClick) {
+      console.log('🎤 VoiceSelector - Calling onVoiceClick with voice:', voice.name, voice.id)
       onVoiceClick(voice)
     }
+    console.log('🎤 VoiceSelector - Calling onSelect with field:', field, 'voiceId:', voice.id)
     onSelect(field, voice.id)
+    // Close dropdown after selection
     onToggle(field)
   }
 
@@ -142,9 +198,33 @@ export default function VoiceSelector({
     }
   }
 
+  // selectedVoice takes priority over currentValue to ensure correct selection
   const selectedVoiceId = useMemo(() => {
-    return selectedVoice?.id || currentValue || null
-  }, [selectedVoice, currentValue])
+    console.log('🎤 VoiceSelector - Calculating selectedVoiceId:', {
+      selectedVoiceId: selectedVoice?.id,
+      selectedVoiceName: selectedVoice?.name,
+      currentValue: currentValue,
+      voicesCount: voices.length,
+      voicesTypes: voices.map(v => ({ name: v.name, type: v.type }))
+    })
+    
+    // ALWAYS use selectedVoice.id if it exists - it's the source of truth
+    // This prevents currentValue (form state) from overriding the user's selection
+    if (selectedVoice?.id) {
+      console.log('🎤 VoiceSelector - Using selectedVoice.id (source of truth):', selectedVoice.id, selectedVoice.name)
+      return selectedVoice.id
+    }
+    
+    // Only use currentValue if selectedVoice is null AND it exists in the current voices list
+    if (currentValue && voices.some(v => v.id === currentValue)) {
+      const foundVoice = voices.find(v => v.id === currentValue)
+      console.log('🎤 VoiceSelector - Using currentValue from voices list (fallback):', currentValue, foundVoice?.name)
+      return currentValue
+    }
+    
+    console.log('🎤 VoiceSelector - No valid selectedVoiceId, returning null')
+    return null
+  }, [selectedVoice, currentValue, voices])
 
   return (
     <div className="relative">
@@ -175,6 +255,7 @@ export default function VoiceSelector({
             <VoiceTypeSelector
               currentType={voiceType}
               onTypeChange={handleVoiceTypeChange}
+              disabled={false}
               title={typeSelectorTitle}
               description={typeSelectorDescription}
               lowLabel={typeSelectorLowLabel}
@@ -183,8 +264,8 @@ export default function VoiceSelector({
             />
 
             <VoiceList
-              voices={voices}
-              voiceType={voiceType}
+              voices={voices}  // Already filtered by parent component
+              voiceType={voiceType}  // Used for filtering in VoiceList
               voicesLoading={voicesLoading}
               voicesError={voicesError}
               selectedVoiceId={selectedVoiceId}

@@ -34,6 +34,9 @@ import SubscriptionRequiredToast from './subscription-required-toast'
 import RealEstateValidationError from './real-estate-validation-error'
 import { useUnifiedSocketContext } from '../providers/UnifiedSocketProvider'
 import VoiceSelector, { Voice } from './voice-selector'
+import VoiceSelectorWrapper from './voice-selector-wrapper'
+import MusicSelectorWrapper from './music-selector-wrapper'
+import { useVoicesAndMusic } from '@/hooks/useVoicesAndMusic'
 
 const promptOptions = [
   { value: 'Shawheen V1', label: 'Shawheen V1' },
@@ -117,6 +120,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     license?: string
     avatar?: string
     email?: string
+    voice_id?: string
   } | null>(null)
   const [isFromDefaultAvatar, setIsFromDefaultAvatar] = useState(false)
   const [avatars, setAvatars] = useState<{ custom: Avatar[], default: Avatar[] }>({ custom: [], default: [] })
@@ -177,17 +181,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   // Track if form has been manually touched to avoid showing validation errors on prefilled forms
   const [formManuallyTouched, setFormManuallyTouched] = useState(false)
   
-  // Voice state
-  const [voices, setVoices] = useState<Voice[]>([])
-  const [voicesLoading, setVoicesLoading] = useState(false)
-  const [voicesError, setVoicesError] = useState<string | null>(null)
+  // Voice selection state
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null)
   const [draggedVoice, setDraggedVoice] = useState<Voice | null>(null)
+  const [isVoiceManuallySelected, setIsVoiceManuallySelected] = useState(false)
 
-  // Music state (reusing Voice type structure)
-  const [musicList, setMusicList] = useState<Voice[]>([])
-  const [musicLoading, setMusicLoading] = useState(false)
-  const [musicError, setMusicError] = useState<string | null>(null)
+  // Music selection state
   const [selectedMusic, setSelectedMusic] = useState<Voice | null>(null)
   const [draggedMusic, setDraggedMusic] = useState<Voice | null>(null)
 
@@ -239,239 +238,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [])
 
-  // Fetch voices function
-  const fetchVoices = useCallback(async () => {
-    try {
-      setVoicesLoading(true)
-      setVoicesError(null)
-      
-      // TODO: Replace with actual API call when endpoint is available
-      // const response = await apiService.getVoices()
-      // For now, using mock data
-      // Updated mock voices with preview URLs and thumbnails
-const mockVoices: Voice[] = [
-  { 
-    id: 'voice-1', 
-    name: 'Redbull', 
-    artist: 'Isam Ft Koorosh', 
-    type: 'low', 
-    previewUrl: 'https://storage.googleapis.com/eleven-public-prod/premade/voices/2EiwWnXFnvU5JabPnv8n/65d80f52-703f-4cae-a91d-75d4e200ed02.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/redbull1/200/200' 
-  },
-  { 
-    id: 'voice-2', 
-    name: 'Nakhla', 
-    artist: 'Arta Ft Koorosh & Smokepurpp', 
-    type: 'low', 
-    previewUrl: 'https://cdn.freesound.org/previews/612/612090_11861866-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/nakhla1/200/200' 
-  },
-  { 
-    id: 'voice-3', 
-    name: 'Baadpooli', 
-    artist: 'Isam Ft Koorosh', 
-    type: 'low', 
-    previewUrl: 'https://cdn.freesound.org/previews/612/612089_11861866-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/baadpooli1/200/200' 
-  },
-  { 
-    id: 'voice-4', 
-    name: 'tttpttt', 
-    artist: 'Arta Ft Koorosh', 
-    type: 'low', 
-    previewUrl: 'https://cdn.freesound.org/previews/612/612088_11861866-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/tttpttt1/200/200' 
-  },
-  { 
-    id: 'voice-5', 
-    name: 'First Class', 
-    artist: 'Isam Ft Koorosh', 
-    type: 'low', 
-    previewUrl: 'https://cdn.freesound.org/previews/612/612087_11861866-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/firstclass1/200/200' 
-  },
-  { 
-    id: 'voice-6', 
-    name: 'Redbull Medium', 
-    artist: 'Isam Ft Koorosh', 
-    type: 'medium', 
-    previewUrl: 'https://cdn.freesound.org/previews/341/341695_5121236-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/redbull2/200/200' 
-  },
-  { 
-    id: 'voice-7', 
-    name: 'Nakhla Medium', 
-    artist: 'Arta Ft Koorosh', 
-    type: 'medium', 
-    previewUrl: 'https://cdn.freesound.org/previews/341/341696_5121236-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/nakhla2/200/200' 
-  },
-  { 
-    id: 'voice-8', 
-    name: 'Baadpooli Medium', 
-    artist: 'Isam Ft Koorosh', 
-    type: 'medium', 
-    previewUrl: 'https://cdn.freesound.org/previews/341/341697_5121236-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/baadpooli2/200/200' 
-  },
-  { 
-    id: 'voice-9', 
-    name: 'Redbull High', 
-    artist: 'Isam Ft Koorosh', 
-    type: 'high', 
-    previewUrl: 'https://cdn.freesound.org/previews/387/387232_7255534-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/redbull3/200/200' 
-  },
-  { 
-    id: 'voice-10', 
-    name: 'Nakhla High', 
-    artist: 'Arta Ft Koorosh', 
-    type: 'high', 
-    previewUrl: 'https://cdn.freesound.org/previews/387/387233_7255534-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/nakhla3/200/200' 
-  },
-  { 
-    id: 'voice-11', 
-    name: 'Baadpooli High', 
-    artist: 'Isam Ft Koorosh', 
-    type: 'high', 
-    previewUrl: 'https://cdn.freesound.org/previews/387/387234_7255534-lq.mp3', 
-    thumbnailUrl: 'https://picsum.photos/seed/baadpooli3/200/200' 
-  },
-]
-      
-      setVoices(mockVoices)
-      setVoicesError(null)
-    } catch (error: any) {
-      setVoicesError(error.message || 'Failed to load voices')
-    } finally {
-      setVoicesLoading(false)
-    }
-  }, [])
-
-  // Fetch music function
-  const fetchMusic = useCallback(async () => {
-    try {
-      setMusicLoading(true)
-      setMusicError(null)
-      
-      // TODO: Replace with actual API call when endpoint is available
-      // const response = await apiService.getMusic()
-      // For now, using mock data with Voice type structure
-      const mockMusic: Voice[] = [
-        { 
-          id: 'music-1', 
-          name: 'Redbull', 
-          artist: 'Isam Ft Koorosh', 
-          type: 'low', 
-          previewUrl: 'https://storage.googleapis.com/eleven-public-prod/premade/voices/2EiwWnXFnvU5JabPnv8n/65d80f52-703f-4cae-a91d-75d4e200ed02.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/redbull-music1/200/200' 
-        },
-        { 
-          id: 'music-2', 
-          name: 'Redbull', 
-          artist: 'Arta Ft Koorosh & Smokepurpp', 
-          type: 'low', 
-          previewUrl: 'https://cdn.freesound.org/previews/612/612090_11861866-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/nakhla-music1/200/200' 
-        },
-        { 
-          id: 'music-3', 
-          name: 'Nakhla', 
-          artist: 'Hidden & Khalse & Sijal', 
-          type: 'low', 
-          previewUrl: 'https://cdn.freesound.org/previews/612/612089_11861866-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/nakhla-music2/200/200' 
-        },
-        { 
-          id: 'music-4', 
-          name: 'Baadpooli', 
-          artist: 'Hiphopologist x Kagan', 
-          type: 'low', 
-          previewUrl: 'https://cdn.freesound.org/previews/612/612088_11861866-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/baadpooli-music1/200/200' 
-        },
-        { 
-          id: 'music-5', 
-          name: 'tttpttt', 
-          artist: 'Poori', 
-          type: 'low', 
-          previewUrl: 'https://cdn.freesound.org/previews/612/612087_11861866-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/tttpttt-music1/200/200' 
-        },
-        { 
-          id: 'music-6', 
-          name: 'First Class', 
-          artist: 'Koorosh 420VII', 
-          type: 'low', 
-          previewUrl: 'https://cdn.freesound.org/previews/341/341695_5121236-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/firstclass-music1/200/200' 
-        },
-        { 
-          id: 'music-7', 
-          name: 'Redbull Medium', 
-          artist: 'Isam Ft Koorosh', 
-          type: 'medium', 
-          previewUrl: 'https://cdn.freesound.org/previews/341/341696_5121236-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/redbull-medium1/200/200' 
-        },
-        { 
-          id: 'music-8', 
-          name: 'Nakhla Medium', 
-          artist: 'Arta Ft Koorosh', 
-          type: 'medium', 
-          previewUrl: 'https://cdn.freesound.org/previews/341/341697_5121236-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/nakhla-medium1/200/200' 
-        },
-        { 
-          id: 'music-9', 
-          name: 'Baadpooli Medium', 
-          artist: 'Isam Ft Koorosh', 
-          type: 'medium', 
-          previewUrl: 'https://cdn.freesound.org/previews/387/387232_7255534-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/baadpooli-medium1/200/200' 
-        },
-        { 
-          id: 'music-10', 
-          name: 'Redbull High', 
-          artist: 'Isam Ft Koorosh', 
-          type: 'high', 
-          previewUrl: 'https://cdn.freesound.org/previews/387/387233_7255534-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/redbull-high1/200/200' 
-        },
-        { 
-          id: 'music-11', 
-          name: 'Nakhla High', 
-          artist: 'Arta Ft Koorosh', 
-          type: 'high', 
-          previewUrl: 'https://cdn.freesound.org/previews/387/387234_7255534-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/nakhla-high1/200/200' 
-        },
-        { 
-          id: 'music-12', 
-          name: 'Baadpooli High', 
-          artist: 'Isam Ft Koorosh', 
-          type: 'high', 
-          previewUrl: 'https://cdn.freesound.org/previews/387/387232_7255534-lq.mp3', 
-          thumbnailUrl: 'https://picsum.photos/seed/baadpooli-high1/200/200' 
-        },
-      ]
-      
-      setMusicList(mockMusic)
-      setMusicError(null)
-    } catch (error: any) {
-      setMusicError(error.message || 'Failed to load music')
-    } finally {
-      setMusicLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
     fetchAvatars()
     fetchSchedule()
-    fetchVoices()
-    fetchMusic()
-  }, [fetchAvatars, fetchSchedule, fetchVoices, fetchMusic])
+  }, [fetchAvatars, fetchSchedule])
 
   useEffect(() => {
     if (latestAvatarUpdate) {
@@ -502,7 +272,7 @@ const mockVoices: Voice[] = [
 
   // All avatar types are allowed to mix (custom image, custom video, default)
   const isAvatarTypeAllowed = (_avatar: Avatar): boolean => {
-    return true
+      return true
   }
 
   // Drag and drop handlers
@@ -604,9 +374,32 @@ const mockVoices: Voice[] = [
 
   // Voice handlers
   const handleVoiceClick = (voice: Voice) => {
+    console.log('🎤 create-video-form - handleVoiceClick called:', voice.name, voice.id, voice.type)
+    
+    // Mark that user has manually selected a voice (prevents auto-select from overriding)
+    setIsVoiceManuallySelected(true)
+    
+    // Update selected voice FIRST (this is the source of truth)
     setSelectedVoice(voice)
-    setValue('voice', voice.id)
+    
+    // Then update form value to match selected voice
+    setValue('voice', voice.id, { shouldValidate: true, shouldDirty: true })
     trigger('voice')
+    
+    // Update voice type to match selected voice
+    setCurrentVoiceType(voice.type as 'low' | 'medium' | 'high')
+    
+    // ALSO update music type and auto-select random music of same type
+    setCurrentMusicType(voice.type as 'low' | 'medium' | 'high')
+    const filteredMusic = allMusic.filter(m => m.type === voice.type)
+    if (filteredMusic.length > 0) {
+      const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
+      setSelectedMusic(randomMusic)
+      setValue('music', randomMusic.id, { shouldValidate: true })
+      trigger('music')
+    }
+    
+    console.log('🎤 create-video-form - Updated selectedVoice to:', voice.name, voice.id, 'Form value updated to:', voice.id)
   }
 
   const handleVoiceDragStart = (e: React.DragEvent, voice: Voice) => {
@@ -652,9 +445,11 @@ const mockVoices: Voice[] = [
 
   // Music handlers (reusing same structure as voice)
   const handleMusicClick = (music: Voice) => {
+    // Ensure we're setting the correct music - use the music object passed from the click
     setSelectedMusic(music)
-    setValue('music', music.id)
+    setValue('music', music.id, { shouldValidate: true })
     trigger('music')
+    // Don't sync voice - voice and music are independent
   }
 
   const handleMusicDragStart = (e: React.DragEvent, music: Voice) => {
@@ -806,6 +601,26 @@ const mockVoices: Voice[] = [
     }
   })
 
+  // Voice and Music state - using hook
+  const preset = watch('preset')
+  const {
+    voices,  // Filtered voices based on preset
+    voicesLoading,
+    voicesError,
+    musicList,  // Filtered music based on preset
+    musicLoading,
+    musicError,
+    allVoices,  // All voices (low, medium, high)
+    allMusic  // All music (low, medium, high)
+  } = useVoicesAndMusic({
+    preset,
+    selectedAvatars
+  })
+  
+  // Track current filter type for voice/music dropdowns
+  const [currentVoiceType, setCurrentVoiceType] = useState<'low' | 'medium' | 'high' | null>(null)
+  const [currentMusicType, setCurrentMusicType] = useState<'low' | 'medium' | 'high' | null>(null)
+
   // Mark form as manually touched when any form field changes
   const handleFormFieldChange = () => {
     setFormManuallyTouched(true)
@@ -863,7 +678,7 @@ const mockVoices: Voice[] = [
       setCityTrendsError(null)
       return
     }
-    
+
     // Clear missing fields error if both are present
     setMissingFieldsError(null)
     
@@ -963,6 +778,105 @@ const mockVoices: Voice[] = [
       setMissingFieldsError('Please select the position and city first')
     }
   }, [watchedPosition, fetchCityTrends, watch])
+
+  // Auto-select random voice and music when preset is selected and data is loaded
+  // ONLY if user hasn't manually selected a voice
+  useEffect(() => {
+    if (preset && allVoices.length > 0 && allMusic.length > 0 && !isVoiceManuallySelected) {
+      const currentVoice = watch('voice')
+      const currentMusic = watch('music')
+      
+      // Check if we need to auto-select based on preset
+      const presetLower = preset.toLowerCase()
+      const selectedVoiceType = selectedVoice?.type
+      const selectedMusicType = selectedMusic?.type
+      
+      // Reset type filters when preset changes
+      if (!currentVoiceType || currentVoiceType !== presetLower) {
+        setCurrentVoiceType(presetLower as 'low' | 'medium' | 'high')
+        setCurrentMusicType(presetLower as 'low' | 'medium' | 'high')
+      }
+      
+      // Auto-select voice if not selected or if type doesn't match preset
+      if (!currentVoice || (selectedVoiceType && selectedVoiceType !== presetLower)) {
+        const matchingVoices = allVoices.filter(v => v.type === presetLower)
+        if (matchingVoices.length > 0) {
+          const randomVoice = matchingVoices[Math.floor(Math.random() * matchingVoices.length)]
+          if (randomVoice) {
+            setSelectedVoice(randomVoice)
+            setValue('voice', randomVoice.id)
+            trigger('voice')
+          }
+        }
+      }
+      
+      // Auto-select music if not selected or if type doesn't match preset
+      if (!currentMusic || (selectedMusicType && selectedMusicType !== presetLower)) {
+        const matchingMusic = allMusic.filter(m => m.type === presetLower)
+        if (matchingMusic.length > 0) {
+          const randomMusic = matchingMusic[Math.floor(Math.random() * matchingMusic.length)]
+          if (randomMusic) {
+            setSelectedMusic(randomMusic)
+            setValue('music', randomMusic.id)
+            trigger('music')
+          }
+        }
+      }
+    }
+  }, [preset, allVoices, allMusic, watch, setValue, trigger, selectedVoice, selectedMusic, currentVoiceType, isVoiceManuallySelected])
+  
+  // Handle voice type change from VoiceSelector (when user clicks low/medium/high buttons)
+  const handleVoiceTypeChange = useCallback((type: 'low' | 'medium' | 'high') => {
+    console.log('🎤 create-video-form - handleVoiceTypeChange called with type:', type)
+    
+    // Mark that user has manually changed voice type (prevents auto-select from overriding)
+    setIsVoiceManuallySelected(true)
+    
+    // Update voice type filter
+    setCurrentVoiceType(type)
+    
+    // ALSO update music type to match voice type
+    setCurrentMusicType(type)
+    
+    // Filter voices
+    const filteredVoices = allVoices.filter(v => v.type === type)
+    if (filteredVoices.length > 0) {
+      const randomVoice = filteredVoices[Math.floor(Math.random() * filteredVoices.length)]
+      setSelectedVoice(randomVoice)
+      setValue('voice', randomVoice.id, { shouldValidate: true })
+      trigger('voice')
+    }
+    
+    // Filter music and auto-select random music of the same type
+    const filteredMusic = allMusic.filter(m => m.type === type)
+    if (filteredMusic.length > 0) {
+      const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
+      setSelectedMusic(randomMusic)
+      setValue('music', randomMusic.id, { shouldValidate: true })
+      trigger('music')
+    }
+  }, [allVoices, allMusic, setValue, trigger])
+  
+  // Handle music type change from MusicSelector (when user clicks low/medium/high buttons)
+  const handleMusicTypeChange = useCallback((type: 'low' | 'medium' | 'high') => {
+    // Update music type filter only (don't sync voice)
+    setCurrentMusicType(type)
+    
+    // Filter music
+    const filteredMusic = allMusic.filter(m => m.type === type)
+    
+    // Auto-select random music from the filtered list
+    if (filteredMusic.length > 0) {
+      const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
+      setSelectedMusic(randomMusic)
+      setValue('music', randomMusic.id, { shouldValidate: true })
+      trigger('music')
+    } else {
+      setSelectedMusic(null)
+      setValue('music', '', { shouldValidate: true })
+      trigger('music')
+    }
+  }, [allMusic, setValue, trigger])
 
   // Auto-fill form when avatars are loaded and user has settings
   useEffect(() => {
@@ -1137,7 +1051,9 @@ const mockVoices: Voice[] = [
         social_handles: webhookData?.social_handles || webhookData?.socialHandles || data.socialHandles,
         license: webhookData?.license || data.license,
         avatar: webhookData?.avatar || data.avatar,
-        email: webhookData?.email || data.email
+        email: webhookData?.email || data.email,
+        voice_id: selectedVoice?.id || data.voice || '',
+        music_url: selectedMusic?.s3FullTrackUrl || ''
       }
       setWebhookResponse(decodedResponse)
 
@@ -1184,7 +1100,7 @@ const mockVoices: Voice[] = [
         name: data.name,
         position: data.position,
         language: data.language,
-        preset: data.preset,
+        preset: data.preset || '',
         companyName: data.companyName,
         license: data.license,
         tailoredFit: data.tailoredFit,
@@ -1193,9 +1109,13 @@ const mockVoices: Voice[] = [
         preferredTone: data.preferredTone,
         callToAction: data.callToAction,
         email: data.email,
-        voice: data.voice
+        voice: data.voice,
+        selectedVoiceId: selectedVoice?.id || data.voice || '',
+        selectedMusicTrackId: selectedMusic?._id || selectedMusic?.id || data.music || '',
+        selectedVoicePreset: (selectedVoice as any)?.energy || selectedVoice?.type || '',
+        selectedMusicPreset: (selectedMusic as any)?.energyCategory || selectedMusic?.type || ''
       }
-
+      console.log('userSettingsPayload', userSettingsPayload)
       const userSettingsResult = await saveUserSettings(userSettingsPayload)
       if (!userSettingsResult.success) {
         console.error('Failed to store user settings:', userSettingsResult.error)
@@ -1227,7 +1147,10 @@ const mockVoices: Voice[] = [
       } else if (field === 'voice') {
         const voice = voices.find(v => v.id === value)
         if (voice) {
+          // Mark that user has manually selected a voice (prevents auto-select from overriding)
+          setIsVoiceManuallySelected(true)
           setSelectedVoice(voice)
+          // Don't sync music - voice and music are independent
         }
         setValue('voice', value)
         trigger('voice')
@@ -1235,6 +1158,7 @@ const mockVoices: Voice[] = [
         const music = musicList.find(m => m.id === value)
         if (music) {
           setSelectedMusic(music)
+          // Don't sync voice - voice and music are independent
         }
         setValue('music', value)
         trigger('music')
@@ -1337,9 +1261,9 @@ const mockVoices: Voice[] = [
         onFetchAvatars={fetchAvatars}
         onAvatarClick={handleAvatarClick}
         onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+                                    onDragEnd={handleDragEnd}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onRemoveAvatar={handleRemoveAvatar}
         onClearAllAvatars={handleClearAllAvatars}
@@ -1356,30 +1280,26 @@ const mockVoices: Voice[] = [
     field: keyof CreateVideoFormData,
     placeholder: string
   ) => {
-    const currentValue = watch(field) || ''
-    const isOpen = openDropdown === field
-    const hasError = errors[field]
-    
-    // Find selected voice from state or by ID
-    const displayedVoice = selectedVoice || voices.find(v => v.id === currentValue)
-
+    // Pass ALL voices to VoiceSelector - it will filter internally based on voiceType
+    // VoiceSelector has its own voiceType state that controls filtering
     return (
-      <VoiceSelector
+      <VoiceSelectorWrapper
         field={field}
         placeholder={placeholder}
-        currentValue={currentValue}
-        isOpen={isOpen}
-        hasError={hasError}
+        watch={watch}
         register={register}
         errors={errors}
-        onToggle={handleDropdownToggle}
-        onSelect={handleDropdownSelect}
-        onBlur={(field) => trigger(field)}
-        voices={voices}
+        trigger={trigger}
+        openDropdown={openDropdown}
+        selectedVoice={selectedVoice}
+        voices={allVoices.length > 0 ? allVoices : voices}  // Pass all voices, let VoiceSelector filter
         voicesLoading={voicesLoading}
         voicesError={voicesError}
-        selectedVoice={displayedVoice || null}
+        preset={preset}
+        onToggle={handleDropdownToggle}
+        onSelect={handleDropdownSelect}
         onVoiceClick={handleVoiceClick}
+        onVoiceTypeChange={handleVoiceTypeChange}
         onDragStart={handleVoiceDragStart}
         onDragEnd={handleVoiceDragEnd}
         onDragOver={handleVoiceDragOver}
@@ -1393,43 +1313,31 @@ const mockVoices: Voice[] = [
     field: keyof CreateVideoFormData,
     placeholder: string
   ) => {
-    const currentValue = watch(field) || ''
-    const isOpen = openDropdown === field
-    const hasError = errors[field]
-    
-    // Find selected music from state or by ID
-    const displayedMusic = selectedMusic || musicList.find(m => m.id === currentValue)
-
+    // Pass ALL music to MusicSelector - it will filter internally based on voiceType (used for music too)
+    // VoiceSelector component (used for music) has its own voiceType state that controls filtering
     return (
-      <VoiceSelector
+      <MusicSelectorWrapper
         field={field}
         placeholder={placeholder}
-        currentValue={currentValue}
-        isOpen={isOpen}
-        hasError={hasError}
+        watch={watch}
         register={register}
         errors={errors}
+        trigger={trigger}
+        openDropdown={openDropdown}
+        selectedMusic={selectedMusic}
+        musicList={allMusic.length > 0 ? allMusic : musicList}  // Pass all music, let VoiceSelector filter
+        musicLoading={musicLoading}
+        musicError={musicError}
+        preset={preset}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
-        onBlur={(field) => trigger(field)}
-        voices={musicList}
-        voicesLoading={musicLoading}
-        voicesError={musicError}
-        selectedVoice={displayedMusic || null}
-        onVoiceClick={handleMusicClick}
+        onMusicClick={handleMusicClick}
+        onMusicTypeChange={handleMusicTypeChange}
         onDragStart={handleMusicDragStart}
         onDragEnd={handleMusicDragEnd}
         onDragOver={handleMusicDragOver}
         onDragLeave={handleMusicDragLeave}
         onDrop={handleMusicDrop}
-        typeSelectorTitle="Music"
-        typeSelectorDescription="Select the level of music and search the best music for your video"
-        typeSelectorLowLabel="Low Music"
-        typeSelectorMediumLabel="Medium Music"
-        typeSelectorHighLabel="High Music"
-        listTitle="Recommended Music"
-        listLoadingText="Loading music..."
-        listEmptyText="No music available"
       />
     )
   }
@@ -1563,7 +1471,7 @@ const mockVoices: Voice[] = [
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-           <div>
+          <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Name <span className="text-red-500">*</span>
             </label>
@@ -1606,13 +1514,21 @@ const mockVoices: Voice[] = [
         />
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-       
-          <div>
+        <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Voice <span className="text-red-500">*</span>
+              Preset <span className="text-red-500">*</span>
             </label>
-            {renderVoiceSelector('voice', 'Select Voice')}
+            {renderDropdown('preset', presetOptions, 'Select Preset')}
           </div>
+          {/* Voice field - only shown when preset is selected */}
+          {watch('preset') && (
+            <div>
+              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+                Voice <span className="text-red-500">*</span>
+              </label>
+              {renderVoiceSelector('voice', 'Select Voice')}
+            </div>
+          )}
           {/* Music dropdown - only shown when a voice is selected */}
           {selectedVoice && (
             <div>
@@ -1628,12 +1544,7 @@ const mockVoices: Voice[] = [
             </label>
             {renderDropdown('language', languageOptions, 'Select Language')}
           </div>
-          <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Preset <span className="text-red-500">*</span>
-            </label>
-            {renderDropdown('preset', presetOptions, 'Select Preset')}
-          </div>
+
           <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Video Topic <span className="text-red-500">*</span>
@@ -1699,7 +1610,11 @@ const mockVoices: Voice[] = [
              !selectedAvatars.title || 
              !selectedAvatars.body || 
              !selectedAvatars.conclusion ||
-             (!watch('videoTopic')?.trim() && !customTopicValue.trim())
+             (!watch('videoTopic')?.trim() && !customTopicValue.trim()) ||
+             !watch('preset') ||
+             !watch('voice') ||
+             !watch('music') ||
+             !watch('language')
            }
            loadingText="This Proccess will take up to 30-50 seconds"
            buttonText="Submit"

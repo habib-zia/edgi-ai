@@ -539,6 +539,78 @@ class ApiService {
     }
   }
 
+  // Voices and Music Methods
+  async getVoices(energyCategory?: string, gender?: string | null): Promise<ApiResponse<any>> {
+    try {
+      const params = new URLSearchParams()
+      if (energyCategory) {
+        params.append('energyCategory', energyCategory)
+      }
+      if (gender) {
+        params.append('gender', gender)
+      }
+      
+      const queryString = params.toString()
+      const url = queryString ? `/api/elevenlabs/voices?${queryString}` : '/api/elevenlabs/voices'
+      
+      const response = await this.request<any>(url, {
+        method: 'GET',
+      }, true)
+      return response
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get voices'
+      this.showNotification(errorMessage, 'error')
+      return { success: false, message: errorMessage, error: errorMessage }
+    }
+  }
+
+  async getMusicTracks(energyCategory?: string): Promise<ApiResponse<any>> {
+    try {
+      const params = new URLSearchParams()
+      if (energyCategory) {
+        params.append('energyCategory', energyCategory)
+      }
+      
+      const queryString = params.toString()
+      const url = queryString ? `/api/music/tracks?${queryString}` : '/api/music/tracks'
+      
+      const response = await this.request<any>(url, {
+        method: 'GET',
+      }, true)
+      return response
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get music tracks'
+      this.showNotification(errorMessage, 'error')
+      return { success: false, message: errorMessage, error: errorMessage }
+    }
+  }
+
+  async textToSpeech(data: {
+    voice_id: string
+    hook: string
+    body: string
+    conclusion: string
+    output_format?: string
+  }): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>('/api/elevenlabs/text-to-speech', {
+        method: 'POST',
+        body: JSON.stringify({
+          voice_id: data.voice_id,
+          hook: data.hook,
+          body: data.body,
+          conclusion: data.conclusion,
+          output_format: data.output_format || 'mp3_44100_128'
+        }),
+      }, true)
+      return response
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate text-to-speech'
+      this.showNotification(errorMessage, 'error')
+      return { success: false, message: errorMessage, error: errorMessage }
+    }
+  }
+
   // Trends Methods
   async getCityTrends(city: string, position?: string): Promise<ApiResponse<RealEstateTrendsData>> {
     try {
