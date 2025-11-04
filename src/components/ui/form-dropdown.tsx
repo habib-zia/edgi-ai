@@ -167,7 +167,7 @@ export default function FormDropdown({
               {/* Avatar Dropdown Header with Refresh Button */}
               <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800">Select Avatar</h3>
-                {/* <button
+                <button
                   onClick={onFetchAvatars}
                   disabled={avatarsLoading}
                   className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-[#5046E5] hover:bg-gray-50 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -175,7 +175,7 @@ export default function FormDropdown({
                 >
                   <RefreshCw className={`w-4 h-4 ${avatarsLoading ? 'animate-spin' : ''}`} />
                   Refresh
-                </button> */}
+                </button>
               </div>
 
               {/* Main Content - Two Column Layout */}

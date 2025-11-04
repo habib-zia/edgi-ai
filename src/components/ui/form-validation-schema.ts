@@ -9,8 +9,6 @@ export const createVideoSchema = z.object({
     .max(100, 'Full name must be less than 100 characters')
     .regex(/^[a-zA-Z\s]+$/, 'Full name can only contain letters and spaces'),
   position: z.string().min(1, 'Please select a position'),
-  language: z.string().min(1, 'Please select a language'),
-  preset: z.string().min(1, 'Please select a preset'),
   companyName: z.string()
     .min(2, 'Company name must be at least 2 characters')
     .max(100, 'Company name must be less than 100 characters'),
@@ -41,9 +39,7 @@ export const createVideoSchema = z.object({
     .max(200, 'Call to action must be less than 200 characters'),
   email: z.string()
     .email('Please enter a valid email address')
-    .max(255, 'Email must be less than 255 characters'),
-  voice: z.string().min(1, 'Please select a voice'),
-  music: z.string().optional()
+    .max(255, 'Email must be less than 255 characters')
 })
 
 // Type inference from schema
