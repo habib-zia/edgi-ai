@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Play, Pause, Volume2, VolumeX, Download } from 'lucide-react'
+import { tr } from 'zod/v4/locales'
 
 interface AvatarCompletionData {
   avatarId: string
@@ -118,6 +119,7 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                   poster={avatarData.previewImageUrl}
                   className="w-full h-[400px] object-cover"
                   muted={isVideoMuted}
+                  controls={true}
                   onTimeUpdate={handleVideoTimeUpdate}
                   onLoadedMetadata={handleVideoLoadedMetadata}
                   onPlay={() => handleVideoPlayStateChange(true)}
@@ -125,18 +127,7 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                 >
                   Your browser does not support the video tag.
                 </video>
-                <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                  <button
-                    onClick={handleVideoPlay}
-                    className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-all duration-200"
-                  >
-                    {isVideoPlaying ? (
-                      <Pause className="w-8 h-8 text-white" />
-                    ) : (
-                      <Play className="w-8 h-8 text-white ml-1" />
-                    )}
-                  </button>
-                </div>
+                
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-black bg-opacity-30">
                   <div
                     className="h-full bg-[#5046E5] transition-all duration-300"
@@ -146,16 +137,7 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                 <div className="absolute top-4 right-4 bg-black bg-opacity-70 text-white text-sm px-3 py-1 rounded">
                   {videoDuration > 0 ? formatDuration(videoDuration) : 'Loading...'}
                 </div>
-                <button
-                  onClick={handleVideoMute}
-                  className="absolute top-4 left-4 bg-black bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90 transition-all duration-200"
-                >
-                  {isVideoMuted ? (
-                    <VolumeX className="w-5 h-5" />
-                  ) : (
-                    <Volume2 className="w-5 h-5" />
-                  )}
-                </button>
+              
               </div>
               <div className="flex gap-4">
                 <button

@@ -151,6 +151,10 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
   };
   
   useEffect(() => {
+    // Only fetch if user is authenticated (check token exists)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) return;
+    
     fetchPublishedPosts()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   

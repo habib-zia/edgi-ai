@@ -42,6 +42,7 @@ export function useAuthErrorHandler() {
                                    currentPath.includes('/report-analytics') || 
                                    currentPath.includes('/scheduled-post')
               
+              // Never show toast for protected pages - ProtectedRoute handles it
               if (!isProtectedPage) {
                 // Only show toast for API calls on non-protected pages
                 showNotification('Unauthorized access', 'error')
