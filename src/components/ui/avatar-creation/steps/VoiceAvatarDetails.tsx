@@ -154,7 +154,7 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
       {showErrors && errors.terms && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.terms}</p>}
 
       <div className="flex flex-col gap-2 pt-0">
-        <button onClick={onBack} className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300">
+        <button onClick={onBack} className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit">
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>

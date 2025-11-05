@@ -202,7 +202,6 @@ export default function VoiceSelector({
     }
   }
 
-  // selectedVoice takes priority over currentValue to ensure correct selection
   const selectedVoiceId = useMemo(() => {
     console.log('🎤 VoiceSelector - Calculating selectedVoiceId:', {
       selectedVoiceId: selectedVoice?.id,
@@ -212,14 +211,11 @@ export default function VoiceSelector({
       voicesTypes: voices.map(v => ({ name: v.name, type: v.type }))
     })
     
-    // ALWAYS use selectedVoice.id if it exists - it's the source of truth
-    // This prevents currentValue (form state) from overriding the user's selection
     if (selectedVoice?.id) {
       console.log('🎤 VoiceSelector - Using selectedVoice.id (source of truth):', selectedVoice.id, selectedVoice.name)
       return selectedVoice.id
     }
-    
-    // Only use currentValue if selectedVoice is null AND it exists in the current voices list
+
     if (currentValue && voices.some(v => v.id === currentValue)) {
       const foundVoice = voices.find(v => v.id === currentValue)
       console.log('🎤 VoiceSelector - Using currentValue from voices list (fallback):', currentValue, foundVoice?.name)
@@ -254,7 +250,7 @@ export default function VoiceSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full lg:w-[685px] mt-2 bg-white rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden lg:left-0">
+        <div className="absolute z-50 w-full lg:w-[685px] mt-2 bg-white rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden xl:-left-16 lg:-left-[150px]">
           <div className="flex divide-x divide-[#E0E0E0] py-7 lg:flex-row flex-col lg:h-[500px] h-[700px] overflow-hidden">
             <VoiceTypeSelector
               currentType={voiceType}

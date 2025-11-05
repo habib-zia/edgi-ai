@@ -11,23 +11,28 @@ interface TrainingVideoUploadProps {
   avatarData: AvatarData
   setAvatarData: (data: AvatarData) => void
 }
+export const trainingVideoNameRef = { current: '' };
 
 export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAvatarData }: TrainingVideoUploadProps) {
-  const [avatarName, setAvatarName] = useState(avatarData.name || '');
+  const [avatarName, setAvatarName] = useState(trainingVideoNameRef.current || '');
   const trainingUpload = useVideoUpload();
 
-  // Restore video preview when navigating back if videoFile exists
   useEffect(() => {
     if (avatarData.videoFile && !trainingUpload.uploadState.preview) {
-      // Create preview URL and validate the video
       trainingUpload.handleFileSelect(avatarData.videoFile, 'training');
     }
   }, [avatarData.videoFile]);
 
+  useEffect(() => {
+    if (trainingVideoNameRef.current) {
+      setAvatarName(trainingVideoNameRef.current);
+    }
+  }, []);
+
   const handleAvatarNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     setAvatarName(name);
-    setAvatarData({ ...avatarData, name });
+    trainingVideoNameRef.current = name;
   };
 
   const handleTrainingInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,7 +191,12 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
             Back
           </button>
           <button
-            onClick={onNext}
+            onClick={() => {
+              if (avatarData.avatarType === 'digital-twin' && avatarName.trim()) {
+                setAvatarData({ ...avatarData, name: avatarName.trim() });
+              }
+              onNext();
+            }}
             disabled={!canProceed}
             className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
               canProceed

@@ -370,8 +370,8 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
             </div>
 
             {posts.map((post, index) => (
-              <>
-              <div key={index} className={`grid gap-4 ${
+              <div key={index}>
+              <div className={`grid gap-4 ${
                 frequency === 'Daily' 
                   ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
                   : posts.length > 4 
@@ -481,7 +481,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                   </div>
                 </div>
               )}
-              </>
+              </div>
             ))}
           </div>
         </div>

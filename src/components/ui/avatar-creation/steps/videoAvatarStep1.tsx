@@ -323,7 +323,7 @@ export default function VideoAvatarStep1({ onNext, onBack, onClose, avatarData, 
               {onBack && (
                 <button
                   onClick={onBack}
-                  className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+                  className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -475,14 +475,14 @@ export default function VideoAvatarStep1({ onNext, onBack, onClose, avatarData, 
             <div className="flex flex-col gap-2 mt-12 w-full max-w-md">
               {isCreating ? (
                 <p className="px-8 py-[11.3px] font-semibold text-[20px] text-center text-[#5F5F5F]">
-                  Your avatar is being created and will be ready in about 25–35 seconds. You can close this window and continue exploring the site — we&apos;ll notify you once your avatar is ready. {countdown !== null ? `Auto closing in ${countdown} seconds...` : ''}
+                  Your avatar is being created and will be ready in about 25–35 seconds. We&apos;ll notify you once your avatar is ready. {countdown !== null ? `Auto closing in ${countdown} seconds...` : ''}
                 </p>
               ) : (
                 <>
                   {onBack && (
                     <button
                       onClick={onBack}
-                      className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+                      className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       Back

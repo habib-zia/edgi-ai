@@ -64,12 +64,12 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-[12px] max-w-4xl w-full max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h2 className="text-[32px] font-bold text-[#101010]">
+            <h2 className="text-[26px] font-bold text-[#282828] leading-[120%]">
               Avatar Created Successfully! 🎉
             </h2>
-            <p className="text-[16px] text-[#5F5F5F] mt-2">
+            <p className="text-[16px] text-[#5F5F5F] mt-1">
               Your digital avatar &quot;{avatarData.avatarName}&quot; is ready
             </p>
           </div>
@@ -86,33 +86,34 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
                   ref={videoRef}
                   src={avatarData.previewVideoUrl}
                   poster={avatarData.previewImageUrl}
-                  className="w-full h-[400px] object-cover"
+                  className="w-full h-[400px] object-contain"
                   controls
                 >
                   Your browser does not support the video tag.
                 </video>
               </div>
-              <div className="flex gap-4 items-center justify-center">
+              <div className="flex gap-[10px] items-center justify-center flex-wrap">
                 <button
                   onClick={handleSkipBack}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white border-2 border-[#5046E5] rounded-[50px] hover:bg-transparent hover:text-[#5046E5] transition-colors duration-200"
                 >
                   <SkipBack className="w-4 h-4" />
                   Back (10s)
                 </button>
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
+                
                 <button
                   onClick={handleSkipForward}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white border-2 border-[#5046E5] rounded-[50px] hover:bg-transparent hover:text-[#5046E5] transition-colors duration-200"
                 >
                   <SkipForward className="w-4 h-4" />
                   Next (10s)
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5046E5] text-white border-2 border-[#5046E5] rounded-[50px] hover:bg-transparent hover:text-[#5046E5] transition-colors duration-200"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
                 </button>
               </div>
             </div>
@@ -158,10 +159,10 @@ export default function AvatarCompletionModal({ isOpen, onClose, avatarData }: A
             </button>
             <button
               onClick={() => {
-                // Navigate to avatar management or creation page
+                // Navigate to avatar management or creation pages
                 window.location.href = '/create-video/new'
               }}
-              className="px-6 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200"
+              className="px-6 py-2 bg-[#5046E5] text-white border-2 border-[#5046E5] rounded-[50px] hover:bg-transparent hover:text-[#5046E5] transition-colors duration-200"
             >
               Create Video
             </button>

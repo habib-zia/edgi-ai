@@ -401,7 +401,7 @@ export default function VideoAvatarStep5({ onBack, avatarData, setAvatarData, on
       <div className="flex flex-col gap-2 justify-between pt-0">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+          className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit"
         >
           <ArrowLeft className="w-4 h-4" />
           Back

@@ -5,6 +5,7 @@ import { X, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import { useVideoUpload } from "../../../../hooks/useVideoUpload";
 import { apiService } from "../../../../lib/api-service";
 import { AvatarData } from '../AvatarCreationModal'
+import { trainingVideoNameRef } from './TrainingVideoUpload'
 
 interface ConsentVideoUploadProps {
   onNext: () => void
@@ -12,9 +13,10 @@ interface ConsentVideoUploadProps {
   onClose?: () => void
   avatarData: AvatarData
   setAvatarData: (data: AvatarData) => void
+  onCountdownStart?: () => void
 }
 
-export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData, setAvatarData }: ConsentVideoUploadProps) {
+export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData, setAvatarData, onCountdownStart }: ConsentVideoUploadProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -75,12 +77,16 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
     setIsCreating(true);
     setErrorMessage(null);
     setCountdown(40); // Start 40-second countdown
+    if (onCountdownStart) {
+      onCountdownStart();
+    }
     
     // Fire and forget - call API without waiting for response
+    const avatarName = trainingVideoNameRef.current || avatarData.name || '';
     apiService.createVideoAvatar(
       avatarData.videoFile,
       avatarData.consentVideoFile,
-      avatarData.name
+      avatarName
     ).catch((error) => {
       console.error('❌ Error creating video avatar:', error);
       // Don't reset state on error - let user continue and they'll get notification via WebSocket
@@ -92,7 +98,7 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
   return (
     <div className="bg-white flex flex-col h-full">
       <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="text-center mb-10 w-full max-w-2xl mx-auto">
+        <div className="text-center mb-10 w-full max-w-[900px] mx-auto">
           <h2 className="text-[24px] font-semibold text-[#101010] mb-6 tracking-[-2%] leading-[120%]">
             Upload your footage
           </h2>
@@ -101,13 +107,13 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
           </p>
         </div>
 
-        <div className="w-full max-w-2xl space-y-6">
+        <div className="w-full max-w-[900px] space-y-6">
           {/* Record Consent Section */}
           <div className="space-y-4">
             <h3 className="text-[18px] font-semibold text-[#101010]">Record Consent</h3>
             <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
               <p className="text-[16px] text-[#5F5F5F] leading-[24px]">
-                I, <strong>{avatarData.name || '[full name]'}</strong>, hereby allow HeyGen to use the footage of me to build a HeyGen Avatar for use on the HeyGen platform.
+                I, <strong>{trainingVideoNameRef.current || avatarData.name || '[full name]'}</strong>, hereby allow HeyGen to use the footage of me to build a HeyGen Avatar for use on the HeyGen platform.
               </p>
             </div>
           </div>
@@ -218,10 +224,10 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
             <p className="text-red-600 text-[14px]">{errorMessage}</p>
           </div>
         )}
-        <div className="w-full flex flex-col gap-4 mt-12 max-w-md">
+        <div className="w-full flex flex-col gap-4 mt-12 max-w-[900px]">
           {isCreating ? (
             <p className="px-8 py-[11.3px] font-semibold text-[20px] text-center text-[#5F5F5F]">
-              Your avatar is being created and will be ready in about 25–35 seconds. You can close this window and continue exploring the site — we&apos;ll notify you once your avatar is ready. {countdown !== null ? `Auto closing in ${countdown} seconds...` : ''}
+              Your avatar is being created and will be ready in about 25–35 seconds. We&apos;ll notify you once your avatar is ready. {countdown !== null ? `Auto closing in ${countdown} seconds...` : ''}
             </p>
           ) : (
             <>

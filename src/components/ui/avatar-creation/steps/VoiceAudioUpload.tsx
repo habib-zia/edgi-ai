@@ -140,7 +140,7 @@ export default function VoiceAudioUpload({ onNext, onBack, avatarData, setAvatar
       {isProcessing && <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg"><div className="flex items-center gap-2"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div><p className="text-blue-600 text-sm">Processing file...</p></div></div>}
 
       <div className="flex flex-col gap-2 pt-5">
-        <button onClick={onBack} className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300">
+        <button onClick={onBack} className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit">
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>

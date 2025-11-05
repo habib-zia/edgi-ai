@@ -94,6 +94,8 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({ score: 0, feedback: [] })
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
+  const googleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   // Refs for focus management
   const modalRef = useRef<HTMLDivElement>(null)
   const firstInputRef = useRef<HTMLInputElement>(null)
@@ -361,6 +363,10 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
               const errorMessage = error instanceof Error ? error.message : String(error)
               showNotification(`Google signup error: ${errorMessage}`, 'error')
             } finally {
+              if (googleTimeoutRef.current) {
+                clearTimeout(googleTimeoutRef.current)
+                googleTimeoutRef.current = null
+              }
               // Only reset loading state if handleGoogleToken wasn't called
               if (!response.access_token) {
                 setIsGoogleLoading(false)
@@ -372,11 +378,10 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
         client.requestAccessToken()
         
         // Set a timeout to reset loading state if callback doesn't fire
-        setTimeout(() => {
-          if (isGoogleLoading) {
-            setIsGoogleLoading(false)
-            showNotification('Google authentication timed out. Please try again.', 'error')
-          }
+        googleTimeoutRef.current = setTimeout(() => {
+          setIsGoogleLoading(false)
+          showNotification('Google authentication timed out. Please try again.', 'error')
+          googleTimeoutRef.current = null
         }, 30000) // 30 second timeout
       } else
       {
@@ -500,12 +505,21 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
       showNotification(`Google token handling error: ${errorMessage}`, 'error')
     } finally
     {
+      if (googleTimeoutRef.current) {
+        clearTimeout(googleTimeoutRef.current)
+        googleTimeoutRef.current = null
+      }
       // Always reset loading state
       setIsGoogleLoading(false)
     }
   }
 
   const handleClose = useCallback(() => {
+    if (googleTimeoutRef.current) {
+      clearTimeout(googleTimeoutRef.current)
+      googleTimeoutRef.current = null
+    }
+
     setFormData({
       firstName: '',
       lastName: '',
@@ -527,10 +541,17 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
     setPasswordStrength({ score: 0, feedback: [] })
     setShowPassword(false)
     setShowConfirmPassword(false)
+    setIsGoogleLoading(false)
     onClose()
   }, [onClose])
 
   const handleSuccessfulClose = useCallback(() => {
+    // Clear Google OAuth timeout if exists
+    if (googleTimeoutRef.current) {
+      clearTimeout(googleTimeoutRef.current)
+      googleTimeoutRef.current = null
+    }
+
     setFormData({
       firstName: '',
       lastName: '',
@@ -552,6 +573,7 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
     setPasswordStrength({ score: 0, feedback: [] })
     setShowPassword(false)
     setShowConfirmPassword(false)
+    setIsGoogleLoading(false)
     onClose()
   }, [onClose])
 
@@ -629,6 +651,12 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
       setIsSubmitting(false)
       setShowPassword(false)
       setShowConfirmPassword(false)
+      setIsGoogleLoading(false)
+      
+      if (googleTimeoutRef.current) {
+        clearTimeout(googleTimeoutRef.current)
+        googleTimeoutRef.current = null
+      }
     } else
     {
       // Load saved form data when modal is closed (only if there's saved data)
