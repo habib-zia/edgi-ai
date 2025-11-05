@@ -98,7 +98,7 @@ export default function StripeCheckout({
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Order Summary</h3>
         <div className="flex justify-between items-center">
           <span className="text-gray-600">{planName}</span>
-          <span className="text-lg font-bold text-[#5046E5]">{planPrice}</span>
+          <span className="text-lg font-bold text-[#5046E5]">${Math.floor(Number(planPrice) / 100).toString()}</span>
         </div>
       </div>
 
@@ -148,7 +148,7 @@ export default function StripeCheckout({
                 Processing...
               </>
             ) : (
-              `Pay ${planPrice}`
+              `Pay $${Math.floor(Number(planPrice) / 100).toString()}`
             )}
           </button>
         </div>
