@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, AlertCircle } from 'lucide-react'
@@ -84,7 +84,6 @@ const presetOptions = [
 
 const languageOptions = [
   { value: 'English', label: 'English' },
-  { value: 'Spanish', label: 'Spanish' },
 ]
 
 interface CreateVideoFormProps {
@@ -604,6 +603,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   // Voice and Music state - using hook
   const preset = watch('preset')
+  const gender = watch('gender') || null
   const {
     voices,  // Filtered voices based on preset
     voicesLoading,
@@ -615,7 +615,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     allMusic  // All music (low, medium, high)
   } = useVoicesAndMusic({
     preset,
-    selectedAvatars
+    selectedAvatars,
+    gender
   })
   
   // Track current filter type for voice/music dropdowns
@@ -945,6 +946,42 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [user?.email, setValue])
 
+  // Set default language to English if not set
+  useEffect(() => {
+    const currentLanguage = watch('language')
+    if (!currentLanguage || currentLanguage.trim() === '') {
+      setValue('language', 'English', { shouldValidate: false, shouldDirty: false })
+    }
+  }, [watch, setValue])
+
+  // Reset preset, voice, and music fields when gender changes and APIs are called
+  // Use a ref to track previous gender to avoid resetting on initial mount
+  const prevGenderRef = useRef<string | null>(null)
+  
+  useEffect(() => {
+    const currentGender = gender && String(gender).trim().length > 0 ? String(gender).trim() : null
+    
+    // Only reset if gender actually changed (not on initial mount when gender is set from user settings)
+    if (currentGender && currentGender !== prevGenderRef.current) {
+      console.log('🔄 Resetting preset, voice, and music fields due to gender change:', {
+        previousGender: prevGenderRef.current,
+        newGender: currentGender
+      })
+      setValue('preset', '', { shouldValidate: false, shouldDirty: false })
+      setValue('voice', '', { shouldValidate: false, shouldDirty: false })
+      setValue('music', '', { shouldValidate: false, shouldDirty: false })
+      setCurrentVoiceType(null)
+      setCurrentMusicType(null)
+      // Also reset the selected voice and music state
+      setSelectedVoice(null)
+      setSelectedMusic(null)
+      setIsVoiceManuallySelected(false)
+    }
+    
+    // Update ref to track current gender
+    prevGenderRef.current = currentGender
+  }, [gender, setValue])
+
   // Focus custom topic input when it becomes visible
   useEffect(() => {
     if (showCustomTopicInput) {
@@ -1136,6 +1173,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         preferredTone: data.preferredTone,
         callToAction: data.callToAction,
         email: data.email,
+        gender: data.gender,
         voice: data.voice,
         selectedVoiceId: selectedVoice?.id || data.voice || '',
         selectedMusicTrackId: selectedMusic?._id || selectedMusic?.id || data.music || '',
@@ -1171,6 +1209,14 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       if (field === 'avatar') {
         setValue('avatar', '')
       setValue('avatar', value)
+      } else if (field === 'gender') {
+        // When gender is selected, update the form value
+        // The useVoicesAndMusic hook will automatically detect the change and trigger API calls
+        console.log('🎵 Gender selected from dropdown:', value)
+        setValue('gender', value, { shouldValidate: true, shouldDirty: true })
+        trigger('gender')
+        // Force re-render by updating the watched value
+        // The watch('gender') in the hook will detect this change
       } else if (field === 'voice') {
         const voice = voices.find(v => v.id === value)
         if (voice) {
@@ -1528,12 +1574,22 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           register={register}
           errors={errors}
           columns="4"
+          watch={watch}
+          trigger={trigger}
+          openDropdown={openDropdown}
+          onDropdownToggle={(field: string) => handleDropdownToggle(field as keyof CreateVideoFormData)}
+          onDropdownSelect={(field: string, value: string) => handleDropdownSelect(field as keyof CreateVideoFormData, value)}
         />
         <FormFieldRow
           fields={row3Fields}
           register={register}
           errors={errors}
           columns="4"
+          watch={watch}
+          trigger={trigger}
+          openDropdown={openDropdown}
+          onDropdownToggle={(field: string) => handleDropdownToggle(field as keyof CreateVideoFormData)}
+          onDropdownSelect={(field: string, value: string) => handleDropdownSelect(field as keyof CreateVideoFormData, value)}
           onCityBlur={(city: string) => {
             const positionValue = watch('position')
             fetchCityTrends(city, positionValue)

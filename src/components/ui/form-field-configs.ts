@@ -8,6 +8,7 @@ export interface FormFieldConfig {
   autoComplete?: string
   required?: boolean
   disabled?: boolean
+  options?: { value: string; label: string }[] // For dropdown fields
 }
 
 // Row 2 fields configuration
@@ -67,5 +68,16 @@ export const row3Fields: FormFieldConfig[] = [
     autoComplete: 'email',
     required: true,
     disabled: true
+  },
+  {
+    field: 'gender',
+    label: 'Gender',
+    placeholder: 'Select Gender',
+    type: 'dropdown',
+    required: true,
+    options: [
+      { value: 'Male', label: 'Male' },
+      { value: 'Female', label: 'Female' },
+    ]
   }
 ]

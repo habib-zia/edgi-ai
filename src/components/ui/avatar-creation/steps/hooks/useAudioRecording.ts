@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
-import { MAX_AUDIO_DURATION } from '../constants';
+import { MIN_AUDIO_DURATION, MAX_AUDIO_DURATION } from '../constants';
 
 export const useAudioRecording = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimeRef = useRef<number>(0); // Use ref to track current time for closures
   
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -14,11 +15,14 @@ export const useAudioRecording = () => {
     if (isRecording) {
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime(prev => {
-          if (prev >= MAX_AUDIO_DURATION) {
-            stopRecording();
-            return prev;
+          const newTime = prev + 1;
+          recordingTimeRef.current = newTime; // Update ref with latest time
+          if (newTime >= MAX_AUDIO_DURATION) {
+            // Auto-stop at exactly 3 minutes - stop recording and save file
+            stopRecording(newTime);
+            return newTime; // Return newTime so it shows 3:00 before stopping
           }
-          return prev + 1;
+          return newTime;
         });
       }, 1000);
     } else {
@@ -42,7 +46,19 @@ export const useAudioRecording = () => {
     };
   }, []);
 
-  const stopRecording = () => {
+  const stopRecording = (currentTime?: number) => {
+    // Use provided currentTime or get from state (may be stale due to closure)
+    const durationToCheck = currentTime !== undefined ? currentTime : recordingTime;
+    
+    // Allow auto-stop at exactly 3 minutes (MAX_AUDIO_DURATION) without minimum check
+    const isAutoStopAtMax = durationToCheck >= MAX_AUDIO_DURATION;
+    
+    // Check minimum duration before stopping (unless it's auto-stop at max duration)
+    if (!isAutoStopAtMax && durationToCheck < MIN_AUDIO_DURATION) {
+      setError(`Recording is too short (${durationToCheck}s). Minimum duration is ${MIN_AUDIO_DURATION} seconds. Please continue recording.`);
+      return;
+    }
+    
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -56,6 +72,7 @@ export const useAudioRecording = () => {
     }
 
     try {
+      setError('')
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
         : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
         : MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg' : '';
@@ -68,6 +85,7 @@ export const useAudioRecording = () => {
       const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       setRecordingTime(0);
+      recordingTimeRef.current = 0; // Reset ref
       setError(null);
 
       const chunks: Blob[] = [];
@@ -85,6 +103,22 @@ export const useAudioRecording = () => {
           onError('Recording failed. The audio file is empty.');
           return;
         }
+        
+        // Validate recording duration - use ref to get latest value (recordingTime state may be stale in closure)
+        const currentDuration = recordingTimeRef.current;
+        if (currentDuration < MIN_AUDIO_DURATION) {
+          onError(`Recording is too short (${currentDuration}s). Minimum duration is ${MIN_AUDIO_DURATION} seconds.`);
+          stopMicrophone();
+          return;
+        }
+        // Allow exactly MAX_AUDIO_DURATION (3 minutes) - auto-stop saves the file
+        if (currentDuration > MAX_AUDIO_DURATION) {
+          onError(`Recording is too long (${currentDuration}s). Maximum duration is ${MAX_AUDIO_DURATION} seconds (3 minutes).`);
+          stopMicrophone();
+          return;
+        }
+        // If duration is exactly MAX_AUDIO_DURATION, it means auto-stop at 3 minutes - save the file
+        
         const file = new File([blob], `voice-recording-${Date.now()}.webm`, { type: mimeType });
         onAudioRecorded(file);
         stopMicrophone();
@@ -129,6 +163,7 @@ export const useAudioRecording = () => {
     if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
     setIsRecording(false);
     setRecordingTime(0);
+    recordingTimeRef.current = 0; // Reset ref
     setError(null);
   };
 
