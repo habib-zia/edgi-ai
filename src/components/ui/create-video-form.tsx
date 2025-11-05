@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, AlertCircle } from 'lucide-react'
@@ -953,6 +953,34 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setValue('language', 'English', { shouldValidate: false, shouldDirty: false })
     }
   }, [watch, setValue])
+
+  // Reset preset, voice, and music fields when gender changes and APIs are called
+  // Use a ref to track previous gender to avoid resetting on initial mount
+  const prevGenderRef = useRef<string | null>(null)
+  
+  useEffect(() => {
+    const currentGender = gender && String(gender).trim().length > 0 ? String(gender).trim() : null
+    
+    // Only reset if gender actually changed (not on initial mount when gender is set from user settings)
+    if (currentGender && currentGender !== prevGenderRef.current) {
+      console.log('🔄 Resetting preset, voice, and music fields due to gender change:', {
+        previousGender: prevGenderRef.current,
+        newGender: currentGender
+      })
+      setValue('preset', '', { shouldValidate: false, shouldDirty: false })
+      setValue('voice', '', { shouldValidate: false, shouldDirty: false })
+      setValue('music', '', { shouldValidate: false, shouldDirty: false })
+      setCurrentVoiceType(null)
+      setCurrentMusicType(null)
+      // Also reset the selected voice and music state
+      setSelectedVoice(null)
+      setSelectedMusic(null)
+      setIsVoiceManuallySelected(false)
+    }
+    
+    // Update ref to track current gender
+    prevGenderRef.current = currentGender
+  }, [gender, setValue])
 
   // Focus custom topic input when it becomes visible
   useEffect(() => {

@@ -152,41 +152,41 @@ export function useVoicesAndMusic({ preset, selectedAvatars, gender }: UseVoices
   useEffect(() => {
     // Check if gender is explicitly selected from dropdown
     const hasGender = gender && String(gender).trim().length > 0
-    const hasAvatar = selectedAvatars.body || selectedAvatars.title || selectedAvatars.conclusion
     
     console.log('🎵 useVoicesAndMusic - Gender effect triggered:', {
       gender,
-      hasGender,
-      hasAvatar,
-      selectedAvatars: {
-        title: !!selectedAvatars.title,
-        body: !!selectedAvatars.body,
-        conclusion: !!selectedAvatars.conclusion
-      }
+      hasGender
     })
     
     // Only call APIs if gender is explicitly selected from dropdown
-    // Avatar selection does NOT trigger API calls
+    // Avatar selection does NOT trigger API calls - removed avatar dependencies
     if (hasGender) {
-      const currentGender = getGender() // Will be normalized lowercase
+      // Normalize gender to lowercase
+      const currentGender = String(gender).trim().toLowerCase()
       console.log('🎵 Calling APIs with gender:', currentGender)
       // Call APIs with gender parameter (only when gender is selected)
       fetchAllVoices(currentGender)
       fetchAllMusic(currentGender)
-    } else if (!hasAvatar && !hasGender) {
-      // Clear data only if no avatar AND no gender
-      console.log('🎵 Clearing data - no avatar and no gender')
-      setAllVoices([])
-      setAllMusic([])
-      setVoices([])
-      setMusicList([])
-      setVoicesError(null)
-      setMusicError(null)
     } else {
-      console.log('🎵 No gender selected - not calling APIs')
+      // Clear data only if no gender (but keep data if avatar is selected without gender)
+      const hasAvatar = selectedAvatars.body || selectedAvatars.title || selectedAvatars.conclusion
+      if (!hasAvatar) {
+        console.log('🎵 Clearing data - no gender and no avatar')
+        setAllVoices([])
+        setAllMusic([])
+        setVoices([])
+        setMusicList([])
+        setVoicesError(null)
+        setMusicError(null)
+      } else {
+        console.log('🎵 No gender selected but avatar exists - keeping existing data')
+      }
     }
     // If avatar is selected but no gender - do nothing (don't call APIs)
-  }, [gender, selectedAvatars.body, selectedAvatars.title, selectedAvatars.conclusion, getGender, fetchAllVoices, fetchAllMusic])
+    // Note: selectedAvatars is used inside but not in deps - this is intentional
+    // We only want to react to gender changes, not avatar changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gender, fetchAllVoices, fetchAllMusic])
 
   // Effect to filter voices and music based on preset
   useEffect(() => {
