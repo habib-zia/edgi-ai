@@ -10,6 +10,7 @@ import { useNotificationStore } from './global-notification';
 import { apiService, SubscriptionData } from '@/lib/api-service';
 import SignupModal from './signup-modal';
 import EmailVerificationModal from "./email-verification-modal";
+import Link from 'next/link';
 
 export interface PricingPlan {
   id: string;
@@ -172,7 +173,7 @@ const PricingSection = () => {
                 {/* first wrapper */}
                 <div className='flex flex-col gap-2 md:w-1/2 h-full md:min-h-[270px] justify-between'>
                   <div>
-                    <h3 className='text-[#282828] font-semibold lg:text-[80px] text-[60px] leading-tight lg:mb-0 mb-3'>${Math.floor(Number(plan.price) / 100).toString()}<span className='text-[#282828] font-semibold text-[24px]'>/one-month</span></h3>
+                    <h3 className='text-[#282828] font-semibold lg:text-[80px] text-[60px] leading-tight lg:mb-0 mb-3'>${Math.floor(Number(plan.price) / 100).toString()}<span className='text-[#282828] font-semibold text-[24px]'>/month</span></h3>
                     <p className='text-[#282828] font-medium text-base leading-[120%] max-w-[357px]'>Clone yourself into a lifelike AI avatar that talks, gestures, and feels human or choose from 1,000+ pre-built personalities across industries. Your face, your brand on autopilot.</p>
                   </div>
                   <div className='gap-4 flex-wrap md:flex hidden'>
@@ -181,12 +182,21 @@ const PricingSection = () => {
                       >
                         Learn More
                       </button> */}
+                      {currentSubscription?.planId === plan.id ? (
+                        <Link
+                            href="/account"
+                            className="md:w-fit w-full py-[11.2px] px-[28.3px] rounded-[39px] transition-all duration-300 bg-[#5046E5] text-white hover:bg-transparent border border-[#5046E5] hover:text-[#5046E5] text-[18px] leading-[20px] font-medium cursor-pointer ml-20 text-center"
+                          >
+                            Current Plan
+                          </Link>
+                      ) : (
                     <button
                         onClick={() => handlePlanSelection(plan)}
                         className="md:w-fit w-full py-[11.2px] px-[28.3px] rounded-[39px] transition-all duration-300 bg-[#5046E5] text-white hover:bg-transparent border border-[#5046E5] hover:text-[#5046E5] text-[18px] leading-[20px] font-medium cursor-pointer ml-20"
                       >
                         Get Started
                       </button>
+                      )}
                   </div>
                 </div>
                 {/* second wrapper */}
@@ -206,12 +216,21 @@ const PricingSection = () => {
                       >
                         Learn More
                       </button> */}
+                      {currentSubscription?.planId === plan.id ? (
+                        <Link
+                            href="/account"
+                            className="md:w-fit w-full py-[11.2px] px-[28.3px] rounded-[39px] transition-all duration-300 bg-[#5046E5] text-white hover:bg-transparent border border-[#5046E5] hover:text-[#5046E5] text-[18px] leading-[20px] font-medium cursor-pointer text-center"
+                          >
+                            Current Plan
+                          </Link>
+                      ) : (
                     <button
                         onClick={() => handlePlanSelection(plan)}
                         className="md:w-fit w-full py-[11.2px] px-[28.3px] rounded-[39px] transition-all duration-300 bg-[#5046E5] text-white hover:bg-transparent border border-[#5046E5] hover:text-[#5046E5] text-[18px] leading-[20px] font-medium cursor-pointer"
                       >
                         Get Started
                       </button>
+                      )}
                   </div>
                 </div>
               </div>
