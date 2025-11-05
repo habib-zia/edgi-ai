@@ -41,6 +41,7 @@ interface AvatarCreationModalProps {
 export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: AvatarCreationModalProps) {
   const [currentStep, setCurrentStep] = useState(2)
   const [selectedAvatarType, setSelectedAvatarType] = useState<AvatarType | null>(null)
+  const [hideCloseButton, setHideCloseButton] = useState(false)
   const [avatarData, setAvatarData] = useState<AvatarData>({
     name: '',
     age: '',
@@ -72,6 +73,8 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
   }
 
   const handleBack = () => {
+    // Reset hideCloseButton when navigating back
+    setHideCloseButton(false)
     setCurrentStep(prev => prev - 1)
   }
 
@@ -90,6 +93,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
   const handleClose = () => {
     setCurrentStep(2)
     setSelectedAvatarType(null)
+    setHideCloseButton(false)
     setAvatarData({
       name: '',
       age: '',
@@ -171,7 +175,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 5:
         if (selectedAvatarType === 'digital-twin') {
-          return <ConsentVideoUpload onNext={handleNext} onBack={handleBack} onClose={handleAvatarCreationSuccess} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
+          return <ConsentVideoUpload onNext={handleNext} onBack={handleBack} onClose={handleAvatarCreationSuccess} avatarData={avatarData} setAvatarData={handleSetAvatarData} onCountdownStart={() => setHideCloseButton(true)} />
         } else {
           return (
             <Step8Details 
@@ -241,7 +245,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     }
     if (selectedAvatarType == 'digital-twin' && (currentStep == 4 || currentStep == 5)) {
       return {
-        maxWidth: isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[900px]',
+        maxWidth: isNarrowWidth() ? 'max-w-[900px]' : 'max-w-[900px]',
         maxHeight: 'max-h-[650px]',
         padding: ''
       }
@@ -264,15 +268,17 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">Create Avatar</h2>
-          <button
-            onClick={handleClose}
-            className="cursor-pointer"
-            aria-label="Close avatar creation modal"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          {!hideCloseButton && (
+            <button
+              onClick={handleClose}
+              className="cursor-pointer"
+              aria-label="Close avatar creation modal"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Step Content */}

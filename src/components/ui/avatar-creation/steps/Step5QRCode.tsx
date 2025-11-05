@@ -129,7 +129,7 @@ export default function Step5QRCode({ onNext, onBack, avatarData, setAvatarData 
       <div className="flex justify-between pt-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300"
+          className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
