@@ -15,7 +15,7 @@ export default function SubscriptionDetailsSection({ className = '' }: Subscript
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [showBillingModal, setShowBillingModal] = useState(false)
-    const [showManagementModal, setShowManagementModal] = useState(false)
+    const [showCancelModal, setShowCancelModal] = useState(false)
 
     useEffect(() => {
         const fetchSubscription = async () => {
@@ -53,12 +53,12 @@ export default function SubscriptionDetailsSection({ className = '' }: Subscript
         setShowBillingModal(false)
     }
 
-    const handleManageSubscription = () => {
-        setShowManagementModal(true)
+    const handleCancelSubscription = () => {
+        setShowCancelModal(true)
     }
 
-    const handleCloseManagementModal = () => {
-        setShowManagementModal(false)
+    const handleCloseCancelModal = () => {
+        setShowCancelModal(false)
     }
 
     const handleSubscriptionUpdated = () => {
@@ -124,12 +124,8 @@ export default function SubscriptionDetailsSection({ className = '' }: Subscript
     const getPlanDisplayName = (planId: string) => {
         switch (planId)
         {
-            case 'basic':
-                return 'Basic Plan'
-            case 'growth':
-                return 'Growth Plan'
-            case 'enterprise':
-                return 'Enterprise Plan'
+            case 'monthly':
+                return 'Monthly Plan'
             default:
                 return planId.charAt(0).toUpperCase() + planId.slice(1) + ' Plan'
         }
@@ -257,10 +253,10 @@ export default function SubscriptionDetailsSection({ className = '' }: Subscript
             <div className="flex flex-col sm:flex-row gap-3 pt-6">
                 {!subscription.cancelAtPeriodEnd && (
                 <button
-                    onClick={handleManageSubscription}
-                    className="flex-1 bg-[#5046E5] text-white px-8 py-3 rounded-lg font-medium hover:bg-[#4338CA] transition-colors"
+                    onClick={handleCancelSubscription}
+                    className="flex-1 bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
                 >
-                    Manage Subscription
+                    Cancel Subscription
                 </button>
                 )}
                 {subscription.status === 'active' && (
@@ -280,10 +276,10 @@ export default function SubscriptionDetailsSection({ className = '' }: Subscript
                 onClose={handleCloseBillingModal}
             />
 
-            {/* Subscription Management Modal */}
+            {/* Cancel Subscription Modal */}
             <SubscriptionManagementModal
-                isOpen={showManagementModal}
-                onClose={handleCloseManagementModal}
+                isOpen={showCancelModal}
+                onClose={handleCloseCancelModal}
                 currentSubscription={subscription}
                 onSubscriptionUpdated={handleSubscriptionUpdated}
             />

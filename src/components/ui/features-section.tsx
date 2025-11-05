@@ -121,7 +121,7 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
   };
 
   return (
-    <section className={cn("w-full py-16 md:pt-10 pb-14 md:pb-20 bg-white", className)}>
+    <section className={cn("w-full pt-16 md:pt-10 bg-white", className)}>
       <div className="max-w-[1260px] mx-auto xl:px-0 px-3">
         {/* Header Section */}
         <div className="text-center mb-14">

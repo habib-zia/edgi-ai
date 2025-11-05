@@ -88,12 +88,16 @@ export default function BillingHistoryModal({ isOpen, onClose }: BillingHistoryM
             return 'Unknown Plan'
         }
         
-        switch (planId)
+        switch (planId.toLowerCase())
         {
+            case 'monthly':
+                return 'Monthly Plan'
             case 'basic':
                 return 'Basic Plan'
             case 'growth':
                 return 'Growth Plan'
+            case 'professional':
+                return 'Professional Plan'
             case 'enterprise':
                 return 'Enterprise Plan'
             default:
