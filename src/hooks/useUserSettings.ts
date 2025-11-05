@@ -225,7 +225,6 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         if (typeof avatar === 'string') return avatar
         return avatar.avatar_id || ''
       }
-      alert(userSettingsData.gender)
       const cleanPayload = {
         prompt: userSettingsData.prompt,
         avatar: Array.isArray(userSettingsData.avatar) ? userSettingsData.avatar : [],
