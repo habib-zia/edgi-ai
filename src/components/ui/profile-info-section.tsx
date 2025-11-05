@@ -230,44 +230,6 @@ export default function ProfileInfoSection({ data, errors, onChange, isEmailVeri
         </div>
       </div>
 
-      {/* Password - Read Only */}
-      <div className="w-full mt-6">
-        <label htmlFor="password" className="block text-base font-normal text-[#5F5F5F] mb-1">
-          Password
-        </label>
-        <div className="relative">
-          <input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            value="••••••••••"
-            readOnly
-            disabled
-            placeholder="**********"
-            aria-describedby={errors.password ? 'password-error' : undefined}
-            aria-invalid={!!errors.password}
-            className="w-full px-4 py-3 bg-[#F3F4F6] border-0 rounded-[8px] text-gray-600 placeholder-[#11101066] cursor-not-allowed pr-12"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-            disabled
-          >
-            {showPassword ? <EyeOff className="w-5 h-5 text-[#98A2B3]" /> : <Eye className="w-5 h-5 text-[#98A2B3]" />}
-          </button>
-        </div>
-        <div className="mt-1">
-          <span className="text-xs text-gray-500">Use &quot;Forgot Password&quot; to change your password</span>
-        </div>
-        {errors.password && (
-          <p id="password-error" className="text-red-500 text-sm mt-1 flex items-center gap-1">
-            <AlertCircle className="w-4 h-4" />
-            {errors.password}
-          </p>
-        )}
-      </div>
-
       {/* Update Profile Button */}
       {onUpdateProfile && (
         <div className="flex justify-center mt-8">
