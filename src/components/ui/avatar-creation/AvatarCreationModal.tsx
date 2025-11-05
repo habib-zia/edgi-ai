@@ -250,6 +250,13 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
         padding: ''
       }
     }
+    if (selectedAvatarType == 'voice-avatar' && currentStep == 3) {
+      return {
+        maxWidth: isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[760px]',
+        maxHeight: 'max-h-[550px]',
+        padding: 'p-3'
+      }
+    }
     return {
       maxWidth: isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[1100px]',
       maxHeight: 'max-h-[840px]',

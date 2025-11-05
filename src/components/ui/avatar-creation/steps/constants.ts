@@ -12,6 +12,7 @@ export const SUPPORTED_FORMATS = [
 
 // Audio constants for voice avatar
 export const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
+export const MIN_AUDIO_DURATION = 30; // 30 seconds minimum (for recording)
 export const MAX_AUDIO_DURATION = 180; // 3 minutes maximum (for recording)
 export const SUPPORTED_AUDIO_FORMATS = [
   'audio/mpeg',
