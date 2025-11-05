@@ -580,11 +580,14 @@ class ApiService {
     }
   }
 
-  async getMusicTracks(energyCategory?: string): Promise<ApiResponse<any>> {
+  async getMusicTracks(energyCategory?: string, gender?: string | null): Promise<ApiResponse<any>> {
     try {
       const params = new URLSearchParams()
       if (energyCategory) {
         params.append('energyCategory', energyCategory)
+      }
+      if (gender) {
+        params.append('gender', gender)
       }
       
       const queryString = params.toString()

@@ -19,6 +19,7 @@ interface UserSettings {
   preferredTone: string
   callToAction: string
   email: string
+  gender?: string
   preset?: string
   selectedVoiceId?: string
   selectedMusicTrackId?: string
@@ -88,6 +89,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         setValue('preferredTone', settings.preferredTone || '')
         setValue('callToAction', settings.callToAction || '')
         setValue('email', settings.email || '')
+        setValue('gender', settings.gender || '')
 
             // Handle avatar loading - prioritize avatar array from API response
             if (settings.avatar && Array.isArray(settings.avatar)) {
@@ -223,7 +225,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         if (typeof avatar === 'string') return avatar
         return avatar.avatar_id || ''
       }
-      
+      alert(userSettingsData.gender)
       const cleanPayload = {
         prompt: userSettingsData.prompt,
         avatar: Array.isArray(userSettingsData.avatar) ? userSettingsData.avatar : [],
@@ -246,6 +248,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         preferredTone: userSettingsData.preferredTone,
         callToAction: userSettingsData.callToAction,
         email: userSettingsData.email,
+        gender: userSettingsData.gender || '',
         preset: userSettingsData.preset || '',
         selectedVoiceId: userSettingsData.selectedVoiceId || '',
         selectedMusicTrackId: userSettingsData.selectedMusicTrackId || '',

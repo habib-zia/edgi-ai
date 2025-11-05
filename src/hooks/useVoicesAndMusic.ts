@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiService } from '@/lib/api-service'
 import { Avatar } from '@/lib/api-service'
-import { Voice } from '@/components/ui/voice-selector'
+import { Voice } from '@/components/ui/voice-selector/types'
 
 interface UseVoicesAndMusicProps {
   preset: string | null | undefined
@@ -12,6 +12,7 @@ interface UseVoicesAndMusicProps {
     body: Avatar | null
     conclusion: Avatar | null
   }
+  gender?: string | null // Gender from form dropdown
 }
 
 interface UseVoicesAndMusicReturn {
@@ -25,7 +26,7 @@ interface UseVoicesAndMusicReturn {
   allMusic: Voice[]  // All music (low, medium, high)
 }
 
-export function useVoicesAndMusic({ preset, selectedAvatars }: UseVoicesAndMusicProps): UseVoicesAndMusicReturn {
+export function useVoicesAndMusic({ preset, selectedAvatars, gender }: UseVoicesAndMusicProps): UseVoicesAndMusicReturn {
   // Store ALL voices and music (low, medium, high combined)
   const [allVoices, setAllVoices] = useState<Voice[]>([])
   const [allMusic, setAllMusic] = useState<Voice[]>([])
@@ -39,12 +40,15 @@ export function useVoicesAndMusic({ preset, selectedAvatars }: UseVoicesAndMusic
   const [musicLoading, setMusicLoading] = useState(false)
   const [musicError, setMusicError] = useState<string | null>(null)
 
-  // Helper function to get gender from selected avatar
-  const getAvatarGender = useCallback((): string | null => {
-    // Priority: body > title > conclusion
-    const avatar = selectedAvatars.body || selectedAvatars.title || selectedAvatars.conclusion
-    return avatar?.gender?.toLowerCase() || null
-  }, [selectedAvatars])
+  // Helper function to get gender - only from form dropdown, NOT from avatar
+  const getGender = useCallback((): string | null => {
+    // Only use gender from form dropdown, ignore avatar gender
+    if (gender && gender.trim()) {
+      return gender.toLowerCase().trim()
+    }
+    // Return null if no gender is selected from dropdown
+    return null
+  }, [gender])
 
   // Fetch ALL voices (low, medium, high) when avatars are selected - NO energyCategory parameter
   const fetchAllVoices = useCallback(async (gender: string | null) => {
@@ -98,13 +102,13 @@ export function useVoicesAndMusic({ preset, selectedAvatars }: UseVoicesAndMusic
   }, [])
 
   // Fetch ALL music (low, medium, high) when avatars are selected - NO energyCategory parameter
-  const fetchAllMusic = useCallback(async () => {
+  const fetchAllMusic = useCallback(async (gender: string | null) => {
     try {
       setMusicLoading(true)
       setMusicError(null)
 
-      // Fetch ALL music without energyCategory parameter
-      const response = await apiService.getMusicTracks()
+      // Fetch ALL music with gender parameter if provided
+      const response = await apiService.getMusicTracks(undefined, gender)
       
       if (response.success && response.data) {
         // Transform API response to Voice[] format
@@ -143,26 +147,46 @@ export function useVoicesAndMusic({ preset, selectedAvatars }: UseVoicesAndMusic
     }
   }, [])
 
-  // Effect to fetch ALL voices and music when avatars are selected
+  // Effect to fetch voices and music ONLY when gender is selected from dropdown
+  // APIs are NOT called when avatar is selected - only when gender is explicitly selected
   useEffect(() => {
-    // Check if any avatar is selected
+    // Check if gender is explicitly selected from dropdown
+    const hasGender = gender && String(gender).trim().length > 0
     const hasAvatar = selectedAvatars.body || selectedAvatars.title || selectedAvatars.conclusion
     
-    if (hasAvatar) {
-      const gender = getAvatarGender()
-      // Fetch all voices and music in parallel
-      fetchAllVoices(gender)
-      fetchAllMusic()
-    } else {
-      // Clear data if no avatar is selected
+    console.log('🎵 useVoicesAndMusic - Gender effect triggered:', {
+      gender,
+      hasGender,
+      hasAvatar,
+      selectedAvatars: {
+        title: !!selectedAvatars.title,
+        body: !!selectedAvatars.body,
+        conclusion: !!selectedAvatars.conclusion
+      }
+    })
+    
+    // Only call APIs if gender is explicitly selected from dropdown
+    // Avatar selection does NOT trigger API calls
+    if (hasGender) {
+      const currentGender = getGender() // Will be normalized lowercase
+      console.log('🎵 Calling APIs with gender:', currentGender)
+      // Call APIs with gender parameter (only when gender is selected)
+      fetchAllVoices(currentGender)
+      fetchAllMusic(currentGender)
+    } else if (!hasAvatar && !hasGender) {
+      // Clear data only if no avatar AND no gender
+      console.log('🎵 Clearing data - no avatar and no gender')
       setAllVoices([])
       setAllMusic([])
       setVoices([])
       setMusicList([])
       setVoicesError(null)
       setMusicError(null)
+    } else {
+      console.log('🎵 No gender selected - not calling APIs')
     }
-  }, [selectedAvatars.body, selectedAvatars.title, selectedAvatars.conclusion, getAvatarGender, fetchAllVoices, fetchAllMusic])
+    // If avatar is selected but no gender - do nothing (don't call APIs)
+  }, [gender, selectedAvatars.body, selectedAvatars.title, selectedAvatars.conclusion, getGender, fetchAllVoices, fetchAllMusic])
 
   // Effect to filter voices and music based on preset
   useEffect(() => {

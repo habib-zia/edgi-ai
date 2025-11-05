@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Mic, X } from 'lucide-react'
-import { MAX_AUDIO_SIZE, SUPPORTED_AUDIO_FORMATS } from './constants'
+import { MAX_AUDIO_SIZE, MAX_AUDIO_DURATION, SUPPORTED_AUDIO_FORMATS } from './constants'
 import { useAudioRecording } from './hooks/useAudioRecording'
 import { AvatarData } from '../AvatarCreationModal'
 
@@ -28,15 +28,65 @@ export default function VoiceAudioUpload({ onNext, onBack, avatarData, setAvatar
     return { isValid: true };
   };
 
+  const validateAudioDuration = (file: File): Promise<{ isValid: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      const audio = document.createElement('audio');
+      audio.preload = 'metadata';
+      
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(audio.src);
+        const duration = audio.duration;
+        
+        if (isNaN(duration) || duration === 0) {
+          resolve({ isValid: false, error: 'Unable to read audio metadata. The file may be corrupted.' });
+          return;
+        }
+        
+        if (!isFinite(duration) || duration === Infinity) {
+          // If duration is infinite (can happen with some formats), skip duration validation
+          resolve({ isValid: true });
+          return;
+        }
+        
+        if (duration > MAX_AUDIO_DURATION) {
+          const minutes = Math.floor(MAX_AUDIO_DURATION / 60);
+          const seconds = MAX_AUDIO_DURATION % 60;
+          resolve({ isValid: false, error: `Audio is too long (${Math.round(duration)}s). Maximum duration is ${minutes} minute${minutes !== 1 ? 's' : ''}${seconds > 0 ? ` and ${seconds} seconds` : ''}.` });
+          return;
+        }
+        
+        resolve({ isValid: true });
+      };
+      
+      audio.onerror = () => {
+        URL.revokeObjectURL(audio.src);
+        resolve({ isValid: false, error: 'Unable to load audio. The file may be corrupted or in an unsupported format.' });
+      };
+      
+      audio.src = URL.createObjectURL(file);
+    });
+  };
+
   const processFile = async (file: File) => {
     setIsProcessing(true);
     setError(null);
+    
+    // Validate file size and format
     const validation = validateFile(file);
     if (!validation.isValid) {
       setError(validation.error || 'Invalid file');
       setIsProcessing(false);
       return;
     }
+    
+    // Validate audio duration
+    const durationValidation = await validateAudioDuration(file);
+    if (!durationValidation.isValid) {
+      setError(durationValidation.error || 'Invalid audio duration');
+      setIsProcessing(false);
+      return;
+    }
+    
     setAvatarData({ ...avatarData, audioFile: file });
     setIsProcessing(false);
   };

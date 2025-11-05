@@ -1,8 +1,9 @@
 'use client'
 
 import React from 'react'
-import { UseFormRegister, FieldErrors } from 'react-hook-form'
+import { UseFormRegister, FieldErrors, UseFormWatch, UseFormTrigger } from 'react-hook-form'
 import FormField from './form-field'
+import FormDropdown from './form-dropdown'
 
 interface FormFieldData {
   field: string
@@ -12,6 +13,7 @@ interface FormFieldData {
   autoComplete?: string
   required?: boolean
   disabled?: boolean
+  options?: { value: string; label: string }[]
 }
 
 interface FormFieldRowProps {
@@ -20,6 +22,11 @@ interface FormFieldRowProps {
   errors: FieldErrors<any>
   columns?: '1' | '2' | '3' | '4'
   onCityBlur?: (city: string) => void
+  watch?: UseFormWatch<any>
+  trigger?: UseFormTrigger<any>
+  openDropdown?: string | null
+  onDropdownToggle?: (field: string) => void
+  onDropdownSelect?: (field: string, value: string) => void
 }
 
 export default function FormFieldRow({ 
@@ -27,7 +34,12 @@ export default function FormFieldRow({
   register, 
   errors, 
   columns = '4',
-  onCityBlur
+  onCityBlur,
+  watch,
+  trigger,
+  openDropdown,
+  onDropdownToggle,
+  onDropdownSelect
 }: FormFieldRowProps) {
   const getGridCols = () => {
     switch (columns) {
@@ -41,21 +53,57 @@ export default function FormFieldRow({
 
   return (
     <div className={`grid ${getGridCols()} gap-4`}>
-      {fields.map((fieldData) => (
-        <FormField
-          key={fieldData.field}
-          field={fieldData.field}
-          label={fieldData.label}
-          placeholder={fieldData.placeholder}
-          type={fieldData.type}
-          autoComplete={fieldData.autoComplete}
-          required={fieldData.required}
-          register={register}
-          errors={errors}
-          disabled={fieldData.disabled}
-          onBlur={fieldData.field === 'city' ? onCityBlur : undefined}
-        />
-      ))}
+      {fields.map((fieldData) => {
+        // Render dropdown if field has options or type is 'dropdown'
+        if (fieldData.type === 'dropdown' || fieldData.options) {
+          if (!watch || !trigger || !onDropdownToggle || !onDropdownSelect) {
+            console.warn(`Dropdown field "${fieldData.field}" requires watch, trigger, onDropdownToggle, and onDropdownSelect props`)
+            return null
+          }
+          
+          const currentValue = watch(fieldData.field) || ''
+          const isOpen = openDropdown === fieldData.field
+          const hasError = errors[fieldData.field]
+          
+          return (
+            <div key={fieldData.field}>
+              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+                {fieldData.label} {fieldData.required && <span className="text-red-500">*</span>}
+              </label>
+              <FormDropdown
+                field={fieldData.field}
+                options={fieldData.options || []}
+                placeholder={fieldData.placeholder}
+                currentValue={currentValue}
+                isOpen={isOpen}
+                hasError={hasError}
+                register={register}
+                errors={errors}
+                onToggle={(field) => onDropdownToggle?.(String(field))}
+                onSelect={(field, value) => onDropdownSelect?.(String(field), value)}
+                onBlur={(field) => trigger?.(String(field))}
+              />
+            </div>
+          )
+        }
+        
+        // Render regular input field
+        return (
+          <FormField
+            key={fieldData.field}
+            field={fieldData.field}
+            label={fieldData.label}
+            placeholder={fieldData.placeholder}
+            type={fieldData.type}
+            autoComplete={fieldData.autoComplete}
+            required={fieldData.required}
+            register={register}
+            errors={errors}
+            disabled={fieldData.disabled}
+            onBlur={fieldData.field === 'city' ? onCityBlur : undefined}
+          />
+        )
+      })}
     </div>
   )
 }

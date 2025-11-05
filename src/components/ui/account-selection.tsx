@@ -86,6 +86,7 @@ export default function AccountSelection({
                     <p className="text-sm font-medium text-gray-800">{account.name}</p>
                     {isSelected && onCaptionUpdate && (
                       <button
+                        type="button"
                         onClick={(e) => handleEditClick(e, account)}
                         className="flex-shrink-0 p-1 hover:bg-blue-100 rounded transition-colors"
                         title="Edit caption"

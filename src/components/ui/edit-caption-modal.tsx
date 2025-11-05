@@ -45,6 +45,7 @@ export default function EditCaptionModal({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-black">Edit Caption</h2>
           <button
+            type="button"
             onClick={handleCancel}
             className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors duration-200"
           >
@@ -76,12 +77,14 @@ export default function EditCaptionModal({
 
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
           <button
+            type="button"
             onClick={handleCancel}
             className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200 font-medium"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             className="px-6 py-2 bg-[#5046E5] text-white rounded-lg hover:bg-[#4338CA] transition-colors duration-200 font-medium"
           >
