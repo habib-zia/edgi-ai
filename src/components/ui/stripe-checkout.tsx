@@ -37,7 +37,6 @@ export default function StripeCheckout({
 
     try
     {
-      // Confirm the payment
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
@@ -55,15 +54,31 @@ export default function StripeCheckout({
 
       if (paymentIntent?.status === 'succeeded')
       {
-        // Show success notification
+        const paymentIntentId = paymentIntent.id;
+        
+        if (paymentIntentId && typeof paymentIntentId === 'string')
+        {
+          try
+          {
+            const syncResponse = await apiService.syncSubscriptionFromStripe(paymentIntentId);
+            if (!syncResponse.success)
+            {
+              console.warn('Failed to sync subscription to backend:', syncResponse.message);
+            }
+          } catch (syncError)
+          {
+            console.error('Error syncing subscription to backend:', syncError);
+          }
+        } else
+        {
+          console.warn('No payment intent ID found');
+        }
         showNotification('Payment successful! Your subscription is now active.', 'success');
 
-        // Redirect to create video page after a short delay
         setTimeout(() => {
           window.location.href = '/create-video';
         }, 2000);
 
-        // Call onSuccess callback
         onSuccess?.(paymentIntent);
       }
     } catch (error: any)

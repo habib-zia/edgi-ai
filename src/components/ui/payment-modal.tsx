@@ -86,9 +86,9 @@ export default function PaymentModal({ isOpen, onClose, plan, onSuccess }: Payme
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors duration-300"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-gray-900" />
           </button>
         </div>
 

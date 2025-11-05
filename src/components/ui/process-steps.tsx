@@ -192,7 +192,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
               backgroundSize: "cover",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
-              minHeight: "45vh",
+              maxHeight: "45vh",
               // maxHeight: "40vh",
               height: "100%",
               width: "100%",

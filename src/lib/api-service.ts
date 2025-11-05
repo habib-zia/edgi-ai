@@ -173,6 +173,10 @@ export interface PaymentIntentRequest {
   planId: string;
 }
 
+export interface SyncSubscriptionRequest {
+  stripeSubscriptionId: string;
+}
+
 export interface PaymentIntentResponse {
   amount: number;
   currency: string;
@@ -1288,6 +1292,13 @@ class ApiService {
   async cancelSubscription(): Promise<ApiResponse<any>> {
     return this.request<any>(API_CONFIG.ENDPOINTS.SUBSCRIPTION.CANCEL, {
       method: 'POST',
+    }, true);
+  }
+
+  async syncSubscriptionFromStripe(stripeSubscriptionId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(API_CONFIG.ENDPOINTS.SUBSCRIPTION.SYNC_FROM_STRIPE, {
+      method: 'POST',
+      body: JSON.stringify({ stripeSubscriptionId }),
     }, true);
   }
 
