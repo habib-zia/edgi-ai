@@ -16,6 +16,7 @@ interface FormBasicInfoSectionProps {
   onDropdownSelect: (field: keyof CreateVideoFormData, value: string) => void
   onFormFieldChange: () => void
   formManuallyTouched: boolean
+  submitAttempted?: boolean
   // Avatar-specific props
   avatarOptions: { value: string; label: string }[]
   positionOptions: { value: string; label: string }[]
@@ -58,6 +59,7 @@ export default function FormBasicInfoSection({
   onDropdownSelect,
   onFormFieldChange,
   formManuallyTouched,
+  submitAttempted = false,
   avatarOptions,
   positionOptions,
   isFromDefaultAvatar,
@@ -87,7 +89,9 @@ export default function FormBasicInfoSection({
     type: string = 'text',
     autoComplete?: string
   ) => {
-    const filteredErrors = formManuallyTouched ? errors : {}
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
 
     return (
       <FormInput
@@ -110,7 +114,10 @@ export default function FormBasicInfoSection({
   ) => {
     const currentValue = watch(field) || ''
     const isOpen = openDropdown === field
-    const hasError = errors[field]
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
+    const hasError = filteredErrors[field]
 
     return (
       <FormDropdown
@@ -121,7 +128,7 @@ export default function FormBasicInfoSection({
         isOpen={isOpen}
         hasError={hasError}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
         onToggle={onDropdownToggle}
         onSelect={onDropdownSelect}
         onBlur={(field) => trigger(field)}

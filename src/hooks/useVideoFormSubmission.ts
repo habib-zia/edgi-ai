@@ -57,27 +57,40 @@ export function useVideoFormSubmission({
   })
 
   const onSubmit = useCallback(async (data: CreateVideoFormData) => {
+    console.log('selectedAvatars', selectedAvatars)
     if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
       dispatch(setVideoError('Please select 3 avatars before submitting'))
       return
     }
 
+    // Validate that either videoTopic or custom topic is provided
     if (showCustomTopicInput) {
       if (!customTopicValue.trim()) {
         dispatch(setVideoError('Please enter a custom topic'))
         return
       }
+      // Use custom topic value for submission
       data.videoTopic = customTopicValue.trim()
     } else {
+      // Ensure videoTopic is provided when not using custom topic
       if (!data.videoTopic || !data.videoTopic.trim()) {
         dispatch(setVideoError('Please select a video topic'))
         return
       }
     }
 
+    // Set default prompt value if not provided (since field was removed from UI)
     if (!data.prompt || !data.prompt.trim()) {
       data.prompt = 'Shawheen V1'
     }
+
+    // Debug: Log form data before submission
+    console.log('🚀 Form submission starting...', {
+      hasAvatars: !!(selectedAvatars.title && selectedAvatars.body && selectedAvatars.conclusion),
+      hasVideoTopic: !!(data.videoTopic?.trim() || customTopicValue.trim()),
+      prompt: data.prompt,
+      formData: data
+    })
 
     try {
       const usageCheck = await checkVideoUsageLimit()
@@ -93,6 +106,7 @@ export function useVideoFormSubmission({
         return
       }
     } catch (error) {
+      console.error('Failed to check video usage:', error)
       dispatch(setVideoError('Unable to verify subscription status. Please try again.'))
       return
     }
@@ -121,6 +135,7 @@ export function useVideoFormSubmission({
       
       saveSelectedAvatars(avatarsToSave)
     } catch (error) {
+      console.error('Failed to save avatars:', error)
       dispatch(setVideoError('Failed to save avatar selection. Please try again.'))
       return
     }
@@ -210,7 +225,13 @@ export function useVideoFormSubmission({
         selectedVoicePreset: (selectedVoice as any)?.energy || selectedVoice?.type || '',
         selectedMusicPreset: (selectedMusic as any)?.energyCategory || selectedMusic?.type || ''
       }
-      await saveUserSettings(userSettingsPayload)
+      console.log('userSettingsPayload', userSettingsPayload)
+      const userSettingsResult = await saveUserSettings(userSettingsPayload)
+      if (!userSettingsResult.success) {
+        console.error('Failed to store user settings:', userSettingsResult.error)
+      } else {
+        console.log('✅ User settings stored successfully with all avatar IDs')
+      }
 
       onModalOpen()
       dispatch(clearVideoError())

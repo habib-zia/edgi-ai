@@ -21,6 +21,7 @@ interface FormMediaSectionProps {
   onDropdownSelect: (field: keyof CreateVideoFormData, value: string) => void
   onFormFieldChange: () => void
   formManuallyTouched: boolean
+  submitAttempted?: boolean
   // Options
   presetOptions: { value: string; label: string }[]
   languageOptions: { value: string; label: string }[]
@@ -67,6 +68,7 @@ export default function FormMediaSection({
   onDropdownSelect,
   onFormFieldChange,
   formManuallyTouched,
+  submitAttempted = false,
   presetOptions,
   languageOptions,
   preset,
@@ -103,7 +105,9 @@ export default function FormMediaSection({
     type: string = 'text',
     autoComplete?: string
   ) => {
-    const filteredErrors = formManuallyTouched ? errors : {}
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
 
     return (
       <FormInput
@@ -126,7 +130,10 @@ export default function FormMediaSection({
   ) => {
     const currentValue = watch(field) || ''
     const isOpen = openDropdown === field
-    const hasError = errors[field]
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
+    const hasError = filteredErrors[field]
 
     return (
       <FormDropdown
@@ -137,7 +144,7 @@ export default function FormMediaSection({
         isOpen={isOpen}
         hasError={hasError}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
         onToggle={onDropdownToggle}
         onSelect={onDropdownSelect}
         onBlur={(field) => trigger(field)}
@@ -149,13 +156,16 @@ export default function FormMediaSection({
     field: keyof CreateVideoFormData,
     placeholder: string
   ) => {
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
     return (
       <VoiceSelectorWrapper
         field={field}
         placeholder={placeholder}
         watch={watch}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
         trigger={trigger}
         openDropdown={openDropdown}
         selectedVoice={selectedVoice}
@@ -175,13 +185,16 @@ export default function FormMediaSection({
     field: keyof CreateVideoFormData,
     placeholder: string
   ) => {
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
     return (
       <MusicSelectorWrapper
         field={field}
         placeholder={placeholder}
         watch={watch}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
         trigger={trigger}
         openDropdown={openDropdown}
         selectedMusic={selectedMusic}
@@ -209,8 +222,11 @@ export default function FormMediaSection({
     
     const selectedTrend = allTrends.find(trend => trend.description === displayValue)
     const isOpen = openDropdown === field
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
     // Hide error for videoTopic when custom topic input is shown
-    const hasError = showCustomTopicInput && field === 'videoTopic' ? null : errors[field]
+    const hasError = showCustomTopicInput && field === 'videoTopic' ? null : filteredErrors[field]
     
     // Use only city trends loading states
     const isLoading = cityTrendsLoading
