@@ -43,7 +43,7 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
         onClose();
       }
       setTimeout(() => {
-        window.location.reload();
+        window.location.href = "/create-video";
       }, 100);
     }
   }, [countdown, onClose]);

@@ -30,6 +30,25 @@ export const useVideoUpload = () => {
     return new Promise((resolve) => {
       const errors: ValidationError[] = [];
 
+      if (type === 'training') {
+        const maxSize = 1000 * 1024 * 1024;
+        if (file.size > maxSize) {
+          const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          errors.push({
+            type: 'size',
+            message: `File size exceeds maximum limit of 1000MB (${fileSizeMB}MB)`
+          });
+          setUploadState(prev => ({
+            ...prev,
+            isValidating: false,
+            isValid: false,
+            errors
+          }));
+          resolve(false);
+          return;
+        }
+      }
+
       if (file.type !== 'video/mp4' && file.type !== 'video/quicktime') {
         errors.push({
           type: 'format',
