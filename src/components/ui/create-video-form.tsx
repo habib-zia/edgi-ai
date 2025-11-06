@@ -36,6 +36,7 @@ import VoiceSelectorWrapper from './voice-selector-wrapper'
 import { Voice, VoiceType } from './voice-selector/types'
 import MusicSelectorWrapper from './music-selector-wrapper'
 import { useVoicesAndMusic } from '@/hooks/useVoicesAndMusic'
+import { useNotificationStore } from './global-notification'
 
 const promptOptions = [
   { value: 'Shawheen V1', label: 'Shawheen V1' },
@@ -178,6 +179,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   
   // Track if form has been manually touched to avoid showing validation errors on prefilled forms
   const [formManuallyTouched, setFormManuallyTouched] = useState(false)
+  // Track if form submission was attempted (using state to trigger re-renders)
+  const [submitAttempted, setSubmitAttempted] = useState(false)
+  const { showNotification } = useNotificationStore()
   
   // Voice selection state
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(null)
@@ -627,6 +631,14 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const handleFormFieldChange = () => {
     setFormManuallyTouched(true)
   }
+  
+  // Show errors when form submission is attempted and validation fails
+  useEffect(() => {
+    if (submitAttempted && Object.keys(errors).length > 0 && !formManuallyTouched) {
+      setFormManuallyTouched(true)
+    }
+  }, [errors, formManuallyTouched, submitAttempted])
+  
   // User settings hook
   const { fetchUserSettings, saveUserSettings } = useUserSettings({
     userEmail: user?.email,
@@ -1308,7 +1320,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   ) => {
     const currentValue = watch(field) || ''
     const isOpen = openDropdown === field
-    const hasError = errors[field]
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    // Check both formManuallyTouched and submitAttempted to ensure errors show on first submit
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
+    const hasError = filteredErrors[field]
 
     return (
       <FormDropdown
@@ -1319,7 +1335,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         isOpen={isOpen}
         hasError={hasError}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
         onBlur={(field) => trigger(field)}
@@ -1355,13 +1371,17 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   ) => {
     // Pass ALL voices to VoiceSelector - it will filter internally based on voiceType
     // VoiceSelector has its own voiceType state that controls filtering
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    // Check both formManuallyTouched and submitAttempted to ensure errors show on first submit
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
     return (
       <VoiceSelectorWrapper
         field={field}
         placeholder={placeholder}
         watch={watch}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
         trigger={trigger}
         openDropdown={openDropdown}
         selectedVoice={selectedVoice}
@@ -1388,13 +1408,17 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   ) => {
     // Pass ALL music to MusicSelector - it will filter internally based on voiceType (used for music too)
     // VoiceSelector component (used for music) has its own voiceType state that controls filtering
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    // Check both formManuallyTouched and submitAttempted to ensure errors show on first submit
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
     return (
       <MusicSelectorWrapper
         field={field}
         placeholder={placeholder}
         watch={watch}
         register={register}
-        errors={errors}
+        errors={filteredErrors}
         trigger={trigger}
         openDropdown={openDropdown}
         selectedMusic={selectedMusic}
@@ -1427,8 +1451,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     
     const selectedTrend = allTrends.find(trend => trend.description === displayValue)
     const isOpen = openDropdown === field
+    // Filter errors for consistency - only show errors after manual interaction or submit attempt
+    // Check both formManuallyTouched and submitAttempted to ensure errors show on first submit
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
     // Hide error for videoTopic when custom topic input is shown
-    const hasError = showCustomTopicInput && field === 'videoTopic' ? null : errors[field]
+    const hasError = showCustomTopicInput && field === 'videoTopic' ? null : filteredErrors[field]
     
     // Use only city trends loading states
     const isLoading = cityTrendsLoading
@@ -1471,8 +1499,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   ) => {
     const isDisabled = field === 'email'
     
-    // Filter errors for prefilled forms - only show errors after manual interaction
-    const filteredErrors = formManuallyTouched ? errors : {}
+    // Filter errors for prefilled forms - only show errors after manual interaction or submit attempt
+    // Check both formManuallyTouched and submitAttempted to ensure errors show on first submit
+    const shouldShowErrors = formManuallyTouched || submitAttempted
+    const filteredErrors = shouldShowErrors ? errors : {}
 
     return (
       <FormInput
@@ -1524,12 +1554,23 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           />
         ) : (
       <form onSubmit={handleSubmit(onSubmit, (errors) => {
-        console.log('❌ Form validation errors:', errors)
-        console.log('Form errors details:', JSON.stringify(errors, null, 2))
-        // Show first error to user
-        const firstError = Object.values(errors)[0]
-        if (firstError && 'message' in firstError) {
-          dispatch(setVideoError(firstError.message as string || 'Please fix form errors'))
+        try {
+          const summarized = Object.fromEntries(
+            Object.entries(errors).map(([key, value]) => [key, (value as any)?.message || ''])
+          )
+          console.log('Form errors summary:', summarized)
+        } catch {
+          // no-op
+        }
+        setSubmitAttempted(true)
+        if (Object.keys(errors).length > 0) {
+          setFormManuallyTouched(true)
+          const firstError = Object.values(errors)[0]
+          if (firstError && 'message' in firstError) {
+            const errorMessage = firstError.message as string || 'Please fix form errors'
+            showNotification(errorMessage, 'error')
+            dispatch(setVideoError(errorMessage))
+          }
         }
       })} className="space-y-7">
         {error && (

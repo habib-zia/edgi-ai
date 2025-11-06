@@ -6,6 +6,7 @@ import { useVideoUpload } from "../../../../hooks/useVideoUpload";
 import { apiService } from "../../../../lib/api-service";
 import { AvatarData } from '../AvatarCreationModal'
 import { trainingVideoNameRef } from './TrainingVideoUpload'
+import router from "next/router";
 
 interface ConsentVideoUploadProps {
   onNext: () => void
@@ -31,20 +32,15 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
   }, [avatarData.consentVideoFile]);
 
   // Countdown timer effect
+
   useEffect(() => {
     if (countdown !== null && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (countdown === 0) {
-      // Close modal and reload when countdown reaches 0
-      if (onClose) {
-        onClose();
-      }
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+    } 
+    else if (countdown === 0) {
+      if (onClose) onClose();
+      router.push("/gallery");
     }
   }, [countdown, onClose]);
 

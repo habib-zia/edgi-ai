@@ -76,7 +76,7 @@ export default function StripeCheckout({
         showNotification('Payment successful! Your subscription is now active.', 'success');
 
         setTimeout(() => {
-          window.location.href = '/create-video';
+          window.location.href = '/#getting-started';
         }, 2000);
 
         onSuccess?.(paymentIntent);
