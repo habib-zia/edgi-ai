@@ -34,7 +34,7 @@ interface FormBasicInfoSectionProps {
     conclusion: Avatar | null
   }
   onFetchAvatars: () => Promise<void>
-  onAvatarClick: (avatar: Avatar, slot: 'title' | 'body' | 'conclusion') => void
+  onAvatarClick: (avatar: Avatar) => void
   onDragStart: (e: React.DragEvent, avatar: Avatar) => void
   onDragEnd: (e: React.DragEvent) => void
   onDragOver: (e: React.DragEvent) => void
@@ -43,7 +43,7 @@ interface FormBasicInfoSectionProps {
   onRemoveAvatar: (slot: 'title' | 'body' | 'conclusion') => void
   onClearAllAvatars: () => void
   isAvatarSelected: (avatar: Avatar) => boolean
-  isAvatarTypeAllowed: (avatar: Avatar, slot: 'title' | 'body' | 'conclusion') => boolean
+  isAvatarTypeAllowed: (avatar: Avatar) => boolean
   isAvatarPending: (avatar: Avatar) => boolean
   getAvatarSelectionNumber: (avatar: Avatar) => number | null
   getAvatarType: (avatar: Avatar) => 'default' | 'custom' | 'video_avatar' | 'voice_avatar'
