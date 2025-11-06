@@ -32,6 +32,22 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
   }, [avatarData.consentVideoFile]);
 
   // Countdown timer effect
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      // Close modal and reload when countdown reaches 0
+      if (onClose) {
+        onClose();
+      }
+      setTimeout(() => {
+        window.location.href = "/create-video";
+      }, 100);
+    }
+  }, [countdown, onClose]);
 
   useEffect(() => {
     if (countdown !== null && countdown > 0) {
