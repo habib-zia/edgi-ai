@@ -6,7 +6,6 @@ import { useVideoUpload } from "../../../../hooks/useVideoUpload";
 import { apiService } from "../../../../lib/api-service";
 import { AvatarData } from '../AvatarCreationModal'
 import { trainingVideoNameRef } from './TrainingVideoUpload'
-import router from "next/router";
 
 interface ConsentVideoUploadProps {
   onNext: () => void
@@ -46,17 +45,6 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
       setTimeout(() => {
         window.location.href = "/create-video";
       }, 100);
-    }
-  }, [countdown, onClose]);
-
-  useEffect(() => {
-    if (countdown !== null && countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } 
-    else if (countdown === 0) {
-      if (onClose) onClose();
-      router.push("/gallery");
     }
   }, [countdown, onClose]);
 
