@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
-import { useVideoUpload } from "../../../../hooks/useVideoUpload";
+import { useVideoUpload } from "../../../../hooks/video/useVideoUpload";
 import { AvatarData } from '../AvatarCreationModal'
 
 interface TrainingVideoUploadProps {

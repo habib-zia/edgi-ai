@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { X, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
-import { useVideoUpload } from "../../../../hooks/useVideoUpload";
+import { useVideoUpload } from "../../../../hooks/video/useVideoUpload";
 import { apiService } from "../../../../lib/api-service";
 
 interface AvatarData {

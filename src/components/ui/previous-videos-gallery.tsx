@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import CreateVideoModal from './create-video-modal'
+import CreateVideoModal from '../video-modal/CreateVideoModal'
 import ConnectAccountsModal from './connect-accounts-modal'
 import CreatePostModal from './create-post-modal'
 import { IoMdArrowDropdown } from "react-icons/io";
