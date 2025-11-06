@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 import { useSelector } from 'react-redux'
@@ -67,6 +67,8 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const [videoGenerationreDirected, setVideoGenerationreDirected] = useState(false)
   const [avatarError, setAvatarError] = useState<string>('')
   const REDIRECT_KEY = 'videoModalRedirectExecuted'
+  // Track if this is a new submission (modal just opened for new video)
+  const isNewSubmissionRef = useRef(false)
 
   function redirectToCreateVideoOnce() {
     if (typeof window === 'undefined') return
@@ -97,15 +99,24 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   useEffect(() => {
     if (isOpen) {
       openModal()
+      // Reset modal step to 'form' when modal opens for new submission
+      // Only reset if not viewing completed video and not starting at complete
+      if (!startAtComplete && !videoData) {
+        setCurrentStep('form')
+        // Mark as new submission to prevent socket updates from overriding
+        isNewSubmissionRef.current = true
+      }
     } else {
       closeModal()
+      // Reset new submission flag when modal closes
+      isNewSubmissionRef.current = false
     }
 
     // Cleanup function to close modal when component unmounts
     return () => {
       closeModal()
     }
-  }, [isOpen, openModal, closeModal])
+  }, [isOpen, openModal, closeModal, startAtComplete, videoData])
 
   // Update form data when webhookResponse changes
   useEffect(() => {
@@ -127,6 +138,12 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     // Don't respond to socket updates when viewing a completed video
     // The modal should stay in 'complete' state when opened for viewing
     if (startAtComplete || videoData) {
+      return
+    }
+
+    // Ignore socket updates if this is a new submission and we're still on form step
+    // This prevents existing video progress from skipping the form step
+    if (isNewSubmissionRef.current && currentStep === 'form') {
       return
     }
 
@@ -278,6 +295,8 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       // Validate that all required avatars are selected
       validateAvatarSelection(avatarIds)
 
+      // Mark that user has submitted the form, so socket updates can now affect the modal
+      isNewSubmissionRef.current = false
       setCurrentStep('loading')
       // avatar: webhookResponse?.avatar || '',
 
