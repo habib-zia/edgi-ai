@@ -4,13 +4,14 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { AlertCircle, CheckCircle } from 'lucide-react'
 
 import { useModalScrollLock } from '@/hooks/useModalScrollLock'
-import { useSignupForm } from '@/hooks/useSignupForm'
-import { useGoogleAuth } from '@/hooks/useGoogleAuth'
+import { useSignupForm } from '@/hooks/auth/useSignupForm'
+import { useGoogleAuth } from '@/hooks/auth/useGoogleAuth'
 import LoadingButton from './loading-button'
 import AuthModalWrapper from './auth-modal-wrapper'
 import AuthFormInput from './auth-form-input'
 import AuthPasswordInput from './auth-password-input'
 import AuthGoogleButton from './auth-google-button'
+import AuthSwitchLink from '@/components/auth-components/auth-switch-link'
 
 interface SignupModalProps {
   isOpen: boolean
@@ -238,21 +239,14 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
           loadingText="Signing up..."
         />
 
-        <div className="text-center mt-6">
-          <p className="text-[#101828] text-base font-normal">
-            Already have an account?{' '}
-            <button
-              type="button"
-              className="text-[#5046E5] text-[14px] font-semibold hover:underline cursor-pointer"
-              onClick={() => {
-                onClose()
-                onOpenSignin?.()
-              }}
-            >
-              Sign In
-            </button>
-          </p>
-        </div>
+        <AuthSwitchLink
+          questionText="Already have an account?"
+          linkText="Sign In"
+          onClick={() => {
+            onClose()
+            onOpenSignin?.()
+          }}
+        />
       </form>
     </AuthModalWrapper>
   )

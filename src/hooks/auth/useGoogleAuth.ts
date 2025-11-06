@@ -83,7 +83,7 @@ export function useGoogleAuth({ onSuccess, onClose, isSignup = false }: UseGoogl
                 lastName: data.data.user.lastName,
                 phone: data.data.user.phone || '',
                 isEmailVerified: data.data.user.isEmailVerified,
-                googleId: undefined,
+                googleId: data.data.user.googleId,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               },
@@ -94,7 +94,28 @@ export function useGoogleAuth({ onSuccess, onClose, isSignup = false }: UseGoogl
           // Check pending workflows after socket connection is established
           if (data.data?.user?.id) {
             const userId = data.data.user.id
-            console.log('🔌 Pending workflows will be checked automatically by unified socket system')
+            const handleSocketConnected = () => {
+              console.log('🔌 Socket connected event received after Google signin, checking pending workflows')
+              apiService.checkPendingWorkflows(userId)
+                .catch(error => {
+                  console.error('Failed to check pending workflows after Google signin socket connection:', error)
+                })
+              window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
+            }
+
+            // Listen for socket connection event
+            window.addEventListener('socket-connected', handleSocketConnected as EventListener)
+            
+            // Fallback: Check pending workflows after a delay if socket doesn't connect
+            setTimeout(() => {
+              console.log('🔌 Fallback: Checking pending workflows after Google signin delay')
+              apiService.checkPendingWorkflows(userId)
+                .catch(error => {
+                  console.error('Failed to check pending workflows after Google signin fallback delay:', error)
+                })
+              // Remove the event listener if fallback is used
+              window.removeEventListener('socket-connected', handleSocketConnected as EventListener)
+            }, 2000)
           }
 
           // Clear saved form data from localStorage after successful registration
