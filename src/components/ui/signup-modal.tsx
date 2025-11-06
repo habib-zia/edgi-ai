@@ -7,10 +7,10 @@ import { useModalScrollLock } from '@/hooks/useModalScrollLock'
 import { useSignupForm } from '@/hooks/auth/useSignupForm'
 import { useGoogleAuth } from '@/hooks/auth/useGoogleAuth'
 import LoadingButton from './loading-button'
-import AuthModalWrapper from './auth-modal-wrapper'
-import AuthFormInput from './auth-form-input'
-import AuthPasswordInput from './auth-password-input'
-import AuthGoogleButton from './auth-google-button'
+import AuthModalWrapper from '../auth-components/auth-modal-wrapper'
+import AuthFormInput from '../auth-components/auth-form-input'
+import AuthPasswordInput from '../auth-components/auth-password-input'
+import GoogleAuthButton from '@/components/auth-components/google-auth-button'
 import AuthSwitchLink from '@/components/auth-components/auth-switch-link'
 
 interface SignupModalProps {
@@ -232,7 +232,7 @@ export default function SignupModal({ isOpen, onClose, onOpenSignin, onRegistrat
           Sign Up
         </LoadingButton>
 
-        <AuthGoogleButton
+        <GoogleAuthButton
           onClick={handleGoogleAuth}
           isLoading={isGoogleLoading}
           text="Sign up with Google"

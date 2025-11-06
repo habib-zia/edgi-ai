@@ -3,17 +3,29 @@
 interface GoogleAuthButtonProps {
   onClick: () => void
   isLoading: boolean
-  buttonText: string
-  loadingText: string
+  buttonText?: string // For signin modal
+  text?: string // For signup modal (backward compatibility)
+  loadingText?: string
+  className?: string
 }
 
-export default function GoogleAuthButton({ onClick, isLoading, buttonText, loadingText }: GoogleAuthButtonProps) {
+export default function GoogleAuthButton({
+  onClick,
+  isLoading,
+  buttonText,
+  text,
+  loadingText = 'Loading...',
+  className = ''
+}: GoogleAuthButtonProps) {
+  // Support both buttonText (signin) and text (signup) for backward compatibility
+  const displayText = buttonText || text || 'Sign in with Google'
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={isLoading}
-      className={`w-[220px] mx-auto bg-white text-[#344054] py-[9.2px] px-2 rounded-full font-normal text-[16px] border border-[#D0D5DD] hover:bg-[#D0D5DD] transition-colors duration-300 cursor-pointer flex items-center justify-center gap-x-3 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`w-[220px] mx-auto bg-white text-[#344054] py-[9.2px] px-2 rounded-full font-normal text-[16px] border border-[#D0D5DD] hover:bg-[#D0D5DD] transition-colors duration-300 cursor-pointer flex items-center justify-center gap-x-3 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
     >
       {isLoading ? (
         <>
@@ -35,10 +47,9 @@ export default function GoogleAuthButton({ onClick, isLoading, buttonText, loadi
               </clipPath>
             </defs>
           </svg>
-          {buttonText}
+          {displayText}
         </>
       )}
     </button>
   )
 }
-
