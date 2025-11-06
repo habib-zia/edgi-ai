@@ -9,7 +9,7 @@ import ProtectedRoute from '@/components/features/auth/ProtectedRoute'
 import { CheckCircle, AlertCircle } from 'lucide-react'
 import { apiService } from '@/lib/api-service'
 import StripeProvider from '@/components/providers/StripeProvider'
-import { PaymentMethods } from '@/components/PaymentMethods'
+import { PaymentMethods } from '@/components/payment/PaymentMethods'
 
 interface ProfileFormData {
   firstName: string
