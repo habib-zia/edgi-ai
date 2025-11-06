@@ -22,11 +22,6 @@ interface MusicSelectorWrapperProps {
   onSelect: (field: any, value: string) => void
   onMusicClick: (music: Voice) => void
   onMusicTypeChange?: (type: VoiceType) => void
-  onDragStart: (e: React.DragEvent, music: Voice) => void
-  onDragEnd: (e: React.DragEvent) => void
-  onDragOver: (e: React.DragEvent) => void
-  onDragLeave: (e: React.DragEvent) => void
-  onDrop: (e: React.DragEvent) => void
 }
 
 export default function MusicSelectorWrapper({
@@ -45,12 +40,7 @@ export default function MusicSelectorWrapper({
   onToggle,
   onSelect,
   onMusicClick,
-  onMusicTypeChange,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDragLeave,
-  onDrop
+  onMusicTypeChange
 }: MusicSelectorWrapperProps) {
   const currentValue = watch(field) || ''
   const isOpen = openDropdown === field
@@ -79,11 +69,6 @@ export default function MusicSelectorWrapper({
       preset={preset}
       onVoiceClick={onMusicClick}
       onVoiceTypeChange={onMusicTypeChange}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
       typeSelectorTitle="Music"
       typeSelectorDescription="Select the level of music and search the best music for your video"
       typeSelectorLowLabel="Low Music"

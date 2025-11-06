@@ -25,11 +25,6 @@ interface VoiceSelectorProps {
   selectedVoice?: Voice | null
   preset?: string | null
   onVoiceClick?: (voice: Voice) => void
-  onDragStart?: (e: React.DragEvent, voice: Voice) => void
-  onDragEnd?: (e: React.DragEvent) => void
-  onDragOver?: (e: React.DragEvent) => void
-  onDragLeave?: (e: React.DragEvent) => void
-  onDrop?: (e: React.DragEvent) => void
   typeSelectorTitle?: string
   typeSelectorDescription?: string
   typeSelectorLowLabel?: string
@@ -60,11 +55,6 @@ export default function VoiceSelector({
   selectedVoice = null,
   preset = null,
   onVoiceClick,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDragLeave,
-  onDrop,
   typeSelectorTitle,
   typeSelectorDescription,
   typeSelectorLowLabel,
@@ -89,7 +79,6 @@ export default function VoiceSelector({
   }
   
   const [voiceType, setVoiceType] = useState<VoiceType>(getInitialVoiceType())
-  const [draggedVoice, setDraggedVoice] = useState<Voice | null>(null)
   const [, startTransition] = useTransition()
   
   const { playingVoiceId, voiceProgress, handlePlayPreview, stopAllAudio } = useAudioPlayer()
@@ -160,47 +149,6 @@ export default function VoiceSelector({
     onToggle(field)
   }
 
-  const handleDragStart = (e: React.DragEvent, voice: Voice) => {
-    try {
-      setDraggedVoice(voice)
-      if (onDragStart) {
-        onDragStart(e, voice)
-      }
-      e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', voice.id)
-      const target = e.target as HTMLElement
-      if (target && target.classList) {
-        target.classList.add('dragging')
-      }
-    } catch {
-    }
-  }
-
-  const handleDragEnd = (e: React.DragEvent) => {
-    try {
-      if (onDragEnd) {
-        onDragEnd(e)
-      }
-      const target = e.target as HTMLElement
-      if (target && target.classList) {
-        target.classList.remove('dragging')
-      }
-    } catch {
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    try {
-      if (draggedVoice) {
-        handleVoiceSelection(draggedVoice)
-        setDraggedVoice(null)
-      }
-      if (onDrop) {
-        onDrop(e)
-      }
-    } catch {
-    }
-  }
 
   const selectedVoiceId = useMemo(() => {
     console.log('🎤 VoiceSelector - Calculating selectedVoiceId:', {
@@ -275,11 +223,6 @@ export default function VoiceSelector({
               voiceProgress={voiceProgress}
               onVoiceSelect={handleVoiceSelection}
               onVoicePlay={handlePlayPreview}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={handleDrop}
               title={listTitle}
               loadingText={listLoadingText}
               emptyText={listEmptyText}

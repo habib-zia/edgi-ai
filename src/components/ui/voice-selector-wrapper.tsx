@@ -22,11 +22,6 @@ interface VoiceSelectorWrapperProps {
   onSelect: (field: any, value: string) => void
   onVoiceClick: (voice: Voice) => void
   onVoiceTypeChange?: (type: VoiceType) => void
-  onDragStart: (e: React.DragEvent, voice: Voice) => void
-  onDragEnd: (e: React.DragEvent) => void
-  onDragOver: (e: React.DragEvent) => void
-  onDragLeave: (e: React.DragEvent) => void
-  onDrop: (e: React.DragEvent) => void
 }
 
 export default function VoiceSelectorWrapper({
@@ -45,12 +40,7 @@ export default function VoiceSelectorWrapper({
   onToggle,
   onSelect,
   onVoiceClick,
-  onVoiceTypeChange,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDragLeave,
-  onDrop
+  onVoiceTypeChange
 }: VoiceSelectorWrapperProps) {
   const formValue = watch(field) || ''
   const isOpen = openDropdown === field
@@ -98,11 +88,6 @@ export default function VoiceSelectorWrapper({
       preset={preset}
       onVoiceClick={onVoiceClick}
       onVoiceTypeChange={onVoiceTypeChange}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
       hasCustomVoices={hasCustomVoices}
     />
   )
