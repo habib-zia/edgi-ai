@@ -39,6 +39,7 @@ import { useVideoFormSubmission } from '@/hooks/useVideoFormSubmission'
 import { useVideoFormEffects } from '@/hooks/useVideoFormEffects'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useUserSettings } from '@/hooks/useUserSettings'
+import { useNotificationStore } from './global-notification'
 
 interface CreateVideoFormProps {
   className?: string
@@ -64,8 +65,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   const [userSettingsLoaded, setUserSettingsLoaded] = useState(false)
   const [savedVideoTopic, setSavedVideoTopic] = useState<string | null>(null)
   const [formManuallyTouched, setFormManuallyTouched] = useState(false)
+  // Track if form submission was attempted (using state to trigger re-renders)
+  const [submitAttempted, setSubmitAttempted] = useState(false)
   const { scheduleData: autoScheduleData, fetchSchedule } = useSchedule()
   const toasts = useVideoFormToasts()
+  const { showNotification } = useNotificationStore()
 
   const {
     register,
@@ -176,6 +180,13 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     handleCustomTopicChange(e)
     setFormManuallyTouched(true)
   }
+  
+  // Show errors when form submission is attempted and validation fails
+  useEffect(() => {
+    if (submitAttempted && Object.keys(errors).length > 0 && !formManuallyTouched) {
+      setFormManuallyTouched(true)
+    }
+  }, [errors, formManuallyTouched, submitAttempted])
 
   // User settings
   const { fetchUserSettings } = useUserSettings({
@@ -332,10 +343,23 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           />
         ) : (
       <form onSubmit={handleSubmit(onSubmit, (errors) => {
-        
-        const firstError = Object.values(errors)[0]
-        if (firstError && 'message' in firstError) {
-          dispatch(setVideoError(firstError.message as string || 'Please fix form errors'))
+        try {
+          const summarized = Object.fromEntries(
+            Object.entries(errors).map(([key, value]) => [key, (value as any)?.message || ''])
+          )
+          console.log('Form errors summary:', summarized)
+        } catch {
+          // no-op
+        }
+        setSubmitAttempted(true)
+        if (Object.keys(errors).length > 0) {
+          setFormManuallyTouched(true)
+          const firstError = Object.values(errors)[0]
+          if (firstError && 'message' in firstError) {
+            const errorMessage = firstError.message as string || 'Please fix form errors'
+            showNotification(errorMessage, 'error')
+            dispatch(setVideoError(errorMessage))
+          }
         }
       })} className="space-y-7">
         {error && (
@@ -359,6 +383,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           onDropdownSelect={handleDropdownSelect}
           onFormFieldChange={handleFormFieldChange}
           formManuallyTouched={formManuallyTouched}
+          submitAttempted={submitAttempted}
           avatarOptions={avatarOptions}
           positionOptions={positionOptions}
           isFromDefaultAvatar={isFromDefaultAvatar}
@@ -418,6 +443,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           onDropdownSelect={handleDropdownSelect}
           onFormFieldChange={handleFormFieldChange}
           formManuallyTouched={formManuallyTouched}
+          submitAttempted={submitAttempted}
           presetOptions={presetOptions}
           languageOptions={languageOptions}
           preset={preset}
