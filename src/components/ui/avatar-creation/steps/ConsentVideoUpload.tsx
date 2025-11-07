@@ -6,6 +6,7 @@ import { useVideoUpload } from "../../../../hooks/useVideoUpload";
 import { apiService } from "../../../../lib/api-service";
 import { AvatarData } from '../AvatarCreationModal'
 import { trainingVideoNameRef } from './TrainingVideoUpload'
+import { useUnifiedSocketContext } from "../../../../components/providers/UnifiedSocketProvider";
 
 interface ConsentVideoUploadProps {
   onNext: () => void
@@ -13,14 +14,14 @@ interface ConsentVideoUploadProps {
   onClose?: () => void
   avatarData: AvatarData
   setAvatarData: (data: AvatarData) => void
-  onCountdownStart?: () => void
+  onCreateStart?: () => void
 }
 
-export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData, setAvatarData, onCountdownStart }: ConsentVideoUploadProps) {
+export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData, setAvatarData, onCreateStart }: ConsentVideoUploadProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState<number | null>(null);
   const consentUpload = useVideoUpload();
+  const { videoAvatarUpdates } = useUnifiedSocketContext();
 
   // Restore video preview when navigating back if consentVideoFile exists
   useEffect(() => {
@@ -30,23 +31,24 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
     }
   }, [avatarData.consentVideoFile]);
 
-  // Countdown timer effect
+  // Listen for video avatar updates and close modal when status is progress
+  // Flow: User clicks Create → text appears → API call made → Socket receives 'progress' status → Modal closes
+  // After modal closes, VideoAvatarStatusNotification (global toast) continues to show updates until completed/error
   useEffect(() => {
-    if (countdown !== null && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (countdown === 0) {
-      // Close modal and reload when countdown reaches 0
-      if (onClose) {
-        onClose();
+    if (isCreating && videoAvatarUpdates.length > 0) {
+      const latestUpdate = videoAvatarUpdates[videoAvatarUpdates.length - 1];
+      // Close modal when socket status is progress (processing started)
+      // Toast notifications will continue to appear via VideoAvatarStatusNotification component
+      if (latestUpdate.status === 'progress') {
+        console.log('🎬 Video avatar process started, closing modal:', latestUpdate.status);
+        // Close modal immediately when processing starts
+        // Toast will continue showing progress updates until completed or failed
+        if (onClose) {
+          onClose();
+        }
       }
-      setTimeout(() => {
-        window.location.href = "/create-video";
-      }, 100);
     }
-  }, [countdown, onClose]);
+  }, [videoAvatarUpdates, isCreating, onClose]);
 
   const handleConsentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     consentUpload.handleInputChange(e, 'consent');
@@ -76,9 +78,10 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
     // Immediately set creating state to hide buttons and show message
     setIsCreating(true);
     setErrorMessage(null);
-    setCountdown(40); // Start 40-second countdown
-    if (onCountdownStart) {
-      onCountdownStart();
+    
+    // Hide close button when creation starts
+    if (onCreateStart) {
+      onCreateStart();
     }
     
     // Fire and forget - call API without waiting for response
@@ -227,7 +230,7 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
         <div className="w-full flex flex-col gap-4 mt-12 max-w-[900px]">
           {isCreating ? (
             <p className="px-8 py-[11.3px] font-semibold text-[20px] text-center text-[#5F5F5F]">
-              Your avatar is being created and will be ready in about 25–35 seconds. We&apos;ll notify you once your avatar is ready. {countdown !== null ? `Auto closing in ${countdown} seconds...` : ''}
+              Your avatar is being created! Usually takes 2-3 minutes.
             </p>
           ) : (
             <>
@@ -241,11 +244,10 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
               <button
                 onClick={handleCreate}
                 disabled={!canProceedConsent}
-                className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${
-                  canProceedConsent
+                className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-all duration-300 w-full border-2 ${canProceedConsent
                     ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-[#5046E5] cursor-pointer'
                     : 'bg-[#D1D5DB] text-[#9CA3AF] border-[#D1D5DB] cursor-not-allowed'
-                }`}
+                  }`}
               >
                 {consentUpload.uploadState.isValidating ? 'Validating...' : 'Create'}
               </button>
