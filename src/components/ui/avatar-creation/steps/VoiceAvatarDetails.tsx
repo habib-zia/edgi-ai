@@ -15,9 +15,10 @@ interface VoiceAvatarDetailsProps {
   avatarData: AvatarData
   setAvatarData: (data: AvatarData) => void
   onClose?: () => void
+  onHideCloseButton?: () => void
 }
 
-export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, onClose }: VoiceAvatarDetailsProps) {
+export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, onClose, onHideCloseButton }: VoiceAvatarDetailsProps) {
   const { user } = useSelector((state: RootState) => state.user)
   const { clearAvatarUpdates } = useUnifiedSocketContext()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
@@ -57,6 +58,7 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
     if (!validateForm() || !avatarData.audioFile) return
 
     setIsCreating(true)
+    if (onHideCloseButton) onHideCloseButton()
     clearAvatarUpdates()
 
     const formData = new FormData()
@@ -154,10 +156,10 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
       {showErrors && errors.terms && <p className="text-red-500 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.terms}</p>}
 
       <div className="flex flex-col gap-2 pt-0">
-        <button onClick={onBack} className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit">
+        {!isCreating && <button onClick={onBack} className="flex items-center gap-2 text-[#667085] hover:text-[#5046E5] transition-colors duration-300 w-fit">
           <ArrowLeft className="w-4 h-4" />
           Back
-        </button>
+        </button>}
         <button onClick={handleCreate} disabled={isCreating}
           className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 cursor-pointer w-full bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5] ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}>
           {isCreating ? 'Creating...' : 'Create'}
