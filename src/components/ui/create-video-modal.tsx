@@ -294,76 +294,87 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
 
       // Validate that all required avatars are selected
       validateAvatarSelection(avatarIds)
-
-      // Mark that user has submitted the form, so socket updates can now affect the modal
       isNewSubmissionRef.current = false
       setCurrentStep('loading')
-      // avatar: webhookResponse?.avatar || '',
 
-      // Prepare data for video generation API with proper typing
-      const videoGenerationData: VideoGenerationData = {
-        hook: formData.prompt,
-        body: formData.description,
-        text: formData.description,
-        conclusion: formData.conclusion,
-        company_name: webhookResponse?.company_name || '',
-        social_handles: webhookResponse?.social_handles || '',
-        license: webhookResponse?.license || '',
-        email: webhookResponse?.email || '',
-        title: videoTopic || 'Custom Video',
-        avatar_title: avatarIds.avatar_title,
-        avatar_body: avatarIds.avatar_body,
-        avatar_conclusion: avatarIds.avatar_conclusion,
-        music: webhookResponse?.music_url || ''
+      // Only proceed if voice_id exists - text-to-speech is required
+      if (!webhookResponse?.voice_id) {
+        setAvatarError('Voice ID is required for video generation.')
+        setCurrentStep('form')
+        return
       }
 
-      console.log('videoGenerationData', videoGenerationData)
-
-      // Call ElevenLabs text-to-speech API if voice_id is available
-      let textToSpeechResponse = null
-      if (webhookResponse?.voice_id) {
-        try {
-          console.log('🎙️ Calling ElevenLabs text-to-speech API with voice_id:', webhookResponse.voice_id)
-          const textToSpeechData = {
-            voice_id: webhookResponse.voice_id,
-            hook: formData.prompt,
-            body: formData.description,
-            conclusion: formData.conclusion,
-            output_format: 'mp3_44100_128'
-          }
-          textToSpeechResponse = await apiService.textToSpeech(textToSpeechData)
-          console.log('🎙️ Text-to-speech API response:', textToSpeechResponse)
-
-          // Only proceed with video generation if text-to-speech API is successful
-          if (textToSpeechResponse?.success && textToSpeechResponse?.data) {
-            console.log('✅ Text-to-speech API successful - proceeding with video generation')
-            // Update videoGenerationData with URLs from text-to-speech response
-            videoGenerationData.hook = textToSpeechResponse.data.hook_url || formData.prompt
-            videoGenerationData.body = textToSpeechResponse.data.body_url || formData.description
-            videoGenerationData.conclusion = textToSpeechResponse.data.conclusion_url || formData.conclusion
-            console.log('🎙️ Updated videoGenerationData with text-to-speech URLs:', videoGenerationData)
-            
-            // Call generateVideo API only after successful text-to-speech response
-            await apiService.generateVideo(videoGenerationData)
-            console.log('✅ generateVideo API called successfully after text-to-speech success')
-
-            // Store a key in localStorage to indicate video generation has started
-            localStorage.setItem('videoGenerationStarted', JSON.stringify({
-              timestamp: Date.now(),
-              videoTitle: videoTopic || 'Custom Video'
-            }))
-            console.log('🎬 Video generation API called - localStorage key set')
-            setVideoGenerationreDirected(true)
-          } else {
-            // Text-to-speech API failed - show error and don't proceed with video generation
-            console.error('❌ Text-to-speech API failed - NOT calling generateVideo:', textToSpeechResponse)
-            setAvatarError('Text-to-speech generation failed. Please try again.')
-            return // Exit early to prevent any further execution
-          }
-        } catch (error) {
-          console.error('Text-to-speech API failed:', error)
-          setAvatarError('Text-to-speech generation failed. Please try again.')
+      try {
+        console.log('🎙️ Calling ElevenLabs text-to-speech API with voice_id:', webhookResponse.voice_id)
+        const textToSpeechData = {
+          voice_id: webhookResponse.voice_id,
+          hook: formData.prompt,
+          body: formData.description,
+          conclusion: formData.conclusion,
+          output_format: 'mp3_44100_128'
         }
+        
+        const textToSpeechResponse = await apiService.textToSpeech(textToSpeechData)
+        console.log('🎙️ Text-to-speech API response:', textToSpeechResponse)
+
+        // Check if text-to-speech API was successful
+        if (!textToSpeechResponse?.success || !textToSpeechResponse?.data) {
+          // Text-to-speech API failed - STOP and show error
+          console.error('❌ Text-to-speech API failed - NOT calling generateVideo:', textToSpeechResponse)
+          setAvatarError('Text-to-speech generation failed. Please try again.')
+          setCurrentStep('form') // Stop loading, go back to form
+          return // Exit - do NOT call generateVideo
+        }
+
+        // Validate that all required URLs are present
+        const { hook_url, body_url, conclusion_url } = textToSpeechResponse.data
+        if (!hook_url || !body_url || !conclusion_url) {
+          // URLs are missing - STOP and show error
+          console.error('❌ Text-to-speech API returned missing URLs - NOT calling generateVideo:', {
+            hook_url: !!hook_url,
+            body_url: !!body_url,
+            conclusion_url: !!conclusion_url
+          })
+          setAvatarError('Text-to-speech URLs are missing. Please try again.')
+          setCurrentStep('form') // Stop loading, go back to form
+          return // Exit - do NOT call generateVideo
+        }
+
+        // Text-to-speech was successful and all URLs are present - proceed with video generation
+        const videoGenerationData: VideoGenerationData = {
+          hook: hook_url,
+          body: body_url,
+          text: formData.description,
+          conclusion: conclusion_url,
+          company_name: webhookResponse?.company_name || '',
+          social_handles: webhookResponse?.social_handles || '',
+          license: webhookResponse?.license || '',
+          email: webhookResponse?.email || '',
+          title: videoTopic || 'Custom Video',
+          avatar_title: avatarIds.avatar_title,
+          avatar_body: avatarIds.avatar_body,
+          avatar_conclusion: avatarIds.avatar_conclusion,
+          music: webhookResponse?.music_url || ''
+        }
+
+        // Only call generateVideo after successful text-to-speech
+        await apiService.generateVideo(videoGenerationData)
+        console.log('✅ generateVideo API called successfully after text-to-speech success')
+
+        // Store a key in localStorage to indicate video generation has started
+        localStorage.setItem('videoGenerationStarted', JSON.stringify({
+          timestamp: Date.now(),
+          videoTitle: videoTopic || 'Custom Video'
+        }))
+        console.log('🎬 Video generation API called - localStorage key set')
+        setVideoGenerationreDirected(true)
+
+      } catch (error) {
+        // Text-to-speech API threw an error - STOP and show error
+        console.error('❌ Text-to-speech API error - NOT calling generateVideo:', error)
+        setAvatarError('Text-to-speech generation failed. Please try again.')
+        setCurrentStep('form') // Stop loading, go back to form
+        return // Exit - do NOT call generateVideo
       }
     } catch (error: any) {
       console.error('Video creation failed:', error)
