@@ -101,7 +101,7 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
                     Drag and drop training video
                   </h4>
                   <p className="text-[14px] text-[#5F5F5F] text-center mb-6">
-                    MP4 or MOV format, training footage must be between 30 seconds and 4 minutes
+                    MP4 or MOV format, training footage must be between 30 seconds to 4 minutes
                   </p>
                   <button
                     onClick={() => trainingUpload.fileInputRef.current?.click()}
