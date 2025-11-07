@@ -72,12 +72,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Get unified socket context
   const {
-    latestVideoUpdate
+    latestVideoUpdate,
+    videosInProgress
   } = useUnifiedSocketContext()
-
-  // Persistent loading state - derived from socket updates instead of local state
-  const isVideoProcessing = latestVideoUpdate &&
-    (latestVideoUpdate.status === 'processing' || latestVideoUpdate.status === 'pending')
 
   // Store fetchVideos in ref to avoid dependency issues
   const fetchVideosRef = useRef<(() => Promise<void>) | null>(null)
@@ -214,40 +211,36 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Filter and sort videos based on search query and sort order
   const filteredAndSortedVideos = useMemo(() => {
-    // Calculate loading card data inside useMemo to avoid dependency issues
-    const loadingCardData = isVideoProcessing ? {
-      title: 'Processing Video...',
-      message: latestVideoUpdate?.message || 'Your video creation is in progress'
-    } : null
-
     console.log('🔄 Recalculating filteredAndSortedVideos:', {
-      isVideoProcessing,
-      loadingCardData
+      videosInProgressCount: videosInProgress.length,
+      videosInProgress
     })
 
     // Start with regular videos
     const allVideos = [...videos]
 
-    // Add loading card if video is processing
-    if (isVideoProcessing && loadingCardData) {
-      console.log('➕ Adding loading card to video list')
-      const loadingCard: VideoCard = {
-        id: `loading-${Date.now()}`,
-        videoId: `loading-${Date.now()}`,
-        title: loadingCardData.title,
+    // Add loading cards for each video in progress
+    if (videosInProgress.length > 0) {
+      console.log(`➕ Adding ${videosInProgress.length} loading card(s) to video list`)
+      
+      // Create loading cards for each video in progress
+      const loadingCards: VideoCard[] = videosInProgress.map((video) => ({
+        id: video.id,
+        videoId: video.id,
+        title: video.title,
         status: 'processing',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: video.timestamp,
+        updatedAt: video.timestamp,
         downloadUrl: null,
         metadata: {
           duration: 0,
           size: 0,
           format: 'processing'
         }
-      }
+      }))
 
-      // Add loading card at the beginning (newest position)
-      allVideos.unshift(loadingCard)
+      // Add loading cards at the beginning (newest position)
+      allVideos.unshift(...loadingCards)
     }
 
     // Filter by search query
@@ -266,7 +259,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         return dateA - dateB // Oldest first
       }
     })
-  }, [videos, isVideoProcessing, latestVideoUpdate, searchQuery, sortOrder])
+  }, [videos, videosInProgress, searchQuery, sortOrder])
 
   const handleSortChange = (newSortOrder: SortOrder) => {
     setSortOrder(newSortOrder)

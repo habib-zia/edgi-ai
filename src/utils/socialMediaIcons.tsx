@@ -58,13 +58,15 @@ export const getAccountTypeIcon = (type: string) => {
         </svg>
       </div>
     )
-  } else if (type.includes('facebook')) {
+  } 
+  else if (type.includes('facebook')) {
     return (
       <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
         <span className="text-white font-bold text-sm">f</span>
       </div>
     )
-  } else if (type.includes('linkedin')) {
+  }
+   else if (type.includes('linkedin')) {
     return (
       <div className="w-6 h-6 bg-blue-700 rounded flex items-center justify-center">
        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

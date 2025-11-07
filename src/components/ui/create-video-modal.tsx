@@ -9,6 +9,7 @@ import { apiService } from '@/lib/api-service'
 import { API_CONFIG, getAuthenticatedHeaders } from '@/lib/config'
 import { useAvatarStorage } from '@/hooks/useAvatarStorage'
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
+import { VideoInProgress } from '@/hooks/useUnifiedSocket'
 import { useModalScrollLock } from '@/components/providers/ModalScrollLockProvider'
 
 
@@ -86,7 +87,8 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   const {
     latestVideoUpdate,
     clearVideoUpdates,
-    clearCompletedVideoUpdates
+    clearCompletedVideoUpdates,
+    addVideoInProgress
   } = useUnifiedSocketContext()
 
   // Use global modal scroll lock
@@ -349,12 +351,29 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       }
 
       // Call the video generation API using apiService
-      await apiService.generateVideo(videoGenerationData)
+      const response = await apiService.generateVideo(videoGenerationData)
+
+      // Generate unique ID for tracking this video
+      const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const videoTitle = videoTopic || 'Custom Video'
+
+      // Add video to progress tracking array
+      if (response.success && response.data) {
+        const videoInProgress: VideoInProgress = {
+          id: videoId,
+          title: videoTitle,
+          status: 'processing',
+          timestamp: response.data.timestamp || new Date().toISOString(),
+          message: response.message || 'Video generation started'
+        }
+        addVideoInProgress(videoInProgress)
+        console.log('🎬 Added video to progress tracking:', videoInProgress)
+      }
 
       // Store a key in localStorage to indicate video generation has started
       localStorage.setItem('videoGenerationStarted', JSON.stringify({
         timestamp: Date.now(),
-        videoTitle: videoTopic || 'Custom Video'
+        videoTitle: videoTitle
       }))
       console.log('🎬 Video generation API called - localStorage key set')
       setVideoGenerationreDirected(true);
