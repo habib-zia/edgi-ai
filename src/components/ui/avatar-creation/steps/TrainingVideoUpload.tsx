@@ -67,7 +67,7 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
             Upload your footage
           </h2>
           <p className="text-[18px] text-[#5F5F5F] max-w-[710px] mx-auto leading-[24px]">
-            For optimal, most test realistic results, we recommend uploading a 2min video recorded with a high-resolution for optimal avatar creation.
+            For optimal, most test realistic results, we recommend uploading a video between 30 seconds to 4 minutes recorded with a high-resolution for optimal avatar creation.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
                     Drag and drop training video
                   </h4>
                   <p className="text-[14px] text-[#5F5F5F] text-center mb-6">
-                    MP4 or MOV format, 2-3 minutes, minimum 720p
+                    MP4 or MOV format, training footage must be between 30 seconds to 4 minutes
                   </p>
                   <button
                     onClick={() => trainingUpload.fileInputRef.current?.click()}
