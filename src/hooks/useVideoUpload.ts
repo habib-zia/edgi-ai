@@ -70,16 +70,16 @@ export const useVideoUpload = () => {
             });
           }
         } else if (type === 'training') {
-          if (video.duration < 120) {
+          if (video.duration < 30) {
             errors.push({
               type: 'duration',
-              message: `Training video is too short (${Math.round(video.duration)}s). Minimum duration is 2 minutes`
+              message: `Training video is too short (${Math.round(video.duration)}s). Minimum duration is 30 seconds`
             });
           }
-          if (video.duration > 180) {
+          if (video.duration > 240) {
             errors.push({
               type: 'duration',
-              message: `Training video is too long (${Math.round(video.duration)}s). Maximum duration is 3 minutes`
+              message: `Training video is too long (${Math.round(video.duration)}s). Maximum duration is 4 minutes`
             });
           }
         }
