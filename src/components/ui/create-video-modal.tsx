@@ -331,39 +331,42 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
             conclusion: formData.conclusion,
             output_format: 'mp3_44100_128'
           }
-          console.log(JSON?.stringify(textToSpeechData, null, 2))
           textToSpeechResponse = await apiService.textToSpeech(textToSpeechData)
           console.log('🎙️ Text-to-speech API response:', textToSpeechResponse)
 
-          // Update videoGenerationData with URLs from text-to-speech response
+          // Only proceed with video generation if text-to-speech API is successful
           if (textToSpeechResponse?.success && textToSpeechResponse?.data) {
+            console.log('✅ Text-to-speech API successful - proceeding with video generation')
+            // Update videoGenerationData with URLs from text-to-speech response
             videoGenerationData.hook = textToSpeechResponse.data.hook_url || formData.prompt
             videoGenerationData.body = textToSpeechResponse.data.body_url || formData.description
             videoGenerationData.conclusion = textToSpeechResponse.data.conclusion_url || formData.conclusion
             console.log('🎙️ Updated videoGenerationData with text-to-speech URLs:', videoGenerationData)
+            
+            // Call generateVideo API only after successful text-to-speech response
+            await apiService.generateVideo(videoGenerationData)
+            console.log('✅ generateVideo API called successfully after text-to-speech success')
+
+            // Store a key in localStorage to indicate video generation has started
+            localStorage.setItem('videoGenerationStarted', JSON.stringify({
+              timestamp: Date.now(),
+              videoTitle: videoTopic || 'Custom Video'
+            }))
+            console.log('🎬 Video generation API called - localStorage key set')
+            setVideoGenerationreDirected(true)
+          } else {
+            // Text-to-speech API failed - show error and don't proceed with video generation
+            console.error('❌ Text-to-speech API failed - NOT calling generateVideo:', textToSpeechResponse)
+            setAvatarError('Text-to-speech generation failed. Please try again.')
+            return // Exit early to prevent any further execution
           }
         } catch (error) {
           console.error('Text-to-speech API failed:', error)
-          // Continue with video generation even if text-to-speech fails (use original text)
+          setAvatarError('Text-to-speech generation failed. Please try again.')
         }
       }
-
-      // Call the video generation API using apiService
-      await apiService.generateVideo(videoGenerationData)
-
-      // Store a key in localStorage to indicate video generation has started
-      localStorage.setItem('videoGenerationStarted', JSON.stringify({
-        timestamp: Date.now(),
-        videoTitle: videoTopic || 'Custom Video'
-      }))
-      console.log('🎬 Video generation API called - localStorage key set')
-      setVideoGenerationreDirected(true);
-      // Just stay in loading state - modal will auto-close after countdown
-
     } catch (error: any) {
       console.error('Video creation failed:', error)
-
-      // Clear localStorage key on error
       localStorage.removeItem('videoGenerationStarted')
       console.log('🧹 Cleared localStorage key due to API error')
 

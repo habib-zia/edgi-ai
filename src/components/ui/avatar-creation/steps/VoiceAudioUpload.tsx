@@ -38,8 +38,8 @@ export default function VoiceAudioUpload({ onNext, onBack, avatarData, setAvatar
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto pr-2 space-y-4">
         <div className="text-left">
-          <p className="text-[18px] text-[#5F5F5F] font-normal leading-[24px]">
-            Record audio to create your voice avatar
+          <p className="text-[16px] text-[#5F5F5F] font-normal leading-[24px]">
+          The speaking style in the samples you provide will be replicated in the output, so depending on what delivery you are looking for, the training data should correspond to that style (e.g. if you want a more engaging, up-beat vocalization, make sure your voice reflects the tones and inflections that reflect that style). It is better to just include one style in the uploaded samples for consistencies sake.
           </p>
           <p className="text-[14px] text-[#5F5F5F] font-normal leading-[18px] mt-2">
             Recording duration: minimum {MIN_AUDIO_DURATION} seconds, maximum {MAX_AUDIO_DURATION / 60} minutes

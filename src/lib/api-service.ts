@@ -907,7 +907,6 @@ class ApiService {
           post_type: postType
         })
       }, true);
-      console.log('Top Posts Insights API Response:', JSON?.stringify(response))
       return response;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get top posts insights';
