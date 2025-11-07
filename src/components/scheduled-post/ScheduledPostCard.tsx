@@ -225,7 +225,8 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     }
     
     if (post.captions) {
-      const platformKey = selectedPlatform.toLowerCase() as keyof typeof post.captions;
+      const normalizedPlatform = selectedPlatform.toLowerCase();
+      const platformKey = (normalizedPlatform === 'x' ? 'twitter' : normalizedPlatform) as keyof typeof post.captions;
       const platformCaption = post.captions[platformKey];
       if (platformCaption) {
         return platformCaption;
@@ -239,7 +240,8 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
     if (post.captions) {
       const initialCaptions: {[key: string]: string} = {};
       platformOptions.forEach(platform => {
-        const platformKey = platform.toLowerCase() as keyof typeof post.captions;
+        const normalizedPlatform = platform.toLowerCase();
+        const platformKey = (normalizedPlatform === 'x' ? 'twitter' : normalizedPlatform) as keyof typeof post.captions;
         const platformCaption = post.captions![platformKey];
         if (platformCaption) {
           initialCaptions[platform] = platformCaption;

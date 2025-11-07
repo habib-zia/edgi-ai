@@ -28,6 +28,18 @@ export default function SubscriptionRequiredToast({
     }
   }, [isVisible])
 
+  useEffect(() => {
+    if (isVisible) {
+      const timeoutId = setTimeout(() => {
+        onClose()
+      }, 10000)
+      
+      return () => {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [isVisible, onClose])
+
   if (!isVisible) return null
 
   const getContextMessage = () => {
@@ -40,7 +52,7 @@ export default function SubscriptionRequiredToast({
   }
 
   return (
-    <div className={`fixed top-24 right-4 z-20 max-w-sm transition-all duration-300 ${
+    <div className={`fixed top-24 right-4 z-20 max-w-xs transition-all duration-300 ${
       isAnimating ? 'animate-in slide-in-from-right-2' : ''
     }`}>
       <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 shadow-lg">
@@ -51,13 +63,8 @@ export default function SubscriptionRequiredToast({
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-orange-800 font-semibold text-sm">Subscription Required</h3>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 bg-orange-300 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-              </div>
             </div>
-            <p className="text-orange-700 text-sm mb-3">{getContextMessage()}</p>
+            <p className="text-orange-700 text-xs mb-3">{getContextMessage()}</p>
             <div className="flex items-center gap-2">
               {onSubscribe && (
                 <button
