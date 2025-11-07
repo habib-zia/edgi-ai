@@ -1007,6 +1007,18 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [showCustomTopicInput])
 
+  // Auto-dismiss error after 10 seconds
+  useEffect(() => {
+    if (error) {
+      const timeoutId = setTimeout(() => {
+        dispatch(clearVideoError())
+      }, 10000) // 10 seconds
+      
+      return () => {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [error, dispatch])
 
   const onSubmit = async (data: CreateVideoFormData) => {
     console.log('selectedAvatars', selectedAvatars)

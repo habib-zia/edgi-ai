@@ -113,6 +113,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
       case 'linkedin':
         return formData.linkedin;
       case 'twitter':
+      case 'x':
         return formData.twitter;
       case 'tiktok':
         return formData.tiktok;
@@ -181,9 +182,10 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   const handleCaptionChange = (value: string) => {
     const platform = formData.platform.toLowerCase();
+    const captionKey = platform === 'x' ? 'twitter' : platform;
     setFormData(prev => ({
       ...prev,
-      [platform]: value
+      [captionKey]: value
     }));
   };
 
