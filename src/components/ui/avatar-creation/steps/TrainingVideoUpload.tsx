@@ -67,7 +67,7 @@ export default function TrainingVideoUpload({ onNext, onBack, avatarData, setAva
             Upload your footage
           </h2>
           <p className="text-[18px] text-[#5F5F5F] max-w-[710px] mx-auto leading-[24px]">
-            For optimal, most test realistic results, we recommend uploading a video between 30 seconds to 4 minutes recorded with a high-resolution for optimal avatar creation.
+            For optimal, most test realistic results, we recommend uploading a video between 2 minutes to 4 minutes recorded with a high-resolution for optimal avatar creation.
           </p>
         </div>
 
