@@ -476,7 +476,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                   <div className="flex items-start gap-2">
                     <Info className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                     <p className="text-red-800 text-sm">
-                      <span className="font-bold">You have selected today</span> and this post will schedule to next week! If you want to schedule this today, you have to select a time at least 40 minutes from the current time.
+                    <span className="font-bold">To post today,</span> please select a time at least 40 minutes from now, otherwise the post will be scheduled for next week.
                     </p>
                   </div>
                 </div>
