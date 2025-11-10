@@ -27,8 +27,8 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
   const [showErrors, setShowErrors] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
 
-  const genderOptions = [{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Non-binary', label: 'Non-binary' }, { value: 'Prefer not to say', label: 'Prefer not to say' }]
-  const languageOptions = [{ value: 'en', label: 'English' }, { value: 'es', label: 'Spanish' }, { value: 'fr', label: 'French' }, { value: 'de', label: 'German' }, { value: 'it', label: 'Italian' }, { value: 'pt', label: 'Portuguese' }, { value: 'zh', label: 'Chinese' }, { value: 'ja', label: 'Japanese' }, { value: 'ko', label: 'Korean' }, { value: 'ar', label: 'Arabic' }]
+  const genderOptions = [{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]
+  const languageOptions = [{ value: 'en', label: 'English' }]
 
   const handleInputChange = (field: keyof AvatarData, value: string) => {
     setAvatarData({ ...avatarData, [field]: value });

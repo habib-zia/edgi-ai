@@ -64,6 +64,9 @@ export default function PostConfirmationModal({
                 Scheduled for: {date} at {time}
               </p>
             )}
+            <p className="text-sm text-red-500">
+              <span className="font-bold">Note:</span> After confirmation, the description and time will no longer be editable.
+            </p>
           </div>
 
           <div className="flex gap-3">
