@@ -575,7 +575,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                   Your video is being generated in the background. This typically takes 10-15 minutes.
                 </p>
                 <p className="text-[#5046E5] text-[18px] mb-4">
-                  You can close this window and explore the site. We will notify you when the video is ready.
+                  We will notify you when the video is ready.
                 </p>
 
                 {/* Countdown Message */}
