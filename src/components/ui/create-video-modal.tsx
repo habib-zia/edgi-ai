@@ -88,7 +88,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     latestVideoUpdate,
     clearVideoUpdates,
     clearCompletedVideoUpdates,
-    addVideoInProgress
+    addPendingVideo
   } = useUnifiedSocketContext()
 
   // Use global modal scroll lock
@@ -357,7 +357,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const videoTitle = videoTopic || 'Custom Video'
 
-      // Add video to progress tracking array
+      // Add video to pending videos array
       if (response.success && response.data) {
         const videoInProgress: VideoInProgress = {
           id: videoId,
@@ -366,8 +366,8 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           timestamp: response.data.timestamp || new Date().toISOString(),
           message: response.message || 'Video generation started'
         }
-        addVideoInProgress(videoInProgress)
-        console.log('🎬 Added video to progress tracking:', videoInProgress)
+        addPendingVideo(videoInProgress)
+        console.log('🎬 Added pending video:', videoInProgress)
       }
 
       // Store a key in localStorage to indicate video generation has started

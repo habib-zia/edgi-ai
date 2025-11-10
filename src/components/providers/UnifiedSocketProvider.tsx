@@ -25,7 +25,7 @@ export function UnifiedSocketProvider({ children }: UnifiedSocketProviderProps) 
       {children}
       {/* Global notification displays */}
       <VideoStatusNotification
-        videosInProgress={socketState.videosInProgress}
+        pendingVideos={socketState.pendingVideos}
       />
       <AvatarStatusNotification
         updates={socketState.avatarUpdates}

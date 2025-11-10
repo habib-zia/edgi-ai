@@ -73,7 +73,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   // Get unified socket context
   const {
     latestVideoUpdate,
-    videosInProgress
+    pendingVideos
   } = useUnifiedSocketContext()
 
   // Store fetchVideos in ref to avoid dependency issues
@@ -212,19 +212,19 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   // Filter and sort videos based on search query and sort order
   const filteredAndSortedVideos = useMemo(() => {
     console.log('🔄 Recalculating filteredAndSortedVideos:', {
-      videosInProgressCount: videosInProgress.length,
-      videosInProgress
+      pendingVideosCount: pendingVideos.length,
+      pendingVideos
     })
 
     // Start with regular videos
     const allVideos = [...videos]
 
-    // Add loading cards for each video in progress
-    if (videosInProgress.length > 0) {
-      console.log(`➕ Adding ${videosInProgress.length} loading card(s) to video list`)
+    // Add loading cards for each pending video
+    if (pendingVideos.length > 0) {
+      console.log(`➕ Adding ${pendingVideos.length} loading card(s) to video list`)
       
-      // Create loading cards for each video in progress
-      const loadingCards: VideoCard[] = videosInProgress.map((video) => ({
+      // Create loading cards for each pending video
+      const loadingCards: VideoCard[] = pendingVideos.map((video) => ({
         id: video.id,
         videoId: video.id,
         title: video.title,
@@ -248,8 +248,12 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       video.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    // Sort by creation date
-    return filtered.sort((a, b) => {
+    // Separate processing videos from completed videos
+    const processingVideos = filtered.filter(video => video.status === 'processing')
+    const completedVideos = filtered.filter(video => video.status !== 'processing')
+
+    // Sort completed videos by creation date
+    const sortedCompletedVideos = completedVideos.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime()
       const dateB = new Date(b.createdAt).getTime()
 
@@ -259,7 +263,17 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         return dateA - dateB // Oldest first
       }
     })
-  }, [videos, videosInProgress, searchQuery, sortOrder])
+
+    // Sort processing videos by creation date (newest first)
+    const sortedProcessingVideos = processingVideos.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime()
+      const dateB = new Date(b.createdAt).getTime()
+      return dateB - dateA // Newest processing videos first
+    })
+
+    // Always show processing videos first, then completed videos
+    return [...sortedProcessingVideos, ...sortedCompletedVideos]
+  }, [videos, pendingVideos, searchQuery, sortOrder])
 
   const handleSortChange = (newSortOrder: SortOrder) => {
     setSortOrder(newSortOrder)
