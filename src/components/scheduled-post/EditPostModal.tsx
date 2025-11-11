@@ -160,7 +160,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
           timeoutRef.current = setTimeout(() => {
             setTimeAdjustmentMessage(null);
             timeoutRef.current = null;
-          }, 10000);
+          }, 5000);
           
           setFormData(prev => ({
             ...prev,
@@ -197,7 +197,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
           timeoutRef.current = setTimeout(() => {
             setTimeAdjustmentMessage(null);
             timeoutRef.current = null;
-          }, 10000);
+          }, 5000);
           
           setFormData(prev => ({
             ...prev,
