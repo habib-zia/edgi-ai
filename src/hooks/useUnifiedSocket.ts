@@ -573,6 +573,30 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       if (status === 'completed' || status === 'success') {
         console.log('✅ Video completed/success - verifying in DB before removing (FIFO)')
         
+        // Helper function to show notification and remove video
+        const showNotificationAndRemove = (prev: VideoInProgress[], context: string) => {
+          if (prev.length === 0) {
+            return prev
+          }
+          const removed = prev[0]
+          const videoId = removed.id
+          const videoTitle = removed.title || 'Video'
+          
+          // Show notification if not already notified
+          if (!notifiedCompletedVideos.current.has(videoId)) {
+            notifiedCompletedVideos.current.add(videoId)
+            showNotification(
+              `Video "${videoTitle}" is ready! You can view it in your gallery.`,
+              'success'
+            )
+            console.log('✅ Video completed notification shown:', videoTitle, videoId)
+          }
+          
+          const remaining = prev.slice(1)
+          console.log(`➖ Removed pending video (FIFO, ${context}):`, removed)
+          return remaining
+        }
+        
         // Verify completion in DB before removing
         if (userId) {
           // First sync with DB to get latest state
@@ -590,10 +614,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
                 setPendingVideos(prev => {
                   // Only remove if DB has fewer pending items than our local state
                   if (pendingWorkflows.length < prev.length) {
-                    const removed = prev[0]
-                    const remaining = prev.slice(1)
-                    console.log('➖ Removed pending video (FIFO, DB verified):', removed)
-                    return remaining
+                    return showNotificationAndRemove(prev, 'DB verified')
                   } else {
                     console.log('⏸️ DB verification: keeping pending videos (count matches)')
                     return prev
@@ -601,39 +622,15 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
                 })
               } else {
                 // If DB check fails, still remove (FIFO assumption)
-                setPendingVideos(prev => {
-                  if (prev.length === 0) {
-                    return prev
-                  }
-                  const removed = prev[0]
-                  const remaining = prev.slice(1)
-                  console.log('➖ Removed pending video (FIFO, DB check failed):', removed)
-                  return remaining
-                })
+                setPendingVideos(prev => showNotificationAndRemove(prev, 'DB check failed'))
               }
             }).catch(() => {
               // If DB check fails, still remove (FIFO assumption)
-              setPendingVideos(prev => {
-                if (prev.length === 0) {
-                  return prev
-                }
-                const removed = prev[0]
-                const remaining = prev.slice(1)
-                console.log('➖ Removed pending video (FIFO, DB error):', removed)
-                return remaining
-              })
+              setPendingVideos(prev => showNotificationAndRemove(prev, 'DB error'))
             })
           }).catch(() => {
             // If sync fails, still remove (FIFO assumption)
-            setPendingVideos(prev => {
-              if (prev.length === 0) {
-                return prev
-              }
-              const removed = prev[0]
-              const remaining = prev.slice(1)
-              console.log('➖ Removed pending video (FIFO, sync failed):', removed)
-              return remaining
-            })
+            setPendingVideos(prev => showNotificationAndRemove(prev, 'sync failed'))
           })
         } else {
           // No userId, just remove (FIFO)
@@ -642,10 +639,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
               console.log('⚠️ No pending videos to remove')
               return prev
             }
-            const removed = prev[0]
-            const remaining = prev.slice(1)
-            console.log('➖ Removed pending video (FIFO, no userId):', removed)
-            return remaining
+            return showNotificationAndRemove(prev, 'no userId')
           })
         }
       }

@@ -9,6 +9,7 @@ import { apiService } from '@/lib/api-service'
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
 import Checkbox from '../../checkbox'
 import { AvatarData } from '../AvatarCreationModal'
+import { useNotificationStore } from '../../global-notification'
 
 interface VoiceAvatarDetailsProps {
   onBack: () => void
@@ -21,6 +22,7 @@ interface VoiceAvatarDetailsProps {
 export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, onClose, onHideCloseButton }: VoiceAvatarDetailsProps) {
   const { user } = useSelector((state: RootState) => state.user)
   const { clearAvatarUpdates } = useUnifiedSocketContext()
+  const { showNotification } = useNotificationStore()
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [errors, setErrors] = useState<Partial<Record<keyof AvatarData | 'terms' | 'general', string>>>({})
@@ -71,14 +73,19 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
     try {
       const result = await apiService.createVoiceAvatar(formData)
       if (result.success) {
+        showNotification(result.message || 'Custom voice added successfully', 'success')
         if (onClose) onClose()
       } else {
-        setErrors({ ...errors, general: result.message || 'Failed to create voice avatar' })
+        const errorMessage = result.message || 'Failed to create voice avatar'
+        showNotification(errorMessage, 'error')
+        setErrors({ ...errors, general: errorMessage })
         setIsCreating(false)
       }
     } catch (error) {
       console.error('Error creating voice avatar:', error)
-      setErrors({ ...errors, general: 'Failed to create voice avatar' })
+      const errorMessage = 'Failed to create voice avatar'
+      showNotification(errorMessage, 'error')
+      setErrors({ ...errors, general: errorMessage })
       setIsCreating(false)
     }
   }

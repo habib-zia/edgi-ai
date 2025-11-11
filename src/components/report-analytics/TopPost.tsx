@@ -76,7 +76,7 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 			
 			<div className="w-full rounded-[8px] overflow-hidden mb-3 bg-gray-100 relative">
 				{topPost?.account_type && (
-					<div className="absolute top-2 right-2 z-30 bg-black bg-opacity-70 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
+					<div className="absolute top-2 right-2 z-5 bg-black bg-opacity-70 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
 						{getPlatformIcon(getPlatformName(topPost.account_type))}
 						<span className="text-white text-xs font-medium">
 							{getPlatformName(topPost.account_type)}
@@ -108,7 +108,7 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 						/>
 						{!isPlaying && (
 							<div 
-								className="absolute inset-0 flex items-center justify-center z-20 cursor-pointer hover:bg-black hover:bg-opacity-20 transition-all duration-200"
+								className="absolute inset-0 flex items-center justify-center z-5 cursor-pointer hover:bg-black hover:bg-opacity-20 transition-all duration-200"
 								onClick={handleVideoPlay}
 							>
 								<div className="w-16 h-16 bg-black bg-opacity-80 rounded-full flex items-center justify-center">
