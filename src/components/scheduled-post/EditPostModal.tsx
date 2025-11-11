@@ -44,6 +44,7 @@ interface EditPostModalProps {
 
 export default function EditPostModal({ isOpen, onClose, onEdit, postData }: EditPostModalProps) {
   const originalVideoTopicRef = useRef<string>("");
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [formData, setFormData] = useState({
     date: getCleanDate(postData?.date),
@@ -72,7 +73,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   // Get current date and time for restrictions
   const minDate = getCurrentDate();
-  const minTimeForToday = getMinTimeForToday(45);
+  const minTimeForToday = getMinTimeForToday(40);
 
   // Check if post is scheduled soon (today and within 40 minutes)
   const isRestricted = isPostScheduledSoon(formData.date, formData.time, 40);
@@ -101,6 +102,15 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
       });
     }
   }, [postData]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Get current caption based on selected platform
   const getCurrentCaption = () => {
@@ -132,19 +142,31 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
       
       if (isToday && formData.time) {
         const now = new Date();
-        const minTime = new Date(now.getTime() + 45 * 60 * 1000);
+        const minTime = new Date(now.getTime() + 40 * 60 * 1000);
+        const minTimeStr = minTime.toTimeString().slice(0, 5);
         const selectedTime = new Date(`${value}T${formData.time}:00`);
-        const minTimeForToday = new Date(`${value}T${minTime.toTimeString().slice(0, 5)}:00`);
+        const minTimeForToday = new Date(`${value}T${minTimeStr}:00`);
         
         if (selectedTime < minTimeForToday) {
-          const adjustedTime = minTime.toTimeString().slice(0, 5);
-          setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime}`);
+          const adjustedTime = minTimeStr;
+          setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime} (40 minutes from now)`);
+          
+          // Clear previous timeout
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          
+          // Set new timeout with cleanup
+          timeoutRef.current = setTimeout(() => {
+            setTimeAdjustmentMessage(null);
+            timeoutRef.current = null;
+          }, 10000);
+          
           setFormData(prev => ({
             ...prev,
             [field]: value,
             time: adjustedTime
           }));
-          setTimeout(() => setTimeAdjustmentMessage(null), 5000);
           return;
         }
       }
@@ -157,18 +179,30 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
       
       if (isToday) {
         const now = new Date();
-        const minTime = new Date(now.getTime() + 45 * 60 * 1000);
+        const minTime = new Date(now.getTime() + 40 * 60 * 1000);
+        const minTimeStr = minTime.toTimeString().slice(0, 5);
         const selectedTime = new Date(`${formData.date}T${value}:00`);
-        const minTimeForToday = new Date(`${formData.date}T${minTime.toTimeString().slice(0, 5)}:00`);
+        const minTimeForToday = new Date(`${formData.date}T${minTimeStr}:00`);
         
         if (selectedTime < minTimeForToday) {
-          const adjustedTime = minTime.toTimeString().slice(0, 10);
-          setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime}`);
+          const adjustedTime = minTimeStr;
+          setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime} (40 minutes from now)`);
+          
+          // Clear previous timeout
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          
+          // Set new timeout with cleanup
+          timeoutRef.current = setTimeout(() => {
+            setTimeAdjustmentMessage(null);
+            timeoutRef.current = null;
+          }, 10000);
+          
           setFormData(prev => ({
             ...prev,
             time: adjustedTime
           }));
-          setTimeout(() => setTimeAdjustmentMessage(null), 10000);
           return;
         }
       }
