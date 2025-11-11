@@ -127,7 +127,7 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
             <div
               className={`border-[2px] rounded-[8px] p-8 border-dashed transition-all min-h-[300px] duration-300 ${consentUpload.getBorderClasses('consent')}`}
               onDragEnter={(e) => consentUpload.handleDragEnter(e, 'consent')}
-              onDragLeave={consentUpload.handleDragLeave}
+              onDragLeave={(e) => consentUpload.handleDragLeave(e, 'consent')}
               onDragOver={consentUpload.handleDragOver}
               onDrop={handleConsentDrop}
             >

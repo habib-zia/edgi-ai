@@ -256,7 +256,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                           e.preventDefault();
                           onClose();
                           trackNavigation(pathname, item.href, "click");
-                          window.location.href = item.href;
+                          router.push(item.href);
                         }
                       } else {
                         // If we're on a different page
@@ -265,13 +265,14 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                         
                         if (item.href.startsWith('#')) {
                           // For anchor links, navigate to home page with hash
+                          // The home page will handle smooth scrolling via useEffect
                           const homeUrl = `/${item.href}`;
                           trackNavigation(pathname, homeUrl, "click");
-                          window.location.href = homeUrl;
+                          router.push(homeUrl);
                         } else {
                           // For page links, navigate directly
                           trackNavigation(pathname, item.href, "click");
-                          window.location.href = item.href;
+                          router.push(item.href);
                         }
                       }
                     }}

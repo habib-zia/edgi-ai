@@ -16,6 +16,7 @@ export interface VideoUploadState {
 export const useVideoUpload = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const dragCounterRef = useRef<Map<string, number>>(new Map());
 
   const [isDragging, setIsDragging] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<VideoUploadState>({
@@ -146,13 +147,28 @@ export const useVideoUpload = () => {
   const handleDragEnter = (e: React.DragEvent, type: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(type);
+    const currentCount = dragCounterRef.current.get(type) || 0;
+    const newCount = currentCount + 1;
+    dragCounterRef.current.set(type, newCount);
+    
+    // Only set dragging state when entering the drop zone (counter goes from 0 to 1)
+    if (newCount === 1) {
+      setIsDragging(type);
+    }
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent, type: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(null);
+    
+    const currentCount = dragCounterRef.current.get(type) || 0;
+    const newCount = Math.max(0, currentCount - 1);
+    dragCounterRef.current.set(type, newCount);
+    
+    // Only clear dragging state when truly leaving the drop zone (counter reaches 0)
+    if (newCount === 0) {
+      setIsDragging(null);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -163,6 +179,9 @@ export const useVideoUpload = () => {
   const handleDrop = (e: React.DragEvent, type: 'consent' | 'training') => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Reset counter and clear dragging state
+    dragCounterRef.current.set(type, 0);
     setIsDragging(null);
 
     const files = e.dataTransfer.files;
