@@ -657,6 +657,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     try {
       setKeyPointsLoading(true)
       setKeyPointsError(null)
+      // Clear topicKeyPoints field when API call starts
+      setValue('topicKeyPoints', '', { shouldValidate: false, shouldDirty: true })
       const response = await apiService.getDescriptionKeypoints(description.trim())
       
       if (response.success && response.data) {
@@ -1301,7 +1303,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     setCustomTopicValue(value)
     // Mark form as manually touched
     setFormManuallyTouched(true)
-    // Don't update videoTopic form field - keep them completely separate
+    if (!value || !value.trim()) {
+      setValue('topicKeyPoints', '', { shouldValidate: false, shouldDirty: true })
+      setKeyPointsLoading(false)
+      setKeyPointsError(null)
+    }
   }
 
   // Handle custom topic blur - generate key points
@@ -1314,15 +1320,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   const handleDropdownToggle = (field: keyof CreateVideoFormData) => {
     const isOpen = openDropdown === field
-    
-    if (isOpen) {
-      const currentValue = watch(field)
-      if (!currentValue || currentValue.trim() === '') {
-        // Just trigger validation without clearing the field
-        trigger(field)
-        setValue(field, '', { shouldValidate: true })
-      }
-    }
     setOpenDropdown(isOpen ? null : field)
   }
 
@@ -1351,7 +1348,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         errors={filteredErrors}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
-        onBlur={(field) => trigger(field)}
+        onBlur={() => {}}
         // Avatar-specific props
         isAvatarField={field === 'avatar'}
         isFromDefaultAvatar={isFromDefaultAvatar}
@@ -1755,11 +1752,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         <div
           className="fixed inset-0 z-40"
           onClick={() => {
-            const currentValue = watch(openDropdown as keyof CreateVideoFormData)
-            if (!currentValue || currentValue.trim() === '') {
-              // Just trigger validation without clearing the field
-              trigger(openDropdown as keyof CreateVideoFormData)
-            }
             setOpenDropdown(null)
           }}
         />
