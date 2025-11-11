@@ -1,8 +1,8 @@
 'use client'
 
+import type { ProcessingToast } from '@/hooks/useProcessingToasts'
 import { motion } from 'framer-motion'
 import { Clock, Minimize2 } from 'lucide-react'
-import { ProcessingToast } from '@/hooks/useProcessingToasts'
 
 interface ProcessingToastProps {
   toast: ProcessingToast
