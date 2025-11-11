@@ -168,6 +168,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   // Custom topic state
   const [showCustomTopicInput, setShowCustomTopicInput] = useState(false)
   const [customTopicValue, setCustomTopicValue] = useState('')
+  const [lastApiTriggeredValue, setLastApiTriggeredValue] = useState<string>('')
   
   // User settings loading state
   const [userSettingsLoaded, setUserSettingsLoaded] = useState(false)
@@ -390,9 +391,6 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     
     // Update voice type to match selected voice
     setCurrentVoiceType(voice.type)
-    
-    // Don't update music when voice is selected - music should remain unchanged
-    // Music and voice are independent selections
     
     console.log('🎤 create-video-form - Updated selectedVoice to:', voice.name, voice.id, 'Form value updated to:', voice.id)
   }
@@ -661,6 +659,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         }
         // Set videoTopic field AFTER API confirmation
         setValue('videoTopic', description.trim(), { shouldValidate: true, shouldDirty: true })
+        // Track the value that triggered this API call
+        setLastApiTriggeredValue(description.trim())
       } else {
         setKeyPointsError(response.message || 'Failed to generate key points')
       }
@@ -798,7 +798,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         // Always update type filters to match preset when preset changes
         setCurrentVoiceType(presetLower as 'low' | 'medium' | 'high')
         setCurrentMusicType(presetLower as 'low' | 'medium' | 'high')
-        
+      
         // Always update voice to match preset (regardless of previous selection)
         const matchingVoices = allVoices.filter(v => v.type === presetLower)
         if (matchingVoices.length > 0) {
@@ -807,9 +807,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             setSelectedVoice(randomVoice)
             setValue('voice', randomVoice.id, { shouldValidate: true })
             trigger('voice')
-          }
         }
-        
+      }
+      
         // Always update music to match preset (regardless of previous selection)
         const matchingMusic = allMusic.filter(m => m.type === presetLower)
         if (matchingMusic.length > 0) {
@@ -1261,6 +1261,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
    const handleCustomTopicClick = () => {
      setShowCustomTopicInput(true)
      setCustomTopicValue('')
+     setLastApiTriggeredValue('')
      // Close the Video Topic dropdown immediately
      setOpenDropdown(null)
      // Clear the Video Topic field value
@@ -1279,12 +1280,15 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setValue('topicKeyPoints', '', { shouldValidate: false, shouldDirty: true })
       setKeyPointsLoading(false)
       setKeyPointsError(null)
+      setLastApiTriggeredValue('')
     }
   }
 
   // Handle custom topic blur - generate key points
   const handleCustomTopicBlur = () => {
     if (customTopicValue && customTopicValue.trim()) {
+      // Don't trigger API if value hasn't changed since last API call
+      if (customTopicValue.trim() === lastApiTriggeredValue) return
       // Don't update videoTopic immediately - wait for API confirmation
       generateCustomTopicKeyPoints(customTopicValue)
     }
@@ -1482,7 +1486,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     type: string = 'text',
     autoComplete?: string
   ) => {
-    const isDisabled = field === 'email'
+    const isDisabled = field === 'email' || field === 'topicKeyPoints'
     
     // Filter errors for prefilled forms - only show errors after manual interaction or submit attempt
     // Check both formManuallyTouched and submitAttempted to ensure errors show on first submit
@@ -1622,15 +1626,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           }}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Preset field - only shown when gender is selected */}
-          {gender && (
-            <div>
-              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-                Preset <span className="text-red-500">*</span>
-              </label>
-              {renderDropdown('preset', presetOptions, 'Select Preset')}
-            </div>
-          )}
+        <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Preset <span className="text-red-500">*</span>
+            </label>
+            {renderDropdown('preset', presetOptions, 'Select Preset')}
+          </div>
           {/* Voice field - only shown when preset is selected */}
           {watch('preset') && (
             <div>

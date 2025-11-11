@@ -28,16 +28,16 @@ export default function NewVideoPage() {
             </Link>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-10">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-blue-600" />
-            <div>
-              <p className="text-blue-700 text-base font-medium">
-              Your video avatar review typically takes around 30 minutes. Once it&apos;s approved, you can start creating videos right away.
-              </p>
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-10">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <div>
+                <p className="text-blue-700 text-base font-medium">
+                Your video avatar review typically takes around 10 minutes. Once it&apos;s approved, you can start creating videos right away.
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </div> */}
           <div className="pt-4">
             <CreateVideoForm />
           </div>
