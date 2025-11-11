@@ -4,11 +4,13 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import CreateVideoModal from './create-video-modal'
 import ConnectAccountsModal from './connect-accounts-modal'
 import CreatePostModal from './create-post-modal'
+import DeleteVideoConfirmationModal from './delete-video-confirmation-modal'
 import { IoMdArrowDropdown } from "react-icons/io";
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { apiService } from '@/lib/api-service';
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider';
+import { useNotificationStore } from './global-notification';
 
 type SortOrder = 'newest' | 'oldest'
 
@@ -48,6 +50,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false)
   const [selectedAccountsForPost, setSelectedAccountsForPost] = useState<any[]>([])
   const [selectedVideoForCreation, setSelectedVideoForCreation] = useState<string>('')
+  const [isDeleteVideoModalOpen, setIsDeleteVideoModalOpen] = useState(false)
+  const [videoToDelete, setVideoToDelete] = useState<VideoCard | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [selectedVideoData, setSelectedVideoData] = useState<{
     title: string; youtubeUrl: string; thumbnail: string, videoUrl: string, socialMediaCaptions: {
       instagram_caption?: string
@@ -65,6 +70,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [videos, setVideos] = useState<VideoCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Notification hook
+  const { showNotification } = useNotificationStore()
 
   // Get access token and user from Redux store
   const accessToken = useSelector((state: RootState) => state.user.accessToken)
@@ -209,7 +217,48 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     setSelectedAccountsForPost([])
   }
 
-  // Filter and sort videos based on search query and sort order
+  const handleDeleteVideo = (video: VideoCard) => {
+    setVideoToDelete(video)
+    setIsDeleteVideoModalOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!videoToDelete) return
+
+    const videoId = videoToDelete.videoId || videoToDelete.id
+    if (!videoId) {
+      showNotification('Video ID not found', 'error')
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      const result = await apiService.deleteVideo(videoId)
+
+      if (result.success) {
+        setVideos(prev => prev.filter(video => 
+          (video.videoId || video.id) !== videoId
+        ))
+        showNotification('Video deleted successfully', 'success')
+        setIsDeleteVideoModalOpen(false)
+        setVideoToDelete(null)
+      } else {
+        throw new Error(result.message || 'Failed to delete video')
+      }
+    } catch (err: any) {
+      console.error('Failed to delete video:', err)
+      showNotification(err.message || 'Failed to delete video', 'error')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setIsDeleteVideoModalOpen(false)
+    setVideoToDelete(null)
+  }
+
+// Filter and sort videos based on search query and sort order
   const filteredAndSortedVideos = useMemo(() => {
     console.log('🔄 Recalculating filteredAndSortedVideos:', {
       pendingVideosCount: pendingVideos.length,
@@ -435,12 +484,18 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                       Your browser does not support the video tag.
                     </video>
                     {/* View Video Button Overlay - Only visible on hover */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-grey100 bg-opacity-30 rounded-[6px]">
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-grey100 bg-opacity-30 rounded-[6px]">
                       <button
                         onClick={() => handleViewVideo(video)}
-                        className="bg-[#5046E5] text-white px-6 py-3 rounded-full font-semibold text-[16px] hover:bg-[#4338CA] transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg"
+                        className="bg-[#5046E5] text-white px-6 py-3 rounded-full font-semibold text-[16px] hover:bg-[#4338CA]/80 transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg"
                       >
                         View Video
+                      </button>
+                      <button
+                        onClick={() => handleDeleteVideo(video)}
+                        className="bg-[#FF0000] text-white px-6 py-3 rounded-full font-semibold text-[16px] hover:bg-[#FF0000]/80 transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg"
+                      >
+                        Delete Video
                       </button>
                     </div>
                   </>
@@ -604,6 +659,14 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
           }}
         />
       )}
+
+      <DeleteVideoConfirmationModal
+        isOpen={isDeleteVideoModalOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        videoTitle={videoToDelete?.title}
+        isDeleting={isDeleting}
+      />
     </div>
   )
 }

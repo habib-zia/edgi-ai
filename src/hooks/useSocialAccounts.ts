@@ -254,7 +254,7 @@ useEffect(() => {
       if (accessToken) {
         fetchConnectedAccounts()
       }
-    }, 3000)
+    }, 500)
   }
 
   const handleVisibilityChange = () => {

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MobileSidebar } from "./mobile-sidebar";
 import { NAVIGATION_ITEMS, BRAND_NAME, ANIMATIONS } from "@/lib/constants";
 import { cn, handleAnchorClick } from "@/lib/utils";
@@ -47,7 +47,8 @@ export function Header() {
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = React.useState(false);
   const [isEmailVerificationModalOpen, setIsEmailVerificationModalOpen] = React.useState(false);
   const [verificationEmail, setVerificationEmail] = React.useState('');
-    const pathname = usePathname();
+  const pathname = usePathname();
+  const router = useRouter();
   const { trackNavigation, trackButtonClick } = useAnalytics();
   
   // Use Redux for authentication state
@@ -151,7 +152,7 @@ export function Header() {
                           // For non-anchor links on home page, navigate normally
                           e.preventDefault();
                           trackNavigation(pathname, item.href, "click");
-                          window.location.href = item.href;
+                          router.push(item.href);
                         }
                       } else {
                         // If we're on a different page
@@ -159,13 +160,14 @@ export function Header() {
                         
                         if (item.href.startsWith('#')) {
                           // For anchor links, navigate to home page with hash
+                          // The home page will handle smooth scrolling via useEffect
                           const homeUrl = `/${item.href}`;
                           trackNavigation(pathname, homeUrl, "click");
-                          window.location.href = homeUrl;
+                          router.push(homeUrl);
                         } else {
                           // For page links, navigate directly
                           trackNavigation(pathname, item.href, "click");
-                          window.location.href = item.href;
+                          router.push(item.href);
                         }
                       }
                     }}

@@ -161,7 +161,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
         if (selectedAvatarType === 'digital-twin') {
           return <TrainingVideoUpload onNext={handleNext} onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} />
         } else if (selectedAvatarType === 'voice-avatar') {
-          return <VoiceAvatarDetails onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} onClose={handleAvatarCreationSuccess} />
+          return <VoiceAvatarDetails onBack={handleBack} avatarData={avatarData} setAvatarData={handleSetAvatarData} onClose={handleAvatarCreationSuccess} onHideCloseButton={() => setHideCloseButton(true)} />
         } else {
           return (
             <Step7PhotoUpload 
@@ -175,7 +175,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       
       case 5:
         if (selectedAvatarType === 'digital-twin') {
-          return <ConsentVideoUpload onNext={handleNext} onBack={handleBack} onClose={handleAvatarCreationSuccess} avatarData={avatarData} setAvatarData={handleSetAvatarData} onCountdownStart={() => setHideCloseButton(true)} />
+          return <ConsentVideoUpload onNext={handleNext} onBack={handleBack} onClose={handleAvatarCreationSuccess} avatarData={avatarData} setAvatarData={handleSetAvatarData} onCreateStart={() => setHideCloseButton(true)} />
         } else {
           return (
             <Step8Details 
@@ -274,7 +274,9 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       <div className={`bg-white rounded-[12px] md:px-8 px-4 pb-6 md:pt-6 pt-4 ${modalDimensions.maxWidth} w-full ${modalDimensions.maxHeight} h-full flex flex-col relative ${selectedAvatarType === 'digital-twin' ? 'avatar-dropdown-shadow' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">Create Avatar</h2>
+          <h2 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">
+            {selectedAvatarType === 'voice-avatar' && (currentStep === 3 || currentStep === 4) ? 'Create Voice Clone' : 'Create Avatar'}
+          </h2>
           {!hideCloseButton && (
             <button
               onClick={handleClose}

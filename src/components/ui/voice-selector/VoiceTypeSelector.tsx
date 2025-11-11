@@ -38,6 +38,7 @@ export default function VoiceTypeSelector({
       
       <div className="space-y-1 flex-1 lg:flex-col flex-row flex-wrap">
         <button
+          type="button"
           onClick={() => !disabled && onTypeChange('low')}
           disabled={disabled}
           className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
@@ -61,6 +62,7 @@ export default function VoiceTypeSelector({
         </button>
 
         <button
+          type="button"
           onClick={() => !disabled && onTypeChange('medium')}
           disabled={disabled}
           className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
@@ -86,6 +88,7 @@ export default function VoiceTypeSelector({
         </button>
 
         <button
+          type="button"
           onClick={() => !disabled && onTypeChange('high')}
           disabled={disabled}
           className={`w-full flex items-center gap-2 px-2 py-2 rounded-[4px] transition-all duration-200 ${
@@ -112,6 +115,7 @@ export default function VoiceTypeSelector({
 
         {hasCustomVoices && (
           <button
+            type="button"
             onClick={() => !disabled && onTypeChange('custom')}
             disabled={disabled}
             className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${

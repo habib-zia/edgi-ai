@@ -438,11 +438,21 @@ export const PaymentMethods: React.FC<PaymentMethodsProps> = () => {
       isExpired: card.isExpired
     }));
     
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const textContent = exportData.map((card, index) => {
+      return `Payment Method ${index + 1}:
+      Brand: ${card.brand}
+      Last 4 Digits: ${card.last4}
+      Expiration: ${card.expMonth}/${card.expYear}
+      Default: ${card.isDefault ? 'Yes' : 'No'}
+      Expired: ${card.isExpired ? 'Yes' : 'No'}
+      ${index < exportData.length - 1 ? '\n---\n' : ''}`;
+          }).join('\n');
+    
+    const blob = new Blob([textContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `payment-methods-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `payment-methods-${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     

@@ -175,9 +175,9 @@ export default function AvatarStatusNotification({
               const isError = errorUpdate && step === errorUpdate.step
               
               return (
-                <div key={step} className="flex flex-col items-center relative z-10">
+                <div key={step} className="flex flex-col items-center relative z-10 w-[50px]">
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
+                    className={`w-6 h-6 mb-2 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
                       isError
                         ? 'bg-red-500 text-white'
                         : isCompleted
@@ -195,8 +195,8 @@ export default function AvatarStatusNotification({
                       index + 1
                     )}
                   </div>
-                  <span className="text-[10px] text-gray-600 mt-1 text-center capitalize max-w-12">
-                    {step.replace('-', ' ')}
+                  <span className="text-[10px] text-gray-600 mt-2 text-center capitalize max-w-12">
+                  {step.replace('-', ' ').split(' ')[0]}
                   </span>
                 </div>
               )

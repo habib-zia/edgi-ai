@@ -335,6 +335,7 @@ export default function FormDropdown({
                               const totalSelected = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
                               return totalSelected > 0 && (
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     onClearAllAvatars && onClearAllAvatars()
                                   }}
@@ -425,6 +426,7 @@ export default function FormDropdown({
                             <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
                               {visibleVideoAvatarCount < videoAvatars.length && (
                                 <button
+                                  type="button"
                                   onClick={handleSeeMoreVideoAvatars}
                                   className="px-4 py-2 text-sm text-[#5046E5] hover:text-[#4338CA] hover:bg-[#5046E5]/10 rounded-lg transition-colors duration-200 border border-[#5046E5]"
                                 >
@@ -433,6 +435,7 @@ export default function FormDropdown({
                               )}
                               {visibleVideoAvatarCount > 12 && (
                                 <button
+                                  type="button"
                                   onClick={handleSeeLessVideoAvatars}
                                   className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-300"
                                 >
@@ -507,6 +510,7 @@ export default function FormDropdown({
                             <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
                               {visibleDefaultCount < avatars.default.length && (
                                 <button
+                                  type="button"
                                   onClick={handleSeeMoreDefault}
                                   className="px-4 py-2 text-sm text-[#5046E5] hover:text-[#4338CA] hover:bg-[#5046E5]/10 rounded-lg transition-colors duration-200 border border-[#5046E5]"
                                 >
@@ -515,6 +519,7 @@ export default function FormDropdown({
                               )}
                               {visibleDefaultCount > 12 && (
                                 <button
+                                  type="button"
                                   onClick={handleSeeLessDefault}
                                   className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-300"
                                 >

@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { X } from 'lucide-react'
-import { CreatePostModalProps, ConnectedAccount } from '@/types/post-types'
+import { CreatePostModalProps } from '@/types/post-types'
 import { useCreatePost } from '@/hooks/useCreatePost'
 import AccountSelection from './account-selection'
 import DatePicker from '../scheduled-post/DatePicker'
+import PostConfirmationModal from './post-confirmation-modal'
 
 // Helper function to map account type to caption field name
 const getCaptionFieldName = (accountType: string): 'instagram_caption' | 'facebook_caption' | 'linkedin_caption' | 'twitter_caption' | 'tiktok_caption' | 'youtube_caption' | null => {
@@ -29,6 +30,7 @@ export default function CreatePostModal({
 }: CreatePostModalProps) {
   // State to manage captions per account (by account ID)
   const [accountCaptions, setAccountCaptions] = useState<Record<number, string>>({})
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
 
   // Initialize captions from video's socialMediaCaptions
   useEffect(() => {
@@ -83,6 +85,26 @@ export default function CreatePostModal({
     handleClose
   } = useCreatePost({ isOpen, onClose, onPost, selectedAccounts, video })
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (validationErrors.length > 0) {
+      return
+    }
+    setIsConfirmModalOpen(true)
+  }
+
+  const handleConfirmPost = () => {
+    setIsConfirmModalOpen(false)
+    const syntheticEvent = {
+      preventDefault: () => {}
+    } as React.FormEvent
+    handleSubmit(syntheticEvent)
+  }
+
+  const handleCancelPost = () => {
+    setIsConfirmModalOpen(false)
+  }
+
   if (!isOpen) return null
 
   return (
@@ -97,7 +119,7 @@ export default function CreatePostModal({
             <X className="w-5 h-5 text-black" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleFormSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -189,6 +211,17 @@ export default function CreatePostModal({
           </button>
         </form>
       </div>
+
+      <PostConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCancelPost}
+        onConfirm={handleConfirmPost}
+        isSubmitting={isSubmitting}
+        selectedAccountsCount={matchedSelectedAccounts?.length || selectedAccountIds.length}
+        videoTitle={video?.title}
+        date={date}
+        time={time}
+      />
     </div>
   )
 }

@@ -56,8 +56,8 @@ export default function DigitalTwinGuidelines({ onNext, onBack }: DigitalTwinGui
       id: 1,
       title: "Avatar Training Video",
       description: "",
-      videoUrl: "/videos/guidelines/heygen_lifestyle_instruction_rebrand.mp4",
-      thumbnail: "/videos/guidelines/heygen_lifestyle_instruction_rebrand.mp4",
+      videoUrl: "/videos/guidelines/heygen_lifestyle_instruction_rebrand_low.mp4",
+      thumbnail: "/videos/guidelines/heygen_lifestyle_instruction_rebrand_low.mp4",
       duration: "",
       progress: 45
     },

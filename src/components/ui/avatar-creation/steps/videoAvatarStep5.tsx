@@ -42,8 +42,6 @@ export default function VideoAvatarStep5({ onBack, avatarData, setAvatarData, on
   const genderOptions = [
     { value: 'Male', label: 'Male' },
     { value: 'Female', label: 'Female' },
-    { value: 'Non-binary', label: 'Non-binary' },
-    { value: 'Prefer not to say', label: 'Prefer not to say' }
   ]
 
   const ethnicityOptions = [

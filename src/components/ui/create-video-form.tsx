@@ -601,7 +601,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       preset: '',
       voice: '',
       music: '',
-      language: ''
+      language: '',
+      gender: ''
     }
   })
 
@@ -1007,6 +1008,18 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [showCustomTopicInput])
 
+  // Auto-dismiss error after 10 seconds
+  useEffect(() => {
+    if (error) {
+      const timeoutId = setTimeout(() => {
+        dispatch(clearVideoError())
+      }, 10000) // 10 seconds
+      
+      return () => {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [error, dispatch])
 
   const onSubmit = async (data: CreateVideoFormData) => {
     console.log('selectedAvatars', selectedAvatars)
@@ -1465,6 +1478,11 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       ? missingFieldsError 
       : cityTrendsError
 
+    // Check if both city and position are filled to show "Add Custom Topic" button
+    const cityValue = watch('city')
+    const positionValue = watch('position')
+    const canShowCustomTopic = cityValue && cityValue.trim() && positionValue && positionValue.trim()
+
     return (
       <HybridTopicInput
         field={field}
@@ -1478,15 +1496,13 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         safeTrends={allTrends}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
-        onBlur={(field) => trigger(field)}
+        onBlur={() => {}}
         onRetry={() => {
-          const cityValue = watch('city')
-          const positionValue = watch('position')
           if (cityValue && cityValue.trim() && positionValue && positionValue.trim()) {
             fetchCityTrends(cityValue, positionValue)
           }
         }}
-        onCustomTopicClick={handleCustomTopicClick}
+        onCustomTopicClick={canShowCustomTopic ? handleCustomTopicClick : undefined}
       />
     )
   }

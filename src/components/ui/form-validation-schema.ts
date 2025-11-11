@@ -40,8 +40,7 @@ export const createVideoSchema = z.object({
   email: z.string()
     .email('Please enter a valid email address')
     .max(255, 'Email must be less than 255 characters'),
-  gender: z.string()
-    .min(1, 'Please select a gender'),
+  gender: z.string().min(1, 'Please select a gender'),
   preset: z.string().optional(),
   voice: z.string().optional(),
   music: z.string().optional(),
