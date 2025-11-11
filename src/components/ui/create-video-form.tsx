@@ -391,17 +391,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     // Update voice type to match selected voice
     setCurrentVoiceType(voice.type)
     
-    // ALSO update music type and auto-select random music of same type (only if not custom)
-    if (voice.type !== 'custom') {
-      setCurrentMusicType(voice.type as 'low' | 'medium' | 'high')
-    }
-    const filteredMusic = allMusic.filter(m => m.type === voice.type)
-    if (filteredMusic.length > 0) {
-      const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
-      setSelectedMusic(randomMusic)
-      setValue('music', randomMusic.id, { shouldValidate: true })
-      trigger('music')
-    }
+    // Don't update music when voice is selected - music should remain unchanged
+    // Music and voice are independent selections
     
     console.log('🎤 create-video-form - Updated selectedVoice to:', voice.name, voice.id, 'Form value updated to:', voice.id)
   }
@@ -795,50 +786,41 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
   }, [watchedPosition, fetchCityTrends, watch])
 
   // Auto-select random voice and music when preset is selected and data is loaded
-  // ONLY if user hasn't manually selected a voice
+  // When preset changes, ALWAYS update both voice and music to match the preset
   useEffect(() => {
-    if (preset && allVoices.length > 0 && allMusic.length > 0 && !isVoiceManuallySelected) {
-      const currentVoice = watch('voice')
-      const currentMusic = watch('music')
+    if (preset && allVoices.length > 0 && allMusic.length > 0) {
+      const presetLower = preset.toLowerCase().trim()
       
-      // Check if we need to auto-select based on preset
-      const presetLower = preset.toLowerCase()
-      const selectedVoiceType = selectedVoice?.type
-      const selectedMusicType = selectedMusic?.type
-      
-      // Reset type filters when preset changes
-      if (!currentVoiceType || currentVoiceType !== presetLower) {
+      // Only proceed if preset is valid (low, medium, high)
+      if (presetLower === 'low' || presetLower === 'medium' || presetLower === 'high') {
+        // Always update type filters to match preset when preset changes
         setCurrentVoiceType(presetLower as 'low' | 'medium' | 'high')
         setCurrentMusicType(presetLower as 'low' | 'medium' | 'high')
-      }
-      
-      // Auto-select voice if not selected or if type doesn't match preset
-      if (!currentVoice || (selectedVoiceType && selectedVoiceType !== presetLower)) {
+        
+        // Always update voice to match preset (regardless of previous selection)
         const matchingVoices = allVoices.filter(v => v.type === presetLower)
         if (matchingVoices.length > 0) {
           const randomVoice = matchingVoices[Math.floor(Math.random() * matchingVoices.length)]
           if (randomVoice) {
             setSelectedVoice(randomVoice)
-            setValue('voice', randomVoice.id)
+            setValue('voice', randomVoice.id, { shouldValidate: true })
             trigger('voice')
           }
         }
-      }
-      
-      // Auto-select music if not selected or if type doesn't match preset
-      if (!currentMusic || (selectedMusicType && selectedMusicType !== presetLower)) {
+        
+        // Always update music to match preset (regardless of previous selection)
         const matchingMusic = allMusic.filter(m => m.type === presetLower)
         if (matchingMusic.length > 0) {
           const randomMusic = matchingMusic[Math.floor(Math.random() * matchingMusic.length)]
           if (randomMusic) {
             setSelectedMusic(randomMusic)
-            setValue('music', randomMusic.id)
+            setValue('music', randomMusic.id, { shouldValidate: true })
             trigger('music')
           }
         }
       }
     }
-  }, [preset, allVoices, allMusic, watch, setValue, trigger, selectedVoice, selectedMusic, currentVoiceType, isVoiceManuallySelected])
+  }, [preset, allVoices, allMusic, setValue, trigger])
   
   // Handle voice type change from VoiceSelector (when user clicks low/medium/high buttons)
   const handleVoiceTypeChange = useCallback((type: VoiceType) => {
@@ -860,12 +842,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         setValue('voice', randomVoice.id, { shouldValidate: true })
         trigger('voice')
       }
-      // Don't update music type for custom voices - keep current music type
     } else {
-      // For low/medium/high, update music type to match voice type
-      setCurrentMusicType(type)
-      
-      // Filter voices
+      // For low/medium/high, filter voices only
+      // Don't update music type or music selection - music should remain independent
       const filteredVoices = allVoices.filter(v => v.type === type)
       if (filteredVoices.length > 0) {
         const randomVoice = filteredVoices[Math.floor(Math.random() * filteredVoices.length)]
@@ -874,16 +853,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         trigger('voice')
       }
       
-      // Filter music and auto-select random music of the same type
-      const filteredMusic = allMusic.filter(m => m.type === type)
-      if (filteredMusic.length > 0) {
-        const randomMusic = filteredMusic[Math.floor(Math.random() * filteredMusic.length)]
-        setSelectedMusic(randomMusic)
-        setValue('music', randomMusic.id, { shouldValidate: true })
-        trigger('music')
-      }
+      // Don't update music when voice type changes - music and voice are independent
     }
-  }, [allVoices, allMusic, setValue, trigger])
+  }, [allVoices, setValue, trigger])
   
   // Handle music type change from MusicSelector (when user clicks low/medium/high buttons)
   const handleMusicTypeChange = useCallback((type: VoiceType) => {
@@ -1653,12 +1625,15 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           }}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div>
-            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
-              Preset <span className="text-red-500">*</span>
-            </label>
-            {renderDropdown('preset', presetOptions, 'Select Preset')}
-          </div>
+          {/* Preset field - only shown when gender is selected */}
+          {gender && (
+            <div>
+              <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+                Preset <span className="text-red-500">*</span>
+              </label>
+              {renderDropdown('preset', presetOptions, 'Select Preset')}
+            </div>
+          )}
           {/* Voice field - only shown when preset is selected */}
           {watch('preset') && (
             <div>
