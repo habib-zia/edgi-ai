@@ -121,6 +121,7 @@ export default function HybridTopicInput({
             <div className="px-4 py-3 text-center text-red-500">
               <p className="text-sm">{trendsError}</p>
               <button
+                type="button"
                 onClick={onRetry}
                 className="mt-2 px-3 py-1 text-xs bg-[#5046E5] text-white rounded hover:bg-[#4338CA] transition-colors"
               >

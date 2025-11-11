@@ -110,7 +110,7 @@ export default function VoiceAudioUpload({ onNext, onBack, avatarData, setAvatar
           </div>
         )}
 
-        {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-red-600 text-sm">{error}</p></div>}
+        {/* {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-red-600 text-sm">{error}</p></div>} */}
       </div>
 
       <div className="flex flex-col gap-2 pt-4 mt-auto">

@@ -69,6 +69,10 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
       }),
       content: post.content,
       attachments: post.attachments,
+      insights: post.insights || [],
+      account_type: post.account_type,
+      published_at: post.published_at,
+      publish_at: post.publish_at,
       platforms: {
         [getPlatformFromAccountType(post.account_type)]: {
           performanceData: generatePerformanceData(post.insights),
@@ -151,12 +155,11 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
   };
   
   useEffect(() => {
-    // Only fetch if user is authenticated (check token exists)
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!token) return;
     
-    fetchPublishedPosts()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+      fetchPublishedPosts()
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
   
   const fetchPublishedPosts = async () => {
     try {

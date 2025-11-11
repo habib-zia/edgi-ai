@@ -81,7 +81,7 @@ export default function FormFieldRow({
                 errors={errors}
                 onToggle={(field) => onDropdownToggle?.(String(field))}
                 onSelect={(field, value) => onDropdownSelect?.(String(field), value)}
-                onBlur={(field) => trigger?.(String(field))}
+                onBlur={() => {}}
               />
             </div>
           )

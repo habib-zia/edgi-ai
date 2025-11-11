@@ -13,7 +13,7 @@ const cardVariants = {
 };
 
 
-export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatform, hasPosts = false, postsData = [], topPostsData, insightsLoading }: AnalyticsDashboardProps & { topPostsData?: any, insightsLoading?: boolean }) {
+export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatform, hasPosts = false, postsData = [] }: AnalyticsDashboardProps) {
 
 
 	const isEmptyState = !hasPosts;
@@ -121,65 +121,36 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 	const currentMetrics = getPlatformMetrics();
 
 	const getTopPost = () => {
-		
-		if (topPostsData && !insightsLoading && topPostsData.posts && topPostsData.posts.length > 0) {
-			let topPost = null;
-			let maxEngagement = 0;
-			let hasAnyEngagement = false;
-			
-			topPostsData.posts.forEach((post: any) => {
-				let totalEngagement = 0;
-				if (post.insights && post.insights.length > 0) {
-					hasAnyEngagement = true;
-					post.insights.forEach((insight: any) => {
-						totalEngagement += insight.value || 0;
-					});
-				}
-				
-				if (totalEngagement > maxEngagement) {
-					maxEngagement = totalEngagement;
-					topPost = post;
-				}
-			});
-			
-			if (!hasAnyEngagement && topPostsData.posts.length > 0) {
-				topPost = topPostsData.posts[0];
-			}
-			
-			return topPost;
-		}
-		
 		if (!hasPosts || postsData.length === 0) {
 			return null;
 		}
 
 		let topPost: any = null;
-		let maxEngagement = 0;
+		let maxScore = 0;
 
 		postsData.forEach(post => {
-			let totalEngagement = 0;
+			// Extract metrics from insights array
+			const getInsightValue = (type: string) => {
+				if (!post.insights || !Array.isArray(post.insights)) return 0;
+				const insight = post.insights.find((i: any) => i.type === type);
+				return insight?.value || 0;
+			};
+
+			const reach = getInsightValue('reach');
+			const likes = getInsightValue('likes');
+			const comments = getInsightValue('comments');
+			const shares = getInsightValue('shares');
 			
-			if (post.platforms) {
-				Object.values(post.platforms).forEach((platformData: any) => {
-					if (platformData.engagement) {
-						totalEngagement += (platformData.engagement.likes || 0) + 
-										  (platformData.engagement.comments || 0) + 
-										  (platformData.engagement.shares || 0);
-					}
-				});
-			}
+			// Calculate score: prioritize reach, then likes, then comments, then shares
+			// Using weighted combination: reach (highest weight) + likes + comments + shares
+			const score = (reach * 1000) + (likes * 100) + (comments * 50) + (shares * 25);
 			
-			if (post.insights && Array.isArray(post.insights)) {
-				post.insights.forEach((insight: any) => {
-					totalEngagement += insight.value || 0;
-				});
-			}
-			
-			if (totalEngagement > maxEngagement) {
-				maxEngagement = totalEngagement;
+			if (score > maxScore) {
+				maxScore = score;
 				topPost = post;
 			}
 		});
+		
 		return topPost;
 	};
 
@@ -188,26 +159,22 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 	const getTopPostPlatform = () => {
 		if (!topPost) return 'All';
 		
-		if (topPost.platforms && Object.keys(topPost.platforms).length > 0) {
-			let bestPlatform = 'All';
-			let maxEngagement = 0;
-			
-			Object.entries(topPost.platforms).forEach(([platform, platformData]: [string, any]) => {
-				if (platformData.engagement) {
-					const engagement = (platformData.engagement.likes || 0) + 
-									 (platformData.engagement.comments || 0) + 
-									 (platformData.engagement.shares || 0);
-					if (engagement > maxEngagement) {
-						maxEngagement = engagement;
-						bestPlatform = platform;
-					}
-				}
-			});
-			
-			return bestPlatform;
+		// Get platform from account_type
+		if (topPost.account_type) {
+			if (topPost.account_type.includes('Instagram')) return 'Instagram';
+			if (topPost.account_type.includes('Facebook')) return 'Facebook';
+			if (topPost.account_type.includes('LinkedIn')) return 'LinkedIn';
+			if (topPost.account_type.includes('YouTube')) return 'YouTube';
+			if (topPost.account_type.includes('Twitter') || topPost.account_type.includes('X')) return 'X';
+			if (topPost.account_type.includes('TikTok')) return 'TikTok';
 		}
 		
-		return Object.keys(topPost.platforms || {})[0] || 'All';
+		// Fallback to platforms object if available
+		if (topPost.platforms && Object.keys(topPost.platforms).length > 0) {
+			return Object.keys(topPost.platforms)[0];
+		}
+		
+		return 'All';
 	};
 	
 	const topPostPlatform = getTopPostPlatform();
@@ -353,9 +320,7 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 				<div className="grid grid-cols-12 gap-4">
 					<div className="lg:col-span-9 col-span-12">
 					    <FollowersChart 
-					    	totalLikes={topPostsData ? topPostsData.totalLikes : (parseInt(currentMetrics.likes.replace(/,/g, '')) || 0)}
 					    	topPostData={topPost}
-					    	insightsData={topPostsData}
 					    />
 					</div>
 					<div className="flex md:flex-row flex-col gap-2 lg:col-span-3 col-span-12">
