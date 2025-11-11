@@ -80,12 +80,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   // Get unified socket context
   const {
-    latestVideoUpdate
+    latestVideoUpdate,
+    pendingVideos
   } = useUnifiedSocketContext()
-
-  // Persistent loading state - derived from socket updates instead of local state
-  const isVideoProcessing = latestVideoUpdate &&
-    (latestVideoUpdate.status === 'processing' || latestVideoUpdate.status === 'pending')
 
   // Store fetchVideos in ref to avoid dependency issues
   const fetchVideosRef = useRef<(() => Promise<void>) | null>(null)
@@ -263,40 +260,36 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
 // Filter and sort videos based on search query and sort order
   const filteredAndSortedVideos = useMemo(() => {
-    // Calculate loading card data inside useMemo to avoid dependency issues
-    const loadingCardData = isVideoProcessing ? {
-      title: 'Processing Video...',
-      message: latestVideoUpdate?.message || 'Your video creation is in progress'
-    } : null
-
     console.log('🔄 Recalculating filteredAndSortedVideos:', {
-      isVideoProcessing,
-      loadingCardData
+      pendingVideosCount: pendingVideos.length,
+      pendingVideos
     })
 
     // Start with regular videos
     const allVideos = [...videos]
 
-    // Add loading card if video is processing
-    if (isVideoProcessing && loadingCardData) {
-      console.log('➕ Adding loading card to video list')
-      const loadingCard: VideoCard = {
-        id: `loading-${Date.now()}`,
-        videoId: `loading-${Date.now()}`,
-        title: loadingCardData.title,
+    // Add loading cards for each pending video
+    if (pendingVideos.length > 0) {
+      console.log(`➕ Adding ${pendingVideos.length} loading card(s) to video list`)
+      
+      // Create loading cards for each pending video
+      const loadingCards: VideoCard[] = pendingVideos.map((video) => ({
+        id: video.id,
+        videoId: video.id,
+        title: video.title,
         status: 'processing',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: video.timestamp,
+        updatedAt: video.timestamp,
         downloadUrl: null,
         metadata: {
           duration: 0,
           size: 0,
           format: 'processing'
         }
-      }
+      }))
 
-      // Add loading card at the beginning (newest position)
-      allVideos.unshift(loadingCard)
+      // Add loading cards at the beginning (newest position)
+      allVideos.unshift(...loadingCards)
     }
 
     // Filter by search query
@@ -304,8 +297,12 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       video.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    // Sort by creation date
-    return filtered.sort((a, b) => {
+    // Separate processing videos from completed videos
+    const processingVideos = filtered.filter(video => video.status === 'processing')
+    const completedVideos = filtered.filter(video => video.status !== 'processing')
+
+    // Sort completed videos by creation date
+    const sortedCompletedVideos = completedVideos.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime()
       const dateB = new Date(b.createdAt).getTime()
 
@@ -315,7 +312,17 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         return dateA - dateB // Oldest first
       }
     })
-  }, [videos, isVideoProcessing, latestVideoUpdate, searchQuery, sortOrder])
+
+    // Sort processing videos by creation date (newest first)
+    const sortedProcessingVideos = processingVideos.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime()
+      const dateB = new Date(b.createdAt).getTime()
+      return dateB - dateA // Newest processing videos first
+    })
+
+    // Always show processing videos first, then completed videos
+    return [...sortedProcessingVideos, ...sortedCompletedVideos]
+  }, [videos, pendingVideos, searchQuery, sortOrder])
 
   const handleSortChange = (newSortOrder: SortOrder) => {
     setSortOrder(newSortOrder)

@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { getApiUrl } from '@/lib/config'
-import { apiService } from '@/lib/api-service'
+import { apiService, PendingWorkflow } from '@/lib/api-service'
+import { useNotificationStore } from '@/components/ui/global-notification'
 
 export interface VideoStatusUpdate {
   videoId: string
@@ -53,6 +54,14 @@ export interface ScheduleStatusUpdate {
   timestamp: string
 }
 
+export interface VideoInProgress {
+  id: string
+  title: string
+  status: 'processing'
+  timestamp: string
+  message: string
+}
+
 export interface UnifiedSocketState {
   socket: Socket | null
   isConnected: boolean
@@ -68,13 +77,18 @@ export interface UnifiedSocketState {
   isAvatarProcessing: boolean
   isVideoAvatarProcessing: boolean
   isScheduleProcessing: boolean
+  pendingVideos: VideoInProgress[]
+  addPendingVideo: (video: VideoInProgress) => void
+  removePendingVideo: () => void
   clearVideoUpdates: () => void
   clearCompletedVideoUpdates: () => void
   clearAvatarUpdates: () => void
   clearVideoAvatarUpdates: () => void
   clearScheduleUpdates: () => void
-  checkPendingWorkflows: (userId: string) => Promise<void>
+  syncPendingVideos: (userId: string) => Promise<void>
 }
+
+const PENDING_VIDEOS_KEY = 'pendingVideos'
 
 export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   const [socket, setSocket] = useState<Socket | null>(null)
@@ -83,10 +97,20 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
   const [avatarUpdates, setAvatarUpdates] = useState<AvatarStatusUpdate[]>([])
   const [videoAvatarUpdates, setVideoAvatarUpdates] = useState<VideoAvatarStatusUpdate[]>([])
   const [scheduleUpdates, setScheduleUpdates] = useState<ScheduleStatusUpdate[]>([])
+  const [pendingVideos, setPendingVideos] = useState<VideoInProgress[]>([])
+  const { showNotification } = useNotificationStore()
   
   // Track processed events to prevent duplicates
   const processedEvents = useRef(new Set<string>())
   const socketConnectedHandlers = useRef<Set<() => void>>(new Set())
+  // Track if we've synced with DB to avoid duplicate syncing
+  const hasSyncedWithDB = useRef(false)
+  // Track if we should skip saving to localStorage (to prevent overwriting after DB sync)
+  const skipSaveToLocalStorage = useRef(false)
+  // Track failed videos to avoid duplicate notifications
+  const notifiedFailedVideos = useRef(new Set<string>())
+  // Track completed videos to avoid duplicate notifications
+  const notifiedCompletedVideos = useRef(new Set<string>())
 
   const clearVideoUpdates = useCallback(() => {
     setVideoUpdates([])
@@ -110,14 +134,246 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
     setScheduleUpdates([])
   }, [])
 
-  const checkPendingWorkflows = useCallback(async (userId: string) => {
-    try {
-      console.log('🔍 Checking pending workflows for user:', userId)
-      await apiService.checkPendingWorkflows(userId)
-    } catch (error) {
-      console.error('Failed to check pending workflows:', error)
-    }
+  const addPendingVideo = useCallback((video: VideoInProgress) => {
+    setPendingVideos(prev => [...prev, video])
+    console.log('➕ Added pending video:', video)
   }, [])
+
+  const removePendingVideo = useCallback(() => {
+    setPendingVideos(prev => {
+      if (prev.length === 0) {
+        console.log('⚠️ No pending videos to remove')
+        return prev
+      }
+      const removed = prev[0]
+      const remaining = prev.slice(1)
+      console.log('➖ Removed pending video (FIFO):', removed)
+      return remaining
+    })
+  }, [])
+
+  // Sync pending videos with database - DB is the source of truth
+  const syncPendingVideos = useCallback(async (userId: string) => {
+    try {
+      console.log('🔍 Syncing pending videos with DB for user:', userId)
+      const result = await apiService.checkPendingWorkflows(userId)
+      
+      if (result.success && result.data) {
+        const { workflows } = result.data
+        
+        // Log all workflows to debug status values
+        console.log('📊 All workflows from DB:', workflows.map((w: PendingWorkflow) => ({ 
+          id: w._id, 
+          status: w.status, 
+          title: w.title 
+        })))
+        
+        // Check for failed workflows and show notifications
+        // Use functional update to access current pending videos
+        setPendingVideos(prev => {
+          // Create a map of current video IDs (both DB format and temporary format)
+          const currentVideoIds = new Set<string>()
+          const currentVideoTitles = new Map<string, string>() // Map title to video ID
+          
+          prev.forEach(v => {
+            currentVideoIds.add(v.id)
+            currentVideoTitles.set(v.title, v.id)
+            
+            // Also extract workflow ID if it's in DB format (video-{_id}-{executionId})
+            const match = v.id.match(/^video-(.+)-(.+)$/)
+            if (match) {
+              currentVideoIds.add(match[1]) // Add workflow _id
+            }
+          })
+          
+          // Find failed workflows
+          const failedWorkflows = workflows.filter(
+            (workflow: PendingWorkflow) => workflow.status === 'failed'
+          )
+          
+          // Show notification for each failed video (only once per video)
+          failedWorkflows.forEach((workflow: PendingWorkflow) => {
+            const workflowId = workflow._id
+            const videoId = `video-${workflow._id}-${workflow.executionId}`
+            const videoTitle = workflow.title || 'Video'
+            
+            // Check if this failed workflow matches any current pending video
+            // Match by: workflow _id, video ID format, or title
+            const matchesCurrentVideo = 
+              currentVideoIds.has(workflowId) || 
+              currentVideoIds.has(videoId) ||
+              currentVideoTitles.has(videoTitle)
+            
+            if (matchesCurrentVideo && !notifiedFailedVideos.current.has(videoId)) {
+              notifiedFailedVideos.current.add(videoId)
+              showNotification(
+                `Video "${videoTitle}" creation failed. Please try creating it again.`,
+                'error'
+              )
+              console.log('❌ Video failed:', videoTitle, workflow._id)
+            }
+          })
+          
+          // Find completed workflows
+          const completedWorkflows = workflows.filter(
+            (workflow: PendingWorkflow) => workflow.status === 'completed'
+          )
+          
+          // Show success notification for each completed video (only once per video)
+          completedWorkflows.forEach((workflow: PendingWorkflow) => {
+            const workflowId = workflow._id
+            const videoId = `video-${workflow._id}-${workflow.executionId}`
+            const videoTitle = workflow.title || 'Video'
+            
+            // Check if this completed workflow matches any current pending video
+            // Match by: workflow _id, video ID format, or title
+            const matchesCurrentVideo = 
+              currentVideoIds.has(workflowId) || 
+              currentVideoIds.has(videoId) ||
+              currentVideoTitles.has(videoTitle)
+            
+            if (matchesCurrentVideo && !notifiedCompletedVideos.current.has(videoId)) {
+              notifiedCompletedVideos.current.add(videoId)
+              showNotification(
+                `Video "${videoTitle}" is ready! You can view it in your gallery.`,
+                'success'
+              )
+              console.log('✅ Video completed:', videoTitle, workflow._id)
+            }
+          })
+          
+          return prev // Return unchanged for now, we'll update below
+        })
+        
+        // Filter workflows that are not completed or failed (include all active states)
+        const pendingWorkflows = workflows.filter(
+          (workflow: PendingWorkflow) => 
+            workflow.status !== 'completed' && workflow.status !== 'failed'
+        )
+        
+        console.log('📊 Found pending workflows from DB:', pendingWorkflows.length, 'workflows')
+        
+        // DB is the source of truth - always sync with DB
+        if (typeof window !== 'undefined') {
+          // Create videos from DB workflows
+          const videosFromDB: VideoInProgress[] = pendingWorkflows.map((workflow: PendingWorkflow, index: number) => ({
+            id: `video-${workflow._id}-${workflow.executionId}`,
+            title: workflow.title || `Video ${index + 1}`,
+            status: 'processing',
+            timestamp: workflow.createdAt || new Date().toISOString(),
+            message: 'Your video creation is in progress'
+          }))
+          
+          // Remove failed videos from pending list (they're already filtered out above)
+          // This will automatically remove them from toasts and tiles
+          skipSaveToLocalStorage.current = true
+          setPendingVideos(videosFromDB)
+          hasSyncedWithDB.current = true
+          console.log('✅ Synced pending videos with DB (source of truth):', videosFromDB.length, 'videos')
+          
+          // Clean up notified failed/completed videos that are no longer in the system
+          const currentVideoIds = new Set(videosFromDB.map(v => v.id))
+          notifiedFailedVideos.current.forEach(videoId => {
+            if (!currentVideoIds.has(videoId)) {
+              // Keep in set for a while to avoid duplicate notifications if user creates same video again
+              // Will be cleaned up on logout or after some time
+            }
+          })
+          notifiedCompletedVideos.current.forEach(videoId => {
+            if (!currentVideoIds.has(videoId)) {
+              // Keep in set for a while to avoid duplicate notifications if user creates same video again
+              // Will be cleaned up on logout or after some time
+            }
+          })
+          
+          // Reset skip flag after a short delay
+          setTimeout(() => {
+            skipSaveToLocalStorage.current = false
+          }, 100)
+        }
+      } else {
+        // If DB check fails, try to load from localStorage as fallback
+        if (typeof window !== 'undefined' && !hasSyncedWithDB.current) {
+          try {
+            const saved = localStorage.getItem(PENDING_VIDEOS_KEY)
+            if (saved) {
+              const parsed = JSON.parse(saved) as VideoInProgress[]
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                skipSaveToLocalStorage.current = true
+                setPendingVideos(parsed)
+                console.log('📦 Loaded pending videos from localStorage (DB unavailable):', parsed.length, 'videos')
+                setTimeout(() => {
+                  skipSaveToLocalStorage.current = false
+                }, 100)
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to load pending videos from localStorage:', error)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to sync pending videos:', error)
+      // Fallback to localStorage if DB sync fails
+      if (typeof window !== 'undefined' && !hasSyncedWithDB.current) {
+        try {
+          const saved = localStorage.getItem(PENDING_VIDEOS_KEY)
+          if (saved) {
+            const parsed = JSON.parse(saved) as VideoInProgress[]
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              skipSaveToLocalStorage.current = true
+              setPendingVideos(parsed)
+              console.log('📦 Loaded pending videos from localStorage (fallback):', parsed.length, 'videos')
+              setTimeout(() => {
+                skipSaveToLocalStorage.current = false
+              }, 100)
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to load pending videos from localStorage:', err)
+        }
+      }
+    }
+  }, [showNotification])
+
+  // Initial sync with DB on mount if userId is available
+  useEffect(() => {
+    if (userId && !hasSyncedWithDB.current) {
+      console.log('🔄 Initial sync with DB on mount')
+      syncPendingVideos(userId)
+    }
+  }, [userId, syncPendingVideos])
+
+  // Continuous polling every 20 seconds regardless of connection status
+  useEffect(() => {
+    if (!userId) return
+
+    const pollInterval = setInterval(() => {
+      console.log('🔄 Periodic polling: syncing pending videos with DB (every 20s)')
+      syncPendingVideos(userId)
+    }, 60000) // Poll every 60 seconds continuously
+
+    return () => clearInterval(pollInterval)
+  }, [userId, syncPendingVideos])
+
+  // Save pending videos to localStorage whenever they change
+  useEffect(() => {
+    if (userId && typeof window !== 'undefined' && !skipSaveToLocalStorage.current) {
+      try {
+        if (pendingVideos.length > 0) {
+          localStorage.setItem(PENDING_VIDEOS_KEY, JSON.stringify(pendingVideos))
+          console.log('💾 Saved pending videos to localStorage:', pendingVideos.length, 'videos')
+        } else {
+          localStorage.removeItem(PENDING_VIDEOS_KEY)
+          console.log('🧹 Cleared pending videos from localStorage')
+        }
+      } catch (error) {
+        console.warn('Failed to save pending videos to localStorage:', error)
+      }
+    } else if (skipSaveToLocalStorage.current) {
+      console.log('⏭️ Skipping save to localStorage (just synced with DB)')
+    }
+  }, [pendingVideos, userId])
 
   // Get latest updates
   const latestVideoUpdate = videoUpdates.length > 0 ? videoUpdates[videoUpdates.length - 1] : null
@@ -151,9 +407,31 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       setAvatarUpdates([])
       setVideoAvatarUpdates([])
       setScheduleUpdates([])
+      
+      // Only clear pendingVideos if this is a real logout (socket exists)
+      // Don't clear on initial mount when userId is temporarily null
+      if (socket) {
+        // This is a real logout (socket exists), clear everything
+        setPendingVideos([])
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem(PENDING_VIDEOS_KEY)
+            console.log('🧹 Cleared pending videos from localStorage on logout')
+          } catch (error) {
+            console.warn('Failed to clear pending videos from localStorage:', error)
+          }
+        }
+        hasSyncedWithDB.current = false
+        notifiedFailedVideos.current.clear()
+        notifiedCompletedVideos.current.clear()
+        console.log('🧹 User logged out - cleared all socket data')
+      } else {
+        // This is initial mount (no socket yet), sync with DB instead of clearing
+        console.log('⏭️ Initial mount - will sync pending videos with DB on connection')
+      }
+      
       processedEvents.current.clear()
       socketConnectedHandlers.current.clear()
-      console.log('🧹 User logged out - cleared all socket data')
       return
     }
 
@@ -191,8 +469,8 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
         }
       })
       
-      // Check pending workflows after connection
-      checkPendingWorkflows(userId)
+      // Sync pending videos with DB after connection (DB is source of truth)
+      syncPendingVideos(userId)
     })
 
     newSocket.on('disconnect', (reason: any) => {
@@ -219,8 +497,8 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
         }
       })
       
-      // Check pending workflows after reconnection
-      checkPendingWorkflows(userId)
+      // Sync pending videos with DB after reconnection (DB is source of truth)
+      syncPendingVideos(userId)
     })
 
     // Video status updates
@@ -259,6 +537,118 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       
       console.log('🎥 Processed video update:', videoUpdate)
       setVideoUpdates(prev => [...prev, videoUpdate])
+
+      // Add video to progress tracking when processing status arrives
+      // Only add if we don't have videos from DB sync (to avoid duplicates)
+      if (status === 'processing' || status === 'pending') {
+        // If we synced with DB, don't add from socket events - DB is source of truth
+        if (hasSyncedWithDB.current) {
+          console.log('📦 Already synced with DB, skipping socket event addition (DB is source of truth)')
+          return
+        }
+        
+        setPendingVideos(prev => {
+          // If we already have videos, don't add duplicates
+          if (prev.length > 0) {
+            console.log('📦 Already have pending videos, skipping socket event addition')
+            return prev
+          }
+          
+          // Only add one video if we have no videos at all
+          const newVideo: VideoInProgress = {
+            id: `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            title: update.title || update.data?.title || 'Processing Video...',
+            status: 'processing',
+            timestamp: update.timestamp || new Date().toISOString(),
+            message: update.message || update.data?.message || 'Your video creation is in progress'
+          }
+          
+          console.log('➕ Added pending video from socket event:', newVideo)
+          return [...prev, newVideo]
+        })
+      }
+
+      // Remove one video from progress tracking when success/completed arrives (FIFO)
+      // Verify in DB first before removing
+      if (status === 'completed' || status === 'success') {
+        console.log('✅ Video completed/success - verifying in DB before removing (FIFO)')
+        
+        // Verify completion in DB before removing
+        if (userId) {
+          // First sync with DB to get latest state
+          syncPendingVideos(userId).then(() => {
+            // After DB sync, check if we should remove one video
+            // DB sync already updated the state, so we just need to verify count
+            apiService.checkPendingWorkflows(userId).then(result => {
+              if (result.success && result.data) {
+                const pendingWorkflows = result.data.workflows.filter(
+                  (workflow: PendingWorkflow) => 
+                    workflow.status !== 'completed' && workflow.status !== 'failed'
+                )
+                
+                // Get current local state count
+                setPendingVideos(prev => {
+                  // Only remove if DB has fewer pending items than our local state
+                  if (pendingWorkflows.length < prev.length) {
+                    const removed = prev[0]
+                    const remaining = prev.slice(1)
+                    console.log('➖ Removed pending video (FIFO, DB verified):', removed)
+                    return remaining
+                  } else {
+                    console.log('⏸️ DB verification: keeping pending videos (count matches)')
+                    return prev
+                  }
+                })
+              } else {
+                // If DB check fails, still remove (FIFO assumption)
+                setPendingVideos(prev => {
+                  if (prev.length === 0) {
+                    return prev
+                  }
+                  const removed = prev[0]
+                  const remaining = prev.slice(1)
+                  console.log('➖ Removed pending video (FIFO, DB check failed):', removed)
+                  return remaining
+                })
+              }
+            }).catch(() => {
+              // If DB check fails, still remove (FIFO assumption)
+              setPendingVideos(prev => {
+                if (prev.length === 0) {
+                  return prev
+                }
+                const removed = prev[0]
+                const remaining = prev.slice(1)
+                console.log('➖ Removed pending video (FIFO, DB error):', removed)
+                return remaining
+              })
+            })
+          }).catch(() => {
+            // If sync fails, still remove (FIFO assumption)
+            setPendingVideos(prev => {
+              if (prev.length === 0) {
+                return prev
+              }
+              const removed = prev[0]
+              const remaining = prev.slice(1)
+              console.log('➖ Removed pending video (FIFO, sync failed):', removed)
+              return remaining
+            })
+          })
+        } else {
+          // No userId, just remove (FIFO)
+          setPendingVideos(prev => {
+            if (prev.length === 0) {
+              console.log('⚠️ No pending videos to remove')
+              return prev
+            }
+            const removed = prev[0]
+            const remaining = prev.slice(1)
+            console.log('➖ Removed pending video (FIFO, no userId):', removed)
+            return remaining
+          })
+        }
+      }
     })
 
     // Avatar status updates
@@ -377,7 +767,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
       currentSocketHandlers.clear()
       newSocket.close()
     }
-  }, [userId, checkPendingWorkflows]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, syncPendingVideos]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Expose method to register socket connected handlers
   useEffect(() => {
@@ -407,11 +797,14 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
     isAvatarProcessing,
     isVideoAvatarProcessing,
     isScheduleProcessing,
+    pendingVideos,
+    addPendingVideo,
+    removePendingVideo,
     clearVideoUpdates,
     clearCompletedVideoUpdates,
     clearAvatarUpdates,
     clearVideoAvatarUpdates,
     clearScheduleUpdates,
-    checkPendingWorkflows
+    syncPendingVideos
   }
 }

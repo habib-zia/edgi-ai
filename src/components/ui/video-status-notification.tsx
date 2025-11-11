@@ -1,189 +1,85 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { CheckCircle, X, AlertCircle, Clock, Download } from 'lucide-react'
-import { VideoStatusUpdate } from '@/hooks/useUnifiedSocket'
+import { useState, useEffect, useRef } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { VideoInProgress } from '@/hooks/useUnifiedSocket'
+import { useProcessingToasts } from '@/hooks/useProcessingToasts'
+import ProcessingToast from './processing-toast'
+import ProcessingCircle from './processing-circle'
+import MinimizedListPopover from './minimized-list-popover'
 
 interface VideoStatusNotificationProps {
-  updates: VideoStatusUpdate[]
-  isConnected: boolean
-  onClear: () => void
-  onClearCompleted: () => void
+  pendingVideos: VideoInProgress[]
   className?: string
 }
 
 export default function VideoStatusNotification({ 
-  updates, 
-  onClear,
-  onClearCompleted,
+  pendingVideos,
   className = '' 
-}: Omit<VideoStatusNotificationProps, 'isConnected'>) {
-  const [isVisible, setIsVisible] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+}: VideoStatusNotificationProps) {
+  const { toasts, minimizedCount, minimizeToast, restoreToast, updateToasts } = useProcessingToasts()
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const circleRef = useRef<HTMLButtonElement>(null)
 
-  // Show notification when we have updates
+  // Sync with pendingVideos
   useEffect(() => {
-    if (updates.length > 0) {
-      setIsVisible(true)
-      const latest = updates[updates.length - 1]
-      
-      // Auto-close notification based on status
-      if (latest.status === 'completed' || latest.status === 'success' || latest.status === 'failed') {
-        const timeout = latest.status === 'failed' ? 60000 : 30000 // 60s for errors, 30s for success
-        const countdown = latest.status === 'failed' ? 60 : 30
-        
-        setTimeRemaining(countdown)
-        
-        const timer = setTimeout(() => {
-          // Only clear completed/failed updates, not processing ones
-          onClearCompleted()
-        }, timeout)
-        
-        const countdownInterval = setInterval(() => {
-          setTimeRemaining(prev => {
-            if (prev === null || prev <= 1) {
-              clearInterval(countdownInterval)
-              return null
-            }
-            return prev - 1
-          })
-        }, 1000)
-        
-        return () => {
-          clearTimeout(timer)
-          clearInterval(countdownInterval)
-        }
-      } else {
-        setTimeRemaining(null)
-      }
-    } else {
-      // Hide notification when no updates
-      setIsVisible(false)
-      setTimeRemaining(null)
-    }
-  }, [updates, onClear, onClearCompleted])
+    updateToasts(pendingVideos)
+  }, [pendingVideos, updateToasts])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'success':
-        return 'border-green-200/60 bg-green-50/70 backdrop-blur-sm'
-      case 'failed':
-        return 'border-red-200/60 bg-red-50/70 backdrop-blur-sm'
-      case 'processing':
-        return 'border-blue-200/60 bg-blue-50/70 backdrop-blur-sm'
-      default:
-        return 'border-yellow-200/60 bg-yellow-50/70 backdrop-blur-sm'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />
-      case 'failed':
-        return <AlertCircle className="w-5 h-5 text-red-500" />
-      case 'processing':
-        return <Clock className="w-5 h-5 text-blue-500" />
-      default:
-        return <Download className="w-5 h-5 text-yellow-500" />
-    }
-  }
-
-  const getStatusTitle = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Video Ready!'
-      case 'success':
-        return 'Video Status Update'
-      case 'failed':
-        return 'Video Processing Failed'
-      case 'processing':
-        return 'Processing Video'
-      default:
-        return 'Video Status Update'
-    }
-  }
-
-  const latestUpdate = updates[updates.length - 1]
-  if (!isVisible || !latestUpdate) {
+  // Don't render if no pending videos and no minimized toasts
+  if (pendingVideos.length === 0 && minimizedCount === 0) {
     return null
   }
 
-  const isCompleted = latestUpdate.status === 'completed' || latestUpdate.status === 'success'
-  const hasError = latestUpdate.status === 'failed'
-  const isProcessing = latestUpdate.status === 'processing' || latestUpdate.status === 'pending'
+  const visibleToasts = toasts.filter(t => !t.minimized)
+  const minimizedToasts = toasts.filter(t => t.minimized)
+
+  const handleRestore = (id: string) => {
+    restoreToast(id)
+    setIsPopoverOpen(false)
+  }
 
   return (
-    <div className={`fixed top-24 right-4 z-10 max-w-xs w-full ${className}`}>
-      <div className={`border rounded-lg shadow-lg p-4 transition-all duration-300 ${getStatusColor(latestUpdate.status)} ${getStatusColor(latestUpdate.status) === 'border-yellow-200/60 bg-yellow-50/70 backdrop-blur-sm' ? 'hidden' : 'block'}`}>
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              {getStatusIcon(latestUpdate.status)}
-              <h4 className="font-semibold text-gray-800 text-sm">
-                {getStatusTitle(latestUpdate.status)}
-              </h4>
-            </div>
-            
-            <p className="text-xs text-gray-600 ml-7">
-              {latestUpdate.message}
-            </p>
+    <>
+      {/* Main toast list */}
+      {visibleToasts.length > 0 && (
+        <div className={`fixed top-24 right-4 z-10 max-w-xs w-full ${className}`}>
+          <div className="flex flex-col gap-3">
+            <AnimatePresence mode="popLayout">
+              {visibleToasts.map((toast) => (
+                <ProcessingToast
+                  key={toast.id}
+                  toast={toast}
+                  onMinimize={minimizeToast}
+                />
+              ))}
+            </AnimatePresence>
           </div>
-          
-          {/* Close button - show for all statuses except processing */}
-          {!isProcessing && (
-            <button
-              onClick={onClearCompleted}
-              className="text-gray-400 hover:text-gray-600 transition-colors ml-2 flex-shrink-0"
-              title="Close notification"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
         </div>
+      )}
 
-        {/* Processing indicator */}
-        {isProcessing && (
-          <div className="mb-3">
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-              <span className="text-xs text-gray-600">Processing your video...</span>
-            </div>
-          </div>
-        )}
+      {/* Processing Circle */}
+      {minimizedCount > 0 && (
+        <ProcessingCircle
+          ref={circleRef}
+          count={minimizedCount}
+          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          isPopoverOpen={isPopoverOpen}
+        />
+      )}
 
-        {/* Download link for completed videos */}
-        {isCompleted && latestUpdate.downloadUrl && (
-          <div className="mt-3 p-3 bg-green-100 border border-green-200 rounded text-xs">
-            <a
-              href={latestUpdate.downloadUrl}
-              download
-              className="text-green-700 hover:text-green-800 font-medium flex items-center gap-1"
-            >
-              <Download className="w-3 h-3" />
-              Download Video
-            </a>
-          </div>
+      {/* Minimized List Popover */}
+      <AnimatePresence>
+        {isPopoverOpen && minimizedToasts.length > 0 && (
+          <MinimizedListPopover
+            toasts={minimizedToasts}
+            onRestore={handleRestore}
+            onClose={() => setIsPopoverOpen(false)}
+            isOpen={isPopoverOpen}
+            anchorRef={circleRef}
+          />
         )}
-
-        {/* Error details */}
-        {hasError && (
-          <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded text-xs text-red-700">
-            <div className="font-semibold mb-1">Processing failed:</div>
-            <div>{latestUpdate.message}</div>
-          </div>
-        )}
-
-        {/* Auto-close countdown */}
-        {timeRemaining !== null && (
-          <span className="text-xs text-gray-500 ml-7">
-            Auto-close in {timeRemaining}s
-          </span>
-        )}
-      </div>
-    </div>
+      </AnimatePresence>
+    </>
   )
 }

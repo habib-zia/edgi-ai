@@ -69,6 +69,23 @@ export interface VideoGalleryResponse {
   failedCount: number;
 }
 
+// Pending Workflow Types
+export interface PendingWorkflow {
+  _id: string;
+  executionId: string;
+  userId: string;
+  email: string;
+  status: 'processing' | 'pending' | 'completed' | 'failed';
+  createdAt: string;
+  updatedAt: string;
+  title?: string;
+}
+
+export interface PendingWorkflowsResponse {
+  workflows: PendingWorkflow[];
+  count: number;
+}
+
 // Avatar Types
 export interface Avatar {
   _id: string;
@@ -1397,13 +1414,16 @@ class ApiService {
     }
   }
 
-  // Pending Workflows API - Improved error handling with race condition prevention
-  async checkPendingWorkflows(userId: string): Promise<void> {
+  // Pending Workflows API - Returns pending workflows data from DB
+  async checkPendingWorkflows(userId: string): Promise<ApiResponse<PendingWorkflowsResponse>> {
     try {
       // Ensure token is available before making request
       if (!ensureTokenStored()) {
         console.warn('Skipping pending workflows check - no token available');
-        return;
+        return {
+          success: false,
+          message: 'No token available',
+        };
       }
       
       const url = getApiUrl(`${API_CONFIG.ENDPOINTS.VIDEO.PENDING_WORKFLOWS}/${userId}`);
@@ -1417,21 +1437,37 @@ class ApiService {
       
       if (!response.ok) {
         console.warn('Pending workflows check failed with status:', response.status);
-        return;
+        return {
+          success: false,
+          message: `Failed with status: ${response.status}`,
+          status: response.status,
+        };
       }
       
       const data = await response.json();
       if (data.success && data.data) {
         console.log('✅ Pending workflows checked successfully');
-        console.log('🔌 Socket connection status will be checked by the notification provider');
+        console.log('📊 Pending workflows data:', data.data);
+        return {
+          success: true,
+          message: 'Pending workflows checked successfully',
+          data: data.data,
+        };
       } else {
         console.warn('Pending workflows check returned unsuccessful response:', data.message);
+        return {
+          success: false,
+          message: data.message || 'Unsuccessful response',
+        };
       }
-    } catch (error) {
+    } catch (error: any) {
       // Log error but don't throw to maintain fire-and-forget behavior
       console.error('Pending workflows check failed:', error);
-      // Optionally show a subtle notification to user (but not intrusive)
-      // this.showNotification('Unable to check video status. Please refresh if needed.', 'warning');
+      return {
+        success: false,
+        message: error.message || 'Failed to check pending workflows',
+        error: error.message,
+      };
     }
   }
 }
