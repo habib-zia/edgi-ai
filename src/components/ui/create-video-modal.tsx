@@ -360,28 +360,28 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         }
 
         // Only call generateVideo after successful text-to-speech
-        await apiService.generateVideo(videoGenerationData)
+        const response = await apiService.generateVideo(videoGenerationData)
         const videoId = `video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const videoTitle = videoTopic || 'Custom Video'
+        const videoTitle = videoTopic || 'Custom Video'
 
-      // Add video to pending videos array
-      if (response.success && response.data) {
-        const videoInProgress: VideoInProgress = {
-          id: videoId,
-          title: videoTitle,
-          status: 'processing',
-          timestamp: response.data.timestamp || new Date().toISOString(),
-          message: response.message || 'Video generation started'
+        // Add video to pending videos array
+        if (response.success && response.data) {
+          const videoInProgress: VideoInProgress = {
+            id: videoId,
+            title: videoTitle,
+            status: 'processing',
+            timestamp: response.data.timestamp || new Date().toISOString(),
+            message: response.message || 'Video generation started'
+          }
+          addPendingVideo(videoInProgress)
+          console.log('🎬 Added pending video:', videoInProgress)
         }
-        addPendingVideo(videoInProgress)
-        console.log('🎬 Added pending video:', videoInProgress)
-      }
 
-      // Store a key in localStorage to indicate video generation has started
-      localStorage.setItem('videoGenerationStarted', JSON.stringify({
-        timestamp: Date.now(),
-        videoTitle: videoTitle
-      }))
+        // Store a key in localStorage to indicate video generation has started
+        localStorage.setItem('videoGenerationStarted', JSON.stringify({
+          timestamp: Date.now(),
+          videoTitle: videoTitle
+        }))
         console.log('🎬 Video generation API called - localStorage key set')
         setVideoGenerationreDirected(true)
 

@@ -10,7 +10,7 @@ interface MinimizedListPopoverProps {
   onRestore: (id: string) => void
   onClose: () => void
   isOpen: boolean
-  anchorRef: React.RefObject<HTMLButtonElement>
+  anchorRef: React.RefObject<HTMLButtonElement | null>
 }
 
 export default function MinimizedListPopover({
