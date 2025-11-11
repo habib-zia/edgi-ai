@@ -207,9 +207,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
       <div className="">
         <div className="flex flex-col justify-between items-start mb-4 gap-y-2">
           <h3 className="text-lg font-medium text-[#282828]" style={{ wordBreak: 'break-word' }}>{post.name}</h3>
-          <div className="flex w-fit items-center ml-auto justify-end font-medium gap-1 text-sm text-[#171717]">
-            <FaClock className="text-xs" />
-            <span>{date} {time}</span>
+          <div className="flex w-full items-center justify-between gap-2">
+            <div className="flex w-fit items-center font-medium gap-1 text-sm text-[#171717]">
+              <FaClock className="text-xs" />
+              <span>{date} {time}</span>
+            </div>
+            {post.permalink && (
+              <a
+                href={post.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-sm text-[#5046E5] hover:text-[#4338CA] font-medium transition-colors underline"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 3h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                View Post
+              </a>
+            )}
           </div>
         </div>
         <div className="mb-4">

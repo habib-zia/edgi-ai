@@ -73,6 +73,7 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
       account_type: post.account_type,
       published_at: post.published_at,
       publish_at: post.publish_at,
+      permalink: post.permalink || null,
       platforms: {
         [getPlatformFromAccountType(post.account_type)]: {
           performanceData: generatePerformanceData(post.insights),

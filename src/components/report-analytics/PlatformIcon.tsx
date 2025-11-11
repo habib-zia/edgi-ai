@@ -224,6 +224,7 @@ export interface PostData {
     ext: string;
     mime: string;
   }>;
+  permalink?: string | null;
   platforms: {
     [key: string]: {
       performanceData: Array<{

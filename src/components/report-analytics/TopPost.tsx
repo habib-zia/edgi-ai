@@ -139,25 +139,42 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 				{topPost && topPost.content ? topPost.content.substring(0, 25) + (topPost.content.length > 25 ? "..." : "") : "--"}
 			</div>
 			
-			<div className="flex items-center gap-2 text-sm text-[#171717] mb-4 font-medium">
-				<span>
-					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M6.9987 0.333374C10.6807 0.333374 13.6654 3.31804 13.6654 7.00004C13.6654 10.682 10.6807 13.6667 6.9987 13.6667C3.3167 13.6667 0.332031 10.682 0.332031 7.00004C0.332031 3.31804 3.3167 0.333374 6.9987 0.333374ZM6.9987 1.66671C5.58421 1.66671 4.22766 2.22861 3.22746 3.2288C2.22727 4.229 1.66536 5.58555 1.66536 7.00004C1.66536 8.41453 2.22727 9.77108 3.22746 10.7713C4.22766 11.7715 5.58421 12.3334 6.9987 12.3334C8.41319 12.3334 9.76974 11.7715 10.7699 10.7713C11.7701 9.77108 12.332 8.41453 12.332 7.00004C12.332 5.58555 11.7701 4.229 10.7699 3.2288C9.76974 2.22861 8.41319 1.66671 6.9987 1.66671ZM6.9987 3.00004C7.16199 3.00006 7.31959 3.06001 7.44161 3.16852C7.56364 3.27702 7.64159 3.42654 7.6607 3.58871L7.66536 3.66671V6.72404L9.47003 8.52871C9.5896 8.64868 9.65901 8.80966 9.66418 8.97896C9.66935 9.14826 9.60989 9.31318 9.49786 9.44023C9.38584 9.56727 9.22966 9.64691 9.06105 9.66297C8.89243 9.67904 8.72402 9.63031 8.59003 9.52671L8.52736 9.47137L6.52736 7.47137C6.42375 7.36767 6.35721 7.23271 6.33803 7.08737L6.33203 7.00004V3.66671C6.33203 3.4899 6.40227 3.32033 6.52729 3.1953C6.65232 3.07028 6.82189 3.00004 6.9987 3.00004Z" fill="#5F5F5F"/>
-					</svg>
-				</span>
-				<span>
-					{topPost && topPost.date ? 
-						topPost.date : 
-						topPost && (topPost.published_at || topPost.publish_at) ? 
-							new Date(topPost.published_at || topPost.publish_at).toLocaleDateString('en-US', {
-								day: 'numeric',
-								month: 'short',
-								year: 'numeric',
-								hour: '2-digit',
-								minute: '2-digit'
-							}) : "--"
-					}
-				</span>
+			<div className="flex items-center justify-between w-full mb-4 gap-2">
+				<div className="flex items-center gap-2 text-sm text-[#171717] font-medium">
+					<span>
+						<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M6.9987 0.333374C10.6807 0.333374 13.6654 3.31804 13.6654 7.00004C13.6654 10.682 10.6807 13.6667 6.9987 13.6667C3.3167 13.6667 0.332031 10.682 0.332031 7.00004C0.332031 3.31804 3.3167 0.333374 6.9987 0.333374ZM6.9987 1.66671C5.58421 1.66671 4.22766 2.22861 3.22746 3.2288C2.22727 4.229 1.66536 5.58555 1.66536 7.00004C1.66536 8.41453 2.22727 9.77108 3.22746 10.7713C4.22766 11.7715 5.58421 12.3334 6.9987 12.3334C8.41319 12.3334 9.76974 11.7715 10.7699 10.7713C11.7701 9.77108 12.332 8.41453 12.332 7.00004C12.332 5.58555 11.7701 4.229 10.7699 3.2288C9.76974 2.22861 8.41319 1.66671 6.9987 1.66671ZM6.9987 3.00004C7.16199 3.00006 7.31959 3.06001 7.44161 3.16852C7.56364 3.27702 7.64159 3.42654 7.6607 3.58871L7.66536 3.66671V6.72404L9.47003 8.52871C9.5896 8.64868 9.65901 8.80966 9.66418 8.97896C9.66935 9.14826 9.60989 9.31318 9.49786 9.44023C9.38584 9.56727 9.22966 9.64691 9.06105 9.66297C8.89243 9.67904 8.72402 9.63031 8.59003 9.52671L8.52736 9.47137L6.52736 7.47137C6.42375 7.36767 6.35721 7.23271 6.33803 7.08737L6.33203 7.00004V3.66671C6.33203 3.4899 6.40227 3.32033 6.52729 3.1953C6.65232 3.07028 6.82189 3.00004 6.9987 3.00004Z" fill="#5F5F5F"/>
+						</svg>
+					</span>
+					<span>
+						{topPost && topPost.date ? 
+							topPost.date : 
+							topPost && (topPost.published_at || topPost.publish_at) ? 
+								new Date(topPost.published_at || topPost.publish_at).toLocaleDateString('en-US', {
+									day: 'numeric',
+									month: 'short',
+									year: 'numeric',
+									hour: '2-digit',
+									minute: '2-digit'
+								}) : "--"
+						}
+					</span>
+				</div>
+				{topPost?.permalink && (
+					<a
+						href={topPost.permalink}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="flex items-center gap-1 text-sm text-[#5046E5] hover:text-[#4338CA] font-medium transition-colors underline"
+					>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+							<path d="M15 3h6v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+							<path d="M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+						</svg>
+						View Post
+					</a>
+				)}
 			</div>
 
 			<div className="w-full h-[1px] bg-[#AFAFAF] mb-4"></div>
