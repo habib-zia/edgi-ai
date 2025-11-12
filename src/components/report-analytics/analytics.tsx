@@ -242,7 +242,8 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 				{hasPosts && postsData.length > 0 && (
 					<div className="flex md:flex-row flex-col gap-y-3 justify-between items-center md:mb-2 mb-5">
 						<h2 className="md:text-[40px] text-[28px] font-semibold text-[#171717]">Recent Stats</h2>
-						<div className="relative" ref={dropdownRef}>
+						<div className="relative flex items-center gap-2" ref={dropdownRef}>
+							<h2 className="text-lg font-medium text-[#282828]">Selected Platform</h2>
 							<div 
 								className="flex items-center gap-3 px-4 py-[6px] bg-[#EEEEEE] rounded-lg cursor-pointer hover:bg-gray-50 transition-all duration-300"
 								onClick={() => setIsDropdownOpen(!isDropdownOpen)}
