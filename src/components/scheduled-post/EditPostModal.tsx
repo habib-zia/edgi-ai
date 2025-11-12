@@ -5,11 +5,11 @@ import TimePicker from "./TimePicker";
 import CaptionsTextarea from "./CaptionsTextarea";
 import CaptionsDropdown from "./CaptionsDropdown";
 import { apiService } from "@/lib/api-service";
-import { 
-  getCurrentDate, 
-  getMinTimeForToday, 
-  isPostScheduledSoon, 
-  getCleanDate 
+import {
+  getCurrentDate,
+  getMinTimeForToday,
+  isPostScheduledSoon,
+  getCleanDate
 } from '@/utils/dateTimeUtils';
 import { useModalScrollLock } from "@/hooks/useModalScrollLock";
 
@@ -45,6 +45,9 @@ interface EditPostModalProps {
 export default function EditPostModal({ isOpen, onClose, onEdit, postData }: EditPostModalProps) {
   const originalVideoTopicRef = useRef<string>("");
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const originalPostDateRef = useRef<string>("");
+  const originalPostTimeRef = useRef<string>("");
+  const isInitializedRef = useRef<boolean>(false);
 
   const [formData, setFormData] = useState({
     date: getCleanDate(postData?.date),
@@ -67,6 +70,8 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   const [timeAdjustmentMessage, setTimeAdjustmentMessage] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [timeValidationError, setTimeValidationError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useModalScrollLock(isOpen)
 
@@ -75,14 +80,25 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
   const minDate = getCurrentDate();
   const minTimeForToday = getMinTimeForToday(40);
 
-  // Check if post is scheduled soon (today and within 40 minutes)
-  const isRestricted = isPostScheduledSoon(formData.date, formData.time, 40);
-
+  // Store original post date and time when modal opens
   useEffect(() => {
     if (postData) {
+      originalPostDateRef.current = getCleanDate(postData.date);
+      originalPostTimeRef.current = postData.time || "";
+    }
+  }, [postData]);
+
+  // Check if ORIGINAL post is scheduled soon (today and within 40 minutes)
+  // This determines if the modal should be restricted on open
+  const isRestricted = isPostScheduledSoon(originalPostDateRef.current, originalPostTimeRef.current, 40);
+
+  // Only initialize form data when modal first opens, not when postData changes
+  // This prevents form data from being reset when user has made changes or when API fails
+  useEffect(() => {
+    if (isOpen && postData && !isInitializedRef.current) {
       const initialVideoTopic = postData.videoTopic || "";
       originalVideoTopicRef.current = initialVideoTopic;
-      
+
       setFormData({
         date: getCleanDate(postData.date),
         time: postData.time || "",
@@ -100,8 +116,21 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
         index: postData.index || 0,
         keypoints: postData.keypoints || ""
       });
+      
+      // Clear any previous errors when modal opens
+      setApiError(null);
+      setTimeValidationError(null);
+      setTimeAdjustmentMessage(null);
+      
+      // Mark as initialized
+      isInitializedRef.current = true;
+    } else if (!isOpen) {
+      // Reset initialization flag when modal closes
+      isInitializedRef.current = false;
     }
-  }, [postData]);
+    // Only depend on isOpen, not postData - this prevents form reset when postData changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -139,29 +168,29 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
       const selectedDate = new Date(value);
       const today = new Date();
       const isToday = selectedDate.toDateString() === today.toDateString();
-      
+
       if (isToday && formData.time) {
         const now = new Date();
         const minTime = new Date(now.getTime() + 40 * 60 * 1000);
         const minTimeStr = minTime.toTimeString().slice(0, 5);
         const selectedTime = new Date(`${value}T${formData.time}:00`);
         const minTimeForToday = new Date(`${value}T${minTimeStr}:00`);
-        
+
         if (selectedTime < minTimeForToday) {
           const adjustedTime = minTimeStr;
           setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime} (40 minutes from now)`);
-          
+
           // Clear previous timeout
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
           }
-          
+
           // Set new timeout with cleanup
           timeoutRef.current = setTimeout(() => {
             setTimeAdjustmentMessage(null);
             timeoutRef.current = null;
           }, 5000);
-          
+
           setFormData(prev => ({
             ...prev,
             [field]: value,
@@ -171,34 +200,34 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
         }
       }
     }
-    
+
     if (field === 'time') {
       const selectedDate = new Date(formData.date);
       const today = new Date();
       const isToday = selectedDate.toDateString() === today.toDateString();
-      
+
       if (isToday) {
         const now = new Date();
         const minTime = new Date(now.getTime() + 40 * 60 * 1000);
         const minTimeStr = minTime.toTimeString().slice(0, 5);
         const selectedTime = new Date(`${formData.date}T${value}:00`);
         const minTimeForToday = new Date(`${formData.date}T${minTimeStr}:00`);
-        
+
         if (selectedTime < minTimeForToday) {
           const adjustedTime = minTimeStr;
           setTimeAdjustmentMessage(`You cannot proceed with today's date with past time. Time automatically adjusted to ${adjustedTime} (40 minutes from now)`);
-          
+
           // Clear previous timeout
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
           }
-          
+
           // Set new timeout with cleanup
           timeoutRef.current = setTimeout(() => {
             setTimeAdjustmentMessage(null);
             timeoutRef.current = null;
           }, 5000);
-          
+
           setFormData(prev => ({
             ...prev,
             time: adjustedTime
@@ -207,7 +236,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
         }
       }
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -225,30 +254,101 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsUpdating(true);
     
+    // Clear previous errors
+    setApiError(null);
+    setTimeValidationError(null);
+    
+    setIsUpdating(true);
+
     try {
-      let updatedKeypoints = formData.keypoints || '';
-      
-      // Check if videoTopic has changed
-      const videoTopicChanged = formData.videoTopic.trim() !== originalVideoTopicRef.current.trim();
-      
-      if (videoTopicChanged && formData.videoTopic.trim()) {
-        // Call the trends API to get updated keypoints
-        try {
-          const trendsResponse = await apiService.getDescriptionKeypoints(formData.videoTopic.trim());
-          
-          if (trendsResponse.success && trendsResponse.data?.keypoints) {
-            updatedKeypoints = trendsResponse.data.keypoints;
-          } else {
-            console.warn('Failed to get keypoints from trends API, using existing keypoints');
+      // Validate time before submitting - check if time has passed while user was editing
+      let finalTime = formData.time;
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      const isToday = selectedDate.toDateString() === today.toDateString();
+
+      if (isToday && formData.time && formData.time.trim()) {
+        // Validate time format
+        const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+        if (timeRegex.test(formData.time)) {
+          const now = new Date();
+          const minTime = new Date(now.getTime() + 40 * 60 * 1000);
+          const minTimeStr = minTime.toTimeString().slice(0, 5);
+
+          try {
+            const selectedTime = new Date(`${formData.date}T${formData.time}:00`);
+            const minTimeForToday = new Date(`${formData.date}T${minTimeStr}:00`);
+
+            // If selected time is now less than 40 minutes from current time, adjust it
+            if (selectedTime < minTimeForToday) {
+              const adjustedTime = minTimeStr;
+              setTimeValidationError(`Time must be at least 40 minutes from now. Adjusted to ${adjustedTime} (40 minutes from now)`);
+              setTimeAdjustmentMessage(null); // Clear any previous adjustment message
+              setIsUpdating(false);
+              // Clear previous timeout
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+              }
+
+              // Set new timeout with cleanup
+              timeoutRef.current = setTimeout(() => {
+                setTimeValidationError(null);
+                timeoutRef.current = null;
+              }, 10000); // Show error for 10 seconds
+
+              // Update form data with adjusted time
+              finalTime = adjustedTime;
+              setFormData(prev => ({
+                ...prev,
+                time: adjustedTime
+              }));
+              return;
+              // Continue with update - allow the update to proceed with adjusted time
+            } else {
+              // Clear validation error if time is valid
+              setTimeValidationError(null);
+            }
+          } catch (error) {
+            console.error('Error validating time on submit:', error);
           }
-        } catch (error) {
-          console.error('Error fetching keypoints from trends API:', error);
-          // Continue with existing keypoints if API call fails
         }
       }
-      
+
+      let updatedKeypoints = formData.keypoints || '';
+
+      // Check if videoTopic has changed
+      const videoTopicChanged = formData.videoTopic.trim() !== originalVideoTopicRef.current.trim();
+
+      if (videoTopicChanged && formData.videoTopic.trim()) {
+        // Call the trends API to get updated keypoints (1st API)
+        try {
+          const trendsResponse = await apiService.getDescriptionKeypoints(formData.videoTopic.trim());
+
+          if (trendsResponse.success && trendsResponse.data?.keypoints) {
+            // 1st API succeeded - use new keypoints and proceed to 2nd API (update)
+            updatedKeypoints = trendsResponse.data.keypoints;
+          } else {
+            // 1st API failed - don't call 2nd API, show error and return
+            // Form data is preserved (user's input remains visible)
+            console.warn('Failed to get keypoints from trends API');
+            setApiError('Failed to update keypoints. Please try again.');
+            setIsUpdating(false);
+            return;
+          }
+        } catch (error) {
+          // 1st API error - don't call 2nd API, show error and return
+          // Form data is preserved (user's input remains visible)
+          console.error('Error fetching keypoints from trends API:', error);
+          setApiError('Failed to update keypoints. Please try again.');
+          setIsUpdating(false);
+          return;
+        }
+      }
+
+      // Proceed with update (2nd API) only if:
+      // 1. Video topic was NOT changed, OR
+      // 2. Video topic was changed AND keypoints API (1st API) succeeded
       const updateData = {
         description: formData.videoTopic,
         keypoints: updatedKeypoints,
@@ -260,19 +360,28 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
           tiktok: formData.tiktok || '',
           youtube: formData.youtube || ''
         },
-        scheduledFor: `${getCleanDate(formData.date)} ${formData.time}:00`
+        scheduledFor: `${getCleanDate(formData.date)} ${finalTime}:00`
       };
-      
+
       if (onEdit) {
-        await onEdit(updateData);
-        onClose();
+        try {
+          await onEdit(updateData);
+          onClose();
+        } catch (error) {
+          // 2nd API (update) failed - show error but preserve form data
+          console.error('Error updating post:', error);
+          setApiError('Failed to update post. Please try again.');
+          setIsUpdating(false);
+          // Form data is preserved (user's input remains visible)
+        }
       } else {
         onClose();
       }
     } catch (error) {
       console.error('Error updating post:', error);
-    } finally {
+      setApiError('An unexpected error occurred. Please try again.');
       setIsUpdating(false);
+      // Form data is preserved (user's input remains visible)
     }
   };
 
@@ -289,8 +398,8 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
             aria-label="Close modal"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <g clipPath="url(#clip0_8737_6740)"><path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </g><defs><clipPath id="clip0_8737_6740"><rect width="24" height="24" fill="white"/>
+              <g clipPath="url(#clip0_8737_6740)"><path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </g><defs><clipPath id="clip0_8737_6740"><rect width="24" height="24" fill="white" />
               </clipPath></defs>
             </svg>
           </button>
@@ -304,7 +413,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
                   <div className="w-5 h-5 bg-yellow-500 rounded-full flex-shrink-0 mt-0.5"></div>
                   <div>
                     <h4 className="text-sm font-medium text-yellow-800 mb-1">Editing Restricted</h4>
-                    <p className="text-sm text-yellow-700">This post is scheduled within 40 minutes. You cannot edit the date and time.</p>
+                    <p className="text-sm text-yellow-700">This post is scheduled within 40 minutes. You cannot update this post.</p>
                   </div>
                 </div>
               </div>
@@ -318,6 +427,19 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
                   <div>
                     <h4 className="text-sm font-medium text-red-800 mb-1">Time Restriction</h4>
                     <p className="text-sm text-red-700">{timeAdjustmentMessage}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* API Error Message */}
+            {apiError && (
+              <div className="w-full p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-red-500 rounded-full flex-shrink-0 mt-0.5"></div>
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800 mb-1">Update Failed</h4>
+                    <p className="text-sm text-red-700">{apiError}</p>
                   </div>
                 </div>
               </div>
@@ -343,21 +465,24 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
                   disabled={isRestricted}
                   minTime={formData.date === minDate ? minTimeForToday : undefined}
                 />
+                {timeValidationError && (
+                  <p className="text-red-500 text-sm mt-1">{timeValidationError}</p>
+                )}
               </div>
             </div>
-              <div>
-                <label className="block text-base font-normal text-[#5F5F5F] mb-[2px]">
-                  Video Topic <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.videoTopic}
-                  onChange={(e) => handleInputChange('videoTopic', e.target.value)}
-                  placeholder="Please Specify"
-                  disabled={isRestricted}
-                  className="w-full bg-[#EEEEEE] rounded-[7px] px-3 py-2 text-sm font-medium text-[#282828] placeholder-[#858999] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#5046E5] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </div>
+            <div>
+              <label className="block text-base font-normal text-[#5F5F5F] mb-[2px]">
+                Video Topic <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.videoTopic}
+                onChange={(e) => handleInputChange('videoTopic', e.target.value)}
+                placeholder="Please Specify"
+                disabled={isRestricted}
+                className="w-full bg-[#EEEEEE] rounded-[7px] px-3 py-2 text-sm font-medium text-[#282828] placeholder-[#858999] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#5046E5] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
 
             <div>
               <div className="flex items-center justify-between mb-[2px]">
@@ -381,11 +506,10 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
           <button
             onClick={handleSubmit}
             disabled={isRestricted || isUpdating}
-            className={`w-full py-3 px-6 font-semibold rounded-full text-xl transition-colors duration-300 ${
-              isRestricted || isUpdating
-                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+            className={`w-full py-3 px-6 font-semibold rounded-full text-xl transition-colors duration-300 ${isRestricted || isUpdating
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                 : 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
-            }`}
+              }`}
           >
             {isUpdating ? 'Updating post...' : isRestricted ? 'Editing Restricted' : 'Update'}
           </button>
