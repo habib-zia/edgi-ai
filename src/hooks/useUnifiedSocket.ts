@@ -169,6 +169,9 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
         })))
         
         // Check for failed workflows and show notifications
+        // Collect notifications to show after state update (to avoid React warning)
+        const notificationsToShow: Array<{ message: string; type: 'error' | 'success' }> = []
+        
         // Use functional update to access current pending videos
         setPendingVideos(prev => {
           // Create a map of current video IDs (both DB format and temporary format)
@@ -191,7 +194,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
             (workflow: PendingWorkflow) => workflow.status === 'failed'
           )
           
-          // Show notification for each failed video (only once per video)
+          // Collect failed video notifications (only once per video)
           failedWorkflows.forEach((workflow: PendingWorkflow) => {
             const workflowId = workflow._id
             const videoId = `video-${workflow._id}-${workflow.executionId}`
@@ -206,10 +209,10 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
             
             if (matchesCurrentVideo && !notifiedFailedVideos.current.has(videoId)) {
               notifiedFailedVideos.current.add(videoId)
-              showNotification(
-                `Video "${videoTitle}" creation failed. Please try creating it again.`,
-                'error'
-              )
+              notificationsToShow.push({
+                message: `Video "${videoTitle}" creation failed. Please try creating it again.`,
+                type: 'error'
+              })
               console.log('❌ Video failed:', videoTitle, workflow._id)
             }
           })
@@ -219,7 +222,7 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
             (workflow: PendingWorkflow) => workflow.status === 'completed'
           )
           
-          // Show success notification for each completed video (only once per video)
+          // Collect completed video notifications (only once per video)
           completedWorkflows.forEach((workflow: PendingWorkflow) => {
             const workflowId = workflow._id
             const videoId = `video-${workflow._id}-${workflow.executionId}`
@@ -234,16 +237,25 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
             
             if (matchesCurrentVideo && !notifiedCompletedVideos.current.has(videoId)) {
               notifiedCompletedVideos.current.add(videoId)
-              showNotification(
-                `Video "${videoTitle}" is ready! You can view it in your gallery.`,
-                'success'
-              )
+              notificationsToShow.push({
+                message: `Video "${videoTitle}" is ready! You can view it in your gallery.`,
+                type: 'success'
+              })
               console.log('✅ Video completed:', videoTitle, workflow._id)
             }
           })
           
           return prev // Return unchanged for now, we'll update below
         })
+        
+        // Show notifications after state update (defer to avoid React warning)
+        if (notificationsToShow.length > 0) {
+          setTimeout(() => {
+            notificationsToShow.forEach(({ message, type }) => {
+              showNotification(message, type, type === 'error' ? 15000 : undefined)
+            })
+          }, 0)
+        }
         
         // Filter workflows that are not completed or failed (include all active states)
         const pendingWorkflows = workflows.filter(
@@ -640,6 +652,84 @@ export const useUnifiedSocket = (userId: string | null): UnifiedSocketState => {
               return prev
             }
             return showNotificationAndRemove(prev, 'no userId')
+          })
+        }
+      }
+
+      // Remove one video from progress tracking when error/failed arrives (FIFO)
+      // Verify in DB first before removing
+      if (status === 'error' || status === 'failed') {
+        console.log('❌ Video error/failed - verifying in DB before removing (FIFO)')
+        
+        // Helper function to show error notification and remove video
+        const showErrorNotificationAndRemove = (prev: VideoInProgress[], context: string, errorMessage?: string) => {
+          if (prev.length === 0) {
+            return prev
+          }
+          const removed = prev[0]
+          const videoId = removed.id
+          const videoTitle = removed.title || 'Video'
+          
+          // Show notification if not already notified
+          if (!notifiedFailedVideos.current.has(videoId)) {
+            notifiedFailedVideos.current.add(videoId)
+            // Use socket message if available, otherwise use user-friendly fallback
+            const message = errorMessage || `Video "${videoTitle}" creation failed. Please try creating it again.`
+            showNotification(message, 'error', 15000)
+            console.log('❌ Video failed notification shown:', videoTitle, videoId, message)
+          }
+          
+          const remaining = prev.slice(1)
+          console.log(`➖ Removed pending video (FIFO, ${context}):`, removed)
+          return remaining
+        }
+        
+        // Get error message from socket update
+        const errorMessage = update.message || update.data?.message || undefined
+        
+        // Verify failure in DB before removing
+        if (userId) {
+          // First sync with DB to get latest state
+          syncPendingVideos(userId).then(() => {
+            // After DB sync, check if we should remove one video
+            // DB sync already updated the state, so we just need to verify count
+            apiService.checkPendingWorkflows(userId).then(result => {
+              if (result.success && result.data) {
+                const pendingWorkflows = result.data.workflows.filter(
+                  (workflow: PendingWorkflow) => 
+                    workflow.status !== 'completed' && workflow.status !== 'failed'
+                )
+                
+                // Get current local state count
+                setPendingVideos(prev => {
+                  // Only remove if DB has fewer pending items than our local state
+                  if (pendingWorkflows.length < prev.length) {
+                    return showErrorNotificationAndRemove(prev, 'DB verified', errorMessage)
+                  } else {
+                    console.log('⏸️ DB verification: keeping pending videos (count matches)')
+                    return prev
+                  }
+                })
+              } else {
+                // If DB check fails, still remove (FIFO assumption)
+                setPendingVideos(prev => showErrorNotificationAndRemove(prev, 'DB check failed', errorMessage))
+              }
+            }).catch(() => {
+              // If DB check fails, still remove (FIFO assumption)
+              setPendingVideos(prev => showErrorNotificationAndRemove(prev, 'DB error', errorMessage))
+            })
+          }).catch(() => {
+            // If sync fails, still remove (FIFO assumption)
+            setPendingVideos(prev => showErrorNotificationAndRemove(prev, 'sync failed', errorMessage))
+          })
+        } else {
+          // No userId, just remove (FIFO)
+          setPendingVideos(prev => {
+            if (prev.length === 0) {
+              console.log('⚠️ No pending videos to remove')
+              return prev
+            }
+            return showErrorNotificationAndRemove(prev, 'no userId', errorMessage)
           })
         }
       }

@@ -9,12 +9,7 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ topPostData }) => {
 
   const getPerformanceData = () => {
     if (!topPostData || !topPostData.insights || !Array.isArray(topPostData.insights)) {
-      return [
-        { metric: 'Reach', value: 0 },
-        { metric: 'Likes', value: 0 },
-        { metric: 'Interactions', value: 0 },
-        { metric: 'Shares', value: 0 }
-      ];
+      return [];
     }
 
     const getInsightValue = (type: string) => {
@@ -22,33 +17,94 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ topPostData }) => {
       return insight?.value || 0;
     };
 
-    return [
-      { metric: 'Reach', value: getInsightValue('reach') },
-      { metric: 'Likes', value: getInsightValue('likes') },
-      { metric: 'Interactions', value: getInsightValue('total_interactions') },
-      { metric: 'Shares', value: getInsightValue('shares') }
-    ];
+    const getPlatformFromAccountType = (accountType: string): string => {
+      if (!accountType) return '';
+      if (accountType.includes('Instagram')) return 'Instagram';
+      if (accountType.includes('Facebook')) return 'Facebook';
+      if (accountType.includes('LinkedIn')) return 'LinkedIn';
+      if (accountType.includes('YouTube')) return 'YouTube';
+      if (accountType.includes('Twitter') || accountType.includes('X')) return 'X';
+      if (accountType.includes('TikTok')) return 'TikTok';
+      return '';
+    };
+
+    const platform = getPlatformFromAccountType(topPostData.account_type || '');
+    
+    const getPlatformMetrics = (platformName: string): Array<{ key: string; label: string; getValue: () => number }> => {
+      switch (platformName) {
+        case 'Instagram':
+        case 'Facebook':
+        case 'LinkedIn':
+        case 'TikTok':
+          return [
+            { key: 'reach', label: 'Reach', getValue: () => getInsightValue('reach') },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
+            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') },
+            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') }
+          ];
+        case 'X':
+        case 'Twitter':
+          return [
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
+            { 
+              key: 'retweets', 
+              label: 'Retweets', 
+              getValue: () => getInsightValue('retweets')
+            }
+          ];
+        case 'YouTube':
+          return [
+            { key: 'reach', label: 'Views', getValue: () => getInsightValue('reach') },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') },
+            { key: 'dislikes', label: 'Dislikes', getValue: () => getInsightValue('dislikes') }
+          ];
+        default:
+          return [
+            { key: 'reach', label: 'Reach', getValue: () => getInsightValue('reach') },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
+            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') },
+            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') }
+          ];
+      }
+    };
+
+    const platformMetrics = getPlatformMetrics(platform);
+    
+    return platformMetrics.map(m => ({
+      metric: m.label,
+      value: m.getValue()
+    }));
   };
 
   const performanceData = getPerformanceData();
   
-  const maxValue = Math.max(...performanceData.map(d => d.value), 10);
+  const maxValue = performanceData.length > 0 
+    ? Math.max(...performanceData.map(d => d.value), 10)
+    : 10;
 
   return (
     <div className="w-full flex-col border border-[#F1F1F4] items-center bg-white justify-center py-4 pl-4 pr-4 rounded-[10px]" style={{ boxShadow: "0px 5px 20px 0px #0000000D" }}>
         <div className="w-full flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-[#282828]">
-            Performance
+            Top Post Performance
           </h2>
         </div>
         
         <div className="w-full h-[278px] relative">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={performanceData}
-              layout="vertical"
-              margin={{ top: 20, right: 80, left: 0, bottom: 20 }}
-            >
+          {performanceData.length === 0 ? (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <p>No performance data available</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={performanceData}
+                layout="vertical"
+                margin={{ top: 20, right: 80, left: 0, bottom: 20 }}
+              >
               {/* Grid Lines - Both vertical and horizontal to create box pattern */}
               <CartesianGrid 
                 strokeDasharray="0" 
@@ -97,6 +153,7 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ topPostData }) => {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
     </div>
   );

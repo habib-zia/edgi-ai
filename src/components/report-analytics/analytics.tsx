@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import FollowersChart from "./FollowersChart";
 import TopPost from "./TopPost";
 import { summary, getPlatformIcon, AnalyticsDashboardProps } from "./PlatformIcon";
+import { useTopPostsInsights } from "@/hooks/useTopPostsInsights";
 
 
 
@@ -15,12 +16,26 @@ const cardVariants = {
 
 export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatform, hasPosts = false, postsData = [] }: AnalyticsDashboardProps) {
 
-
 	const isEmptyState = !hasPosts;
 	const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 	const dropdownRef = React.useRef<HTMLDivElement>(null);
 
 	const platformOptions = ['All', 'Instagram', 'Facebook', 'X', 'LinkedIn', 'TikTok', 'YouTube'];
+
+	const { topPostsData, fetchTopPostsInsights } = useTopPostsInsights();
+
+	React.useEffect(() => {
+		if (hasPosts) {
+			const endDate = new Date();
+			const startDate = new Date();
+			startDate.setDate(startDate.getDate() - 30);
+			
+			const startDateStr = startDate.toISOString().split('T')[0];
+			const endDateStr = endDate.toISOString().split('T')[0];
+			
+			fetchTopPostsInsights(startDateStr, endDateStr, 'all');
+		}
+	}, [hasPosts, selectedPlatform, fetchTopPostsInsights]);
 
 	const getPlatformVideoCounts = () => {
 		if (!hasPosts || postsData.length === 0) {
@@ -121,37 +136,59 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 	const currentMetrics = getPlatformMetrics();
 
 	const getTopPost = () => {
-		if (!hasPosts || postsData.length === 0) {
+		if (!topPostsData || !topPostsData.posts || topPostsData.posts.length === 0) {
 			return null;
 		}
 
-		let topPost: any = null;
-		let maxScore = 0;
+		const apiPosts = topPostsData.posts;
 
-		postsData.forEach(post => {
-			// Extract metrics from insights array
-			const getInsightValue = (type: string) => {
-				if (!post.insights || !Array.isArray(post.insights)) return 0;
-				const insight = post.insights.find((i: any) => i.type === type);
-				return insight?.value || 0;
-			};
+		const getInsightValue = (post: any, type: string) => {
+			if (!post.insights || !Array.isArray(post.insights)) return 0;
+			const insight = post.insights.find((i: any) => i.type === type);
+			return insight?.value || 0;
+		};
 
-			const reach = getInsightValue('reach');
-			const likes = getInsightValue('likes');
-			const comments = getInsightValue('comments');
-			const shares = getInsightValue('shares');
+		// Helper function to map account_type to platform name
+		const getPlatformFromAccountType = (accountType: string): string => {
+			if (!accountType) return '';
+			if (accountType.includes('Instagram')) return 'Instagram';
+			if (accountType.includes('Facebook')) return 'Facebook';
+			if (accountType.includes('LinkedIn')) return 'LinkedIn';
+			if (accountType.includes('YouTube')) return 'YouTube';
+			if (accountType.includes('Twitter') || accountType.includes('X')) return 'X';
+			if (accountType.includes('TikTok')) return 'TikTok';
+			return '';
+		};
+
+		if (selectedPlatform === 'All') {
+			let topPost: any = null;
+			let maxScore = 0;
+
+			apiPosts.forEach(post => {
+				const reach = getInsightValue(post, 'reach');
+				const likes = getInsightValue(post, 'like_count') || getInsightValue(post, 'likes');
+				const comments = getInsightValue(post, 'comments_count') || getInsightValue(post, 'comments');
+				const shares = getInsightValue(post, 'shares');
+				const totalInteractions = getInsightValue(post, 'total_interactions');
+				const retweets = getInsightValue(post, 'retweets') || (getPlatformFromAccountType(post.account_type) === 'X' ? shares : 0);
+				const dislikes = getInsightValue(post, 'dislikes');
+				
+				const score = (reach * 1000) + (likes * 100) + (comments * 50) + (shares * 25) + (totalInteractions * 75) + (retweets * 30) + (dislikes * -10);
+				
+				if (score >= maxScore) {
+					maxScore = score;
+					topPost = post;
+				}
+			});
 			
-			// Calculate score: prioritize reach, then likes, then comments, then shares
-			// Using weighted combination: reach (highest weight) + likes + comments + shares
-			const score = (reach * 1000) + (likes * 100) + (comments * 50) + (shares * 25);
-			
-			if (score > maxScore) {
-				maxScore = score;
-				topPost = post;
-			}
-		});
-		
-		return topPost;
+			return topPost;
+		} else {
+			const filteredPosts = apiPosts.filter(post => {
+				const postPlatform = getPlatformFromAccountType(post.account_type);
+				return postPlatform === selectedPlatform;
+			});
+			return filteredPosts.length > 0 ? filteredPosts[0] : null;
+		}
 	};
 
 	const topPost = getTopPost();
@@ -159,7 +196,7 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 	const getTopPostPlatform = () => {
 		if (!topPost) return 'All';
 		
-		// Get platform from account_type
+		// Get platform from account_type (API data structure)
 		if (topPost.account_type) {
 			if (topPost.account_type.includes('Instagram')) return 'Instagram';
 			if (topPost.account_type.includes('Facebook')) return 'Facebook';
@@ -169,7 +206,7 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 			if (topPost.account_type.includes('TikTok')) return 'TikTok';
 		}
 		
-		// Fallback to platforms object if available
+		// Fallback to platforms object if available (for backward compatibility)
 		if (topPost.platforms && Object.keys(topPost.platforms).length > 0) {
 			return Object.keys(topPost.platforms)[0];
 		}

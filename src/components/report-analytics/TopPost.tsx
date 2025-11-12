@@ -185,10 +185,20 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 					<div className="flex items-center gap-1">
 						<FaRegThumbsUp className="text-sm text-[#282828]" />
 						<span className="font-medium text-base text-[#282828]">
-							{topPost && topPost.platforms?.[topPostPlatform]?.engagement?.likes ? 
-								topPost.platforms[topPostPlatform].engagement.likes.toLocaleString() :
-								topPost && topPost.insights?.find((i: any) => i.type === 'likes')?.value ?
-									topPost.insights.find((i: any) => i.type === 'likes').value.toLocaleString() : "--"}
+							{(() => {
+								// Try platforms first (backward compatibility)
+								if (topPost && topPost.platforms?.[topPostPlatform]?.engagement?.likes) {
+									return topPost.platforms[topPostPlatform].engagement.likes.toLocaleString();
+								}
+								// Try insights array (API format)
+								if (topPost && topPost.insights) {
+									const likesInsight = topPost.insights.find((i: any) => i.type === 'like_count' || i.type === 'likes');
+									if (likesInsight?.value) {
+										return likesInsight.value.toLocaleString();
+									}
+								}
+								return "--";
+							})()}
 						</span>
 					</div>
 				</div>
@@ -197,10 +207,20 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 					<div className="flex items-center gap-1">
 						<FaRegCommentDots className="text-sm text-[#282828]" />
 						<span className="font-medium text-base text-[#282828]">
-							{topPost && topPost.platforms?.[topPostPlatform]?.engagement?.comments ? 
-								topPost.platforms[topPostPlatform].engagement.comments.toLocaleString() :
-								topPost && topPost.insights?.find((i: any) => i.type === 'comments')?.value ?
-									topPost.insights.find((i: any) => i.type === 'comments').value.toLocaleString() : "--"}
+							{(() => {
+								// Try platforms first (backward compatibility)
+								if (topPost && topPost.platforms?.[topPostPlatform]?.engagement?.comments) {
+									return topPost.platforms[topPostPlatform].engagement.comments.toLocaleString();
+								}
+								// Try insights array (API format)
+								if (topPost && topPost.insights) {
+									const commentsInsight = topPost.insights.find((i: any) => i.type === 'comments_count' || i.type === 'comments');
+									if (commentsInsight?.value) {
+										return commentsInsight.value.toLocaleString();
+									}
+								}
+								return "--";
+							})()}
 						</span>
 					</div>
 				</div>
@@ -209,10 +229,20 @@ export default function TopPost({ topPost, topPostPlatform }: TopPostProps) {
 					<div className="flex items-center gap-1">
 						<FaRegShareSquare className="text-sm text-[#282828]" />
 						<span className="font-medium text-base text-[#282828]">
-							{topPost && topPost.platforms?.[topPostPlatform]?.engagement?.shares ? 
-								topPost.platforms[topPostPlatform].engagement.shares.toLocaleString() :
-								topPost && topPost.insights?.find((i: any) => i.type === 'shares')?.value ?
-									topPost.insights.find((i: any) => i.type === 'shares').value.toLocaleString() : "--"}
+							{(() => {
+								// Try platforms first (backward compatibility)
+								if (topPost && topPost.platforms?.[topPostPlatform]?.engagement?.shares) {
+									return topPost.platforms[topPostPlatform].engagement.shares.toLocaleString();
+								}
+								// Try insights array (API format)
+								if (topPost && topPost.insights) {
+									const sharesInsight = topPost.insights.find((i: any) => i.type === 'shares');
+									if (sharesInsight?.value) {
+										return sharesInsight.value.toLocaleString();
+									}
+								}
+								return "--";
+							})()}
 						</span>
 					</div>
 				</div>

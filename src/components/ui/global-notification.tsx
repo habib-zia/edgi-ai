@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { create } from 'zustand'
 
 interface NotificationState {
   message: string
   type: 'success' | 'error' | 'warning' | 'info'
   isVisible: boolean
-  showNotification: (message: string, type?: 'success' | 'error' | 'warning' | 'info') => void
+  showNotification: (message: string, type?: 'success' | 'error' | 'warning' | 'info', duration?: number) => void
   hideNotification: () => void
 }
 
@@ -15,12 +14,13 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   message: '',
   type: 'info',
   isVisible: false,
-  showNotification: (message, type = 'info') => {
+  showNotification: (message, type = 'info', duration?: number) => {
     set({ message, type, isVisible: true })
-    // Auto hide after 5 seconds
+    // Auto hide after duration (default: 10 seconds, error: 15 seconds)
+    const hideDelay = duration ?? (type === 'error' ? 15000 : 10000)
     setTimeout(() => {
       set({ isVisible: false })
-    }, 5000)
+    }, hideDelay)
   },
   hideNotification: () => set({ isVisible: false })
 }))

@@ -83,7 +83,7 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
               change: getInsightValue(post.insights, 'reach_change') || 0
             },
             impression: { 
-              value: getInsightValue(post.insights, 'impression') || 0,
+              value: getInsightValue(post.insights, 'total_interactions') || getInsightValue(post.insights, 'impression') || 0,
               change: getInsightValue(post.insights, 'impression_change') || 0
             },
             engagement: { 
@@ -92,7 +92,13 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
             }
           },
           engagement: {
-            likes: getInsightValue(post.insights, 'likes') || 0,
+            likes: (() => {
+              const platform = getPlatformFromAccountType(post.account_type);
+              if (platform === 'Facebook') {
+                return getInsightValue(post.insights, 'reactions') || getInsightValue(post.insights, 'likes') || 0;
+              }
+              return getInsightValue(post.insights, 'likes') || 0;
+            })(),
             comments: getInsightValue(post.insights, 'comments') || 0,
             shares: getInsightValue(post.insights, 'shares') || 0
           }
