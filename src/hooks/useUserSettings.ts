@@ -89,7 +89,11 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         setValue('preferredTone', settings.preferredTone || '')
         setValue('callToAction', settings.callToAction || '')
         setValue('email', settings.email || '')
-        setValue('gender', settings.gender || '')
+        // Convert gender from lowercase (API format) to capitalized (form format)
+        const genderValue = settings.gender || ''
+        const capitalizedGender = genderValue ? genderValue.charAt(0).toUpperCase() + genderValue.slice(1).toLowerCase() : ''
+        setValue('gender', capitalizedGender)
+        setValue('preset', settings.preset || '')
 
             // Handle avatar loading - prioritize avatar array from API response
             if (settings.avatar && Array.isArray(settings.avatar)) {
@@ -247,7 +251,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         preferredTone: userSettingsData.preferredTone,
         callToAction: userSettingsData.callToAction,
         email: userSettingsData.email,
-        gender: userSettingsData.gender || '',
+        gender: userSettingsData.gender ? userSettingsData.gender.toLowerCase() : '',
         preset: userSettingsData.preset || '',
         selectedVoiceId: userSettingsData.selectedVoiceId || '',
         selectedMusicTrackId: userSettingsData.selectedMusicTrackId || '',

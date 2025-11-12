@@ -18,6 +18,7 @@ interface VoiceSelectorWrapperProps {
   voicesLoading: boolean
   voicesError: string | null
   preset: string | null | undefined
+  initialVoiceType?: VoiceType | null // Override preset-based initialization
   onToggle: (field: any) => void
   onSelect: (field: any, value: string) => void
   onVoiceClick: (voice: Voice) => void
@@ -42,6 +43,7 @@ export default function VoiceSelectorWrapper({
   voicesLoading,
   voicesError,
   preset,
+  initialVoiceType,
   onToggle,
   onSelect,
   onVoiceClick,
@@ -96,6 +98,7 @@ export default function VoiceSelectorWrapper({
       voicesError={voicesError}
       selectedVoice={displayedVoice || null}
       preset={preset}
+      initialVoiceType={initialVoiceType}
       onVoiceClick={onVoiceClick}
       onVoiceTypeChange={onVoiceTypeChange}
       onDragStart={onDragStart}

@@ -18,6 +18,7 @@ interface MusicSelectorWrapperProps {
   musicLoading: boolean
   musicError: string | null
   preset?: string | null
+  initialMusicType?: 'low' | 'medium' | 'high' | null // Override preset-based initialization
   onToggle: (field: any) => void
   onSelect: (field: any, value: string) => void
   onMusicClick: (music: Voice) => void
@@ -42,6 +43,7 @@ export default function MusicSelectorWrapper({
   musicLoading,
   musicError,
   preset,
+  initialMusicType,
   onToggle,
   onSelect,
   onMusicClick,
@@ -58,7 +60,10 @@ export default function MusicSelectorWrapper({
   
   // Find selected music from state or by ID
   // Only use currentValue if selectedMusic is null and currentValue exists in the current musicList
-  const displayedMusic = selectedMusic || (currentValue ? musicList.find(m => m.id === currentValue) : null)
+  // Check both id and _id to handle different music object formats
+  const displayedMusic = selectedMusic || (currentValue ? musicList.find(m => 
+    m.id === currentValue || m._id === currentValue
+  ) : null)
 
   return (
     <VoiceSelector
@@ -77,6 +82,7 @@ export default function MusicSelectorWrapper({
       voicesError={musicError}
       selectedVoice={displayedMusic || null}
       preset={preset}
+      initialVoiceType={initialMusicType as VoiceType | null}
       onVoiceClick={onMusicClick}
       onVoiceTypeChange={onMusicTypeChange}
       onDragStart={onDragStart}
