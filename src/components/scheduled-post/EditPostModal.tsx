@@ -283,6 +283,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
       <div className="bg-white rounded-[12px] max-w-[766px] w-full max-h-[90vh] flex flex-col relative">
         <div className="flex items-center justify-between px-6 pt-6 pb-7 flex-shrink-0">
           <h2 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">Updated Post</h2>
+          {!isUpdating && (
           <button
             onClick={onClose}
             className="cursor-pointer"
@@ -294,6 +295,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
               </clipPath></defs>
             </svg>
           </button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto px-6 pb-10">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -387,7 +389,7 @@ export default function EditPostModal({ isOpen, onClose, onEdit, postData }: Edi
                 : 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]'
             }`}
           >
-            {isUpdating ? 'Updating post...' : isRestricted ? 'Editing Restricted' : 'Update'}
+            {isUpdating ? 'Updating post... It may take 2-3 minutes' : isRestricted ? 'Editing Restricted' : 'Update'}
           </button>
         </div>
       </div>
