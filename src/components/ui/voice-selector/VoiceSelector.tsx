@@ -24,6 +24,7 @@ interface VoiceSelectorProps {
   voicesError?: string | null
   selectedVoice?: Voice | null
   preset?: string | null
+  initialVoiceType?: VoiceType | null // Override preset-based initialization
   onVoiceClick?: (voice: Voice) => void
   onDragStart?: (e: React.DragEvent, voice: Voice) => void
   onDragEnd?: (e: React.DragEvent) => void
@@ -59,6 +60,7 @@ export default function VoiceSelector({
   voicesError = null,
   selectedVoice = null,
   preset = null,
+  initialVoiceType = null,
   onVoiceClick,
   onDragStart,
   onDragEnd,
@@ -77,8 +79,12 @@ export default function VoiceSelector({
   listEmptyText,
   onVoiceTypeChange
 }: VoiceSelectorProps) {
-  // Initialize voiceType based on preset, default to 'low'
+  // Initialize voiceType based on initialVoiceType (from user-settings) or preset, default to 'low'
   const getInitialVoiceType = (): VoiceType => {
+    // Priority: initialVoiceType (user-settings) > preset > default
+    if (initialVoiceType && (initialVoiceType === 'low' || initialVoiceType === 'medium' || initialVoiceType === 'high' || initialVoiceType === 'custom')) {
+      return initialVoiceType
+    }
     if (preset) {
       const presetLower = preset.toLowerCase()
       if (presetLower === 'medium') return 'medium'
@@ -100,16 +106,21 @@ export default function VoiceSelector({
   // Only use currentValue if selectedVoice is null
   const displayValue = selectedVoice?.name || (currentValue ? voices.find(v => v.id === currentValue)?.name : null) || presetValue || placeholder
   
-  // Update voiceType when preset changes
+  // Update voiceType when initialVoiceType or preset changes
+  // Priority: initialVoiceType (user-settings) > preset
   useEffect(() => {
-    if (preset) {
+    if (initialVoiceType && (initialVoiceType === 'low' || initialVoiceType === 'medium' || initialVoiceType === 'high' || initialVoiceType === 'custom')) {
+      // Use user-settings voice type (don't override with preset)
+      setVoiceType(initialVoiceType)
+    } else if (preset) {
+      // Fall back to preset if no initialVoiceType
       const presetLower = preset.toLowerCase()
       let newType: VoiceType = 'low'
       if (presetLower === 'medium') newType = 'medium'
       else if (presetLower === 'high') newType = 'high'
       setVoiceType(newType)
     }
-  }, [preset])
+  }, [preset, initialVoiceType])
 
   const handleVoiceTypeChange = (type: VoiceType) => {
     console.log('🎤 VoiceSelector - handleVoiceTypeChange called with type:', type)

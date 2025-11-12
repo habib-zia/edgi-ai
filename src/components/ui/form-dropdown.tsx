@@ -121,18 +121,49 @@ export default function FormDropdown({
   const displayOptions = isAvatarField && isFromDefaultAvatar ? extendedAvatarOptions : options
 
   // For avatar field, try to find the selected avatar from API data first
+  // If 3 avatars are selected, show all 3 names
   let selectedOption;
-  if (isAvatarField && currentValue) {
-    const customAvatar = avatars.custom.find(avatar => avatar.avatar_id === currentValue)
-    const defaultAvatar = avatars.default.find(avatar => avatar.avatar_id === currentValue)
-    if (customAvatar) {
-      // Show avatar_id for custom avatars (same as default avatars)
-      selectedOption = { value: customAvatar.avatar_id, label: customAvatar.avatar_id }
-    } else if (defaultAvatar) {
-      selectedOption = { value: defaultAvatar.avatar_id, label: defaultAvatar.avatar_id }
-    } else {
-      // Fallback to static options
-      selectedOption = displayOptions.find(option => option.value === currentValue)
+  let displayText = '';
+  let isMultipleAvatars = false;
+  
+  if (isAvatarField) {
+    // Check how many avatars are selected
+    const selectedCount = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
+    
+    if (selectedCount > 0) {
+      // Show all selected avatar names (1, 2, or 3)
+      const selectedNames: string[] = []
+      
+      if (selectedAvatars.title) {
+        selectedNames.push(selectedAvatars.title.avatar_name || selectedAvatars.title.name || 'Unknown')
+      }
+      if (selectedAvatars.body) {
+        selectedNames.push(selectedAvatars.body.avatar_name || selectedAvatars.body.name || 'Unknown')
+      }
+      if (selectedAvatars.conclusion) {
+        selectedNames.push(selectedAvatars.conclusion.avatar_name || selectedAvatars.conclusion.name || 'Unknown')
+      }
+      
+      displayText = selectedNames.join(', ')
+      isMultipleAvatars = selectedCount > 1 // Only apply special styling for 2+ avatars
+      
+      // Use the first selected avatar's ID as the value for form validation
+      const firstSelectedAvatar = selectedAvatars.title || selectedAvatars.body || selectedAvatars.conclusion
+      selectedOption = { 
+        value: firstSelectedAvatar?.avatar_id || currentValue, 
+        label: displayText 
+      }
+    } else if (currentValue) {
+      // Show single avatar (fallback for when less than 3 are selected)
+      const customAvatar = avatars.custom.find(avatar => avatar.avatar_id === currentValue)
+      const defaultAvatar = avatars.default.find(avatar => avatar.avatar_id === currentValue)
+      if (customAvatar) {
+        selectedOption = { value: customAvatar.avatar_id, label: customAvatar.avatar_name || customAvatar.name || customAvatar.avatar_id }
+      } else if (defaultAvatar) {
+        selectedOption = { value: defaultAvatar.avatar_id, label: defaultAvatar.avatar_name || defaultAvatar.name || defaultAvatar.avatar_id }
+      } else {
+        selectedOption = displayOptions.find(option => option.value === currentValue)
+      }
     }
   } else {
     selectedOption = displayOptions.find(option => option.value === currentValue)
@@ -150,11 +181,11 @@ export default function FormDropdown({
             }
           }, 100)
         }}
-        className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${hasError ? 'ring-2 ring-red-500' : ''
+        className={`w-full px-4 ${isMultipleAvatars ? 'py-2 text-[14px] min-h-[44px]' : 'py-[10.5px] text-[18px]'} font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer ${hasError ? 'ring-2 ring-red-500' : ''
           } ${selectedOption ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
         aria-describedby={hasError ? `${field}-error` : undefined}
       >
-        <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        <span className={`${isMultipleAvatars ? 'whitespace-normal break-words' : 'truncate'} flex-1 text-left ${isMultipleAvatars ? 'leading-snug' : ''}`}>{selectedOption ? selectedOption.label : placeholder}</span>
         <IoMdArrowDropdown
           className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
         />

@@ -629,6 +629,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [errors, formManuallyTouched, submitAttempted])
   
+  // Store user settings data for voice/music selection
+  const [userSettingsData, setUserSettingsData] = useState<{
+    selectedVoiceId?: string
+    selectedMusicTrackId?: string
+    selectedVoicePreset?: string
+    selectedMusicPreset?: string
+    gender?: string
+    preset?: string
+  } | null>(null)
+  const [isApplyingUserSettings, setIsApplyingUserSettings] = useState(false)
+  const [hasUserSettingsWithGender, setHasUserSettingsWithGender] = useState(false)
+  const presetFromUserSettingsRef = useRef<boolean>(false)
+  const hasUserVoiceMusicPresetsRef = useRef<boolean>(false) // Track if user-settings has specific voice/music presets
+
   // User settings hook
   const { fetchUserSettings, saveUserSettings } = useUserSettings({
     userEmail: user?.email,
@@ -789,15 +803,49 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   // Auto-select random voice and music when preset is selected and data is loaded
   // When preset changes, ALWAYS update both voice and music to match the preset
+  // Skip if we're applying user settings OR if preset was initially set from user settings (to preserve saved selections)
+  // Allow random selection if user manually changes preset after initial load
   useEffect(() => {
-    if (preset && allVoices.length > 0 && allMusic.length > 0) {
+    // Only skip random selection if:
+    // 1. We're currently applying user settings, OR
+    // 2. Preset was set from user settings AND we have user settings with gender (initial load only, before user manually changes preset)
+    // 3. We have user settings data waiting to be applied (prevents race condition)
+    // 4. Preset came from user-settings AND user-settings has specific voice/music presets (don't override saved energy levels)
+    const shouldSkipRandomSelection = isApplyingUserSettings || 
+      (presetFromUserSettingsRef.current && hasUserSettingsWithGender) ||
+      (userSettingsData !== null) ||
+      (presetFromUserSettingsRef.current && hasUserVoiceMusicPresetsRef.current)
+    
+    if (preset && allVoices.length > 0 && allMusic.length > 0 && !shouldSkipRandomSelection) {
       const presetLower = preset.toLowerCase().trim()
       
       // Only proceed if preset is valid (low, medium, high)
       if (presetLower === 'low' || presetLower === 'medium' || presetLower === 'high') {
         // Always update type filters to match preset when preset changes
-        setCurrentVoiceType(presetLower as 'low' | 'medium' | 'high')
-        setCurrentMusicType(presetLower as 'low' | 'medium' | 'high')
+        // BUT: Don't override if we have user settings with specific voice/music presets
+        // Only set voice type if user settings don't have a specific voice preset
+        type UserSettingsType = {
+          selectedVoiceId?: string
+          selectedMusicTrackId?: string
+          selectedVoicePreset?: string
+          selectedMusicPreset?: string
+          gender?: string
+          preset?: string
+        }
+        
+        if (userSettingsData === null) {
+          setCurrentVoiceType(presetLower as 'low' | 'medium' | 'high')
+          setCurrentMusicType(presetLower as 'low' | 'medium' | 'high')
+        } else {
+          // User settings exist - only set type if no specific preset is saved
+          const settings = userSettingsData as UserSettingsType
+          if (!settings.selectedVoicePreset) {
+            setCurrentVoiceType(presetLower as 'low' | 'medium' | 'high')
+          }
+          if (!settings.selectedMusicPreset) {
+            setCurrentMusicType(presetLower as 'low' | 'medium' | 'high')
+          }
+        }
       
         // Always update voice to match preset (regardless of previous selection)
         const matchingVoices = allVoices.filter(v => v.type === presetLower)
@@ -822,7 +870,95 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         }
       }
     }
-  }, [preset, allVoices, allMusic, setValue, trigger])
+  }, [preset, allVoices, allMusic, setValue, trigger, isApplyingUserSettings, hasUserSettingsWithGender, userSettingsData])
+
+  // Apply voice and music from user settings after they are loaded
+  // This ensures saved selections are restored instead of random selection
+  // Use a small delay to ensure this runs after preset auto-select
+  useEffect(() => {
+    if (userSettingsData && !voicesLoading && !musicLoading && allVoices.length > 0 && allMusic.length > 0) {
+      // Use setTimeout to ensure this runs after preset auto-select
+      const timeoutId = setTimeout(() => {
+        setIsApplyingUserSettings(true)
+        
+        // Find and set selected voice by ID from user settings FIRST
+        // This allows us to check if the voice is custom before setting voice energy
+        let foundVoiceForEnergyCheck: Voice | null = null
+        if (userSettingsData.selectedVoiceId) {
+          const foundVoice = allVoices.find(voice => voice.id === userSettingsData.selectedVoiceId)
+          if (foundVoice) {
+            foundVoiceForEnergyCheck = foundVoice
+            setSelectedVoice(foundVoice)
+            setValue('voice', foundVoice.id, { shouldValidate: true })
+            trigger('voice')
+            console.log('🎤 Voice loaded from user settings by ID:', foundVoice.name, foundVoice.id)
+          } else {
+            console.warn('⚠️ Voice ID from user settings not found:', userSettingsData.selectedVoiceId)
+          }
+        }
+
+        // Set voice type filter based on selectedVoicePreset from user settings
+        // This should override any preset-based selection
+        // Handle 'low', 'medium', 'high', and 'custom' voice energy levels
+        // Priority: If voice is custom (isCustom: true) > selectedVoicePreset > voice energy field
+        if (foundVoiceForEnergyCheck?.isCustom === true) {
+          // If the selected voice is custom, always set voice energy to 'custom'
+          setCurrentVoiceType('custom')
+          console.log('🎤 Voice is custom, setting voice energy to "custom"')
+        } else if (userSettingsData.selectedVoicePreset) {
+          const voicePreset = userSettingsData.selectedVoicePreset.toLowerCase() as 'low' | 'medium' | 'high' | 'custom'
+          if (voicePreset === 'low' || voicePreset === 'medium' || voicePreset === 'high' || voicePreset === 'custom') {
+            setCurrentVoiceType(voicePreset)
+            console.log('🎤 Voice preset loaded from user settings:', voicePreset, '(overriding preset-based selection)')
+          }
+        } else if (foundVoiceForEnergyCheck?.energy) {
+          // Fallback: Use the voice's energy field if no preset is provided
+          const voiceEnergy = foundVoiceForEnergyCheck.energy.toLowerCase() as 'low' | 'medium' | 'high'
+          if (voiceEnergy === 'low' || voiceEnergy === 'medium' || voiceEnergy === 'high') {
+            setCurrentVoiceType(voiceEnergy)
+            console.log('🎤 Voice energy loaded from voice object:', voiceEnergy)
+          }
+        }
+
+        // Set music type filter based on selectedMusicPreset from user settings
+        // This should override any preset-based selection
+        if (userSettingsData.selectedMusicPreset) {
+          const musicPreset = userSettingsData.selectedMusicPreset.toLowerCase() as 'low' | 'medium' | 'high'
+          if (musicPreset === 'low' || musicPreset === 'medium' || musicPreset === 'high') {
+            setCurrentMusicType(musicPreset)
+            console.log('🎵 Music preset loaded from user settings:', musicPreset, '(overriding preset-based selection)')
+          }
+        }
+
+        // Find and set selected music by ID from user settings
+        if (userSettingsData.selectedMusicTrackId) {
+          const foundMusic = allMusic.find(music => 
+            music.id === userSettingsData.selectedMusicTrackId || 
+            music._id === userSettingsData.selectedMusicTrackId
+          )
+          if (foundMusic) {
+            setSelectedMusic(foundMusic)
+            // Use the ID format that matches the music object (prefer id, fallback to _id)
+            const musicId = foundMusic.id || foundMusic._id || userSettingsData.selectedMusicTrackId
+            setValue('music', musicId, { shouldValidate: true })
+            trigger('music')
+            console.log('🎵 Music loaded from user settings by ID:', foundMusic.name, musicId)
+          } else {
+            console.warn('⚠️ Music ID from user settings not found:', userSettingsData.selectedMusicTrackId, 'Available music IDs:', allMusic.map(m => m.id || m._id).slice(0, 5))
+          }
+        }
+
+        // Clear user settings data after applying to prevent re-applying
+        setUserSettingsData(null)
+        // Reset flag after a short delay to allow form updates to complete
+        setTimeout(() => {
+          setIsApplyingUserSettings(false)
+        }, 100)
+      }, 50) // Small delay to ensure this runs after preset auto-select
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [userSettingsData, voicesLoading, musicLoading, allVoices, allMusic, setValue, trigger, setCurrentVoiceType, setCurrentMusicType])
   
   // Handle voice type change from VoiceSelector (when user clicks low/medium/high buttons)
   const handleVoiceTypeChange = useCallback((type: VoiceType) => {
@@ -890,7 +1026,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       setAutoFilling(true)
       fetchUserSettings().then((result) => {
         // Auto-trigger city trends if city is loaded from settings
-        if (result && !userSettingsLoaded) {
+        if (result && !userSettingsLoaded && result.data) {
           const cityValue = watch('city')
           const videoTopicValue = watch('videoTopic')
           
@@ -904,6 +1040,31 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           if (cityValue && cityValue.trim() && positionValue && positionValue.trim()) {
             console.log('🏙️ Auto-triggering city trends for saved city and position:', cityValue, positionValue)
             fetchCityTrends(cityValue, positionValue)
+          }
+          
+          // Store voice/music settings for later application
+          if (result.data.gender || result.data.selectedVoiceId || result.data.selectedMusicTrackId) {
+            setUserSettingsData({
+              selectedVoiceId: result.data.selectedVoiceId,
+              selectedMusicTrackId: result.data.selectedMusicTrackId,
+              selectedVoicePreset: result.data.selectedVoicePreset,
+              selectedMusicPreset: result.data.selectedMusicPreset,
+              gender: result.data.gender,
+              preset: result.data.preset
+            })
+            
+            // Mark that we have user settings with gender - this prevents random selection on initial load
+            if (result.data.gender) {
+              setHasUserSettingsWithGender(true)
+              // Track if preset comes from user settings
+              if (result.data.preset) {
+                presetFromUserSettingsRef.current = true
+              }
+              // Track if user-settings has specific voice/music presets (not from preset)
+              if (result.data.selectedVoicePreset || result.data.selectedMusicPreset) {
+                hasUserVoiceMusicPresetsRef.current = true
+              }
+            }
           }
           
           setUserSettingsLoaded(true)
@@ -1179,7 +1340,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         selectedVoicePreset: (selectedVoice as any)?.energy || selectedVoice?.type || '',
         selectedMusicPreset: (selectedMusic as any)?.energyCategory || selectedMusic?.type || ''
       }
-      console.log('userSettingsPayload', userSettingsPayload)
+
       const userSettingsResult = await saveUserSettings(userSettingsPayload)
       if (!userSettingsResult.success) {
         console.error('Failed to store user settings:', userSettingsResult.error)
@@ -1208,6 +1369,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       if (field === 'avatar') {
         setValue('avatar', '')
       setValue('avatar', value)
+      } else if (field === 'preset') {
+        // When preset is manually changed, reset the refs to allow random selection
+        presetFromUserSettingsRef.current = false
+        hasUserVoiceMusicPresetsRef.current = false // Reset when user manually changes preset
+        setValue('preset', value, { shouldValidate: true, shouldDirty: true })
+        trigger('preset')
       } else if (field === 'gender') {
         // When gender is selected, update the form value
         // The useVoicesAndMusic hook will automatically detect the change and trigger API calls
@@ -1375,6 +1542,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         voicesLoading={voicesLoading}
         voicesError={voicesError}
         preset={preset}
+        initialVoiceType={currentVoiceType}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
         onVoiceClick={handleVoiceClick}
@@ -1412,6 +1580,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         musicLoading={musicLoading}
         musicError={musicError}
         preset={preset}
+        initialMusicType={currentMusicType}
         onToggle={handleDropdownToggle}
         onSelect={handleDropdownSelect}
         onMusicClick={handleMusicClick}
@@ -1626,14 +1795,16 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
           }}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div>
+        {gender && (
+          <div>
             <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
               Preset <span className="text-red-500">*</span>
             </label>
             {renderDropdown('preset', presetOptions, 'Select Preset')}
           </div>
+        )}
           {/* Voice field - only shown when preset is selected */}
-          {watch('preset') && (
+          {gender && watch('preset') && (
             <div>
               <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
                 Voice <span className="text-red-500">*</span>

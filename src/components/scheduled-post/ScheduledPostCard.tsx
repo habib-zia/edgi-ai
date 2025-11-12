@@ -274,7 +274,7 @@ export default function ScheduledPostCard({ post, scheduleId, onPostDeleted, onP
         </span>
       </div>
 
-        <h3 className="text-[20px] !font-normal text-[#5F5F5F] mb-4 truncate">
+        <h3 className="text-[17px] !font-normal text-[#5F5F5F] mb-4 break-words whitespace-normal">
           {post.keypoints}
       </h3>
 
