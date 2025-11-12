@@ -71,6 +71,19 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   // Track if this is a new submission (modal just opened for new video)
   const isNewSubmissionRef = useRef(false)
 
+  // Auto-dismiss avatar error after 10 seconds
+  useEffect(() => {
+    if (avatarError) {
+      const timer = setTimeout(() => {
+        setAvatarError('')
+      }, 10000) // 10 seconds
+
+      return () => {
+        clearTimeout(timer)
+      }
+    }
+  }, [avatarError])
+
   function redirectToCreateVideoOnce() {
     if (typeof window === 'undefined') return
     // Avoid duplicate redirects within the same session and if already on target page
@@ -101,6 +114,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
   useEffect(() => {
     if (isOpen) {
       openModal()
+      setIsDownloading(false)
       // Reset modal step to 'form' when modal opens for new submission
       // Only reset if not viewing completed video and not starting at complete
       if (!startAtComplete && !videoData) {
@@ -184,6 +198,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       conclusion: webhookResponse?.conclusion || ''
     })
     setErrors({ prompt: '', description: '', conclusion: '' })
+    setIsDownloading(false)
 
     // Only clear localStorage keys and completed updates when closing after creating a new video
     // Don't clear these when just viewing a completed video

@@ -70,6 +70,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [videos, setVideos] = useState<VideoCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [loadingVideos, setLoadingVideos] = useState<Set<string>>(new Set())
 
   // Notification hook
   const { showNotification } = useNotificationStore()
@@ -363,6 +364,21 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
   return (
     <div className={`w-full ${className}`}>
+      {/* Shimmer animation styles - added once for all videos */}
+      {loadingVideos.size > 0 && (
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes shimmer {
+              0% {
+                transform: translateX(-100%);
+              }
+              100% {
+                transform: translateX(100%);
+              }
+            }
+          `
+        }} />
+      )}
 
       {/* Search, Sort Controls and Create Button */}
       <div className="flex flex-col md:flex-row md:justify-between justify-end gap-4 mb-8">
@@ -473,18 +489,44 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                       loop
                       playsInline
                       webkit-playsinline="true"
-                      onError={(e) => console.error('Video load error:', e)}
+                      onError={(e) => {
+                        console.error('Video load error:', e)
+                        setLoadingVideos(prev => {
+                          const newSet = new Set(prev)
+                          newSet.delete(video.id)
+                          return newSet
+                        })
+                      }}
+                      onLoadStart={() => {
+                        setLoadingVideos(prev => new Set(prev).add(video.id))
+                      }}
                       onLoadedMetadata={(e) => {
                         const videoElement = e.currentTarget;
                         if (videoElement) {
                           videoElement.currentTime = 1;
                         }
+                        setLoadingVideos(prev => {
+                          const newSet = new Set(prev)
+                          newSet.delete(video.id)
+                          return newSet
+                        })
                       }}
                     >
                       Your browser does not support the video tag.
                     </video>
+                    {/* Shimmer overlay - shows while video thumbnail is loading */}
+                    {loadingVideos.has(video.id) && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 rounded-[6px] overflow-hidden z-10">
+                        <div 
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                          style={{
+                            animation: 'shimmer 1.5s infinite'
+                          }}
+                        />
+                      </div>
+                    )}
                     {/* View Video Button Overlay - Only visible on hover */}
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-grey100 bg-opacity-30 rounded-[6px]">
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-grey100 bg-opacity-30 rounded-[6px] z-20">
                       <button
                         onClick={() => handleViewVideo(video)}
                         className="bg-[#5046E5] text-white px-6 py-3 rounded-full font-semibold text-[16px] hover:bg-[#4338CA]/80 transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg"

@@ -9,6 +9,7 @@ import { convertUTCToLocalDate, convertUTCToLocalTime } from "@/utils/dateTimeUt
 
 const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) => {
   const [isVideoPlaying, setIsVideoPlaying] = React.useState(false);
+  const [isMediaLoading, setIsMediaLoading] = React.useState(true);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const actualPlatform = selectedPlatform === 'All' ? Object.keys(post.platforms)[0] : selectedPlatform;
@@ -127,6 +128,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
     }
   };
 
+  React.useEffect(() => {
+    setIsMediaLoading(true);
+  }, [post]);
+
   // Generate thumbnail for iOS compatibility using video poster
   React.useEffect(() => {
     const generateThumbnail = () => {
@@ -146,6 +151,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
   const date = convertUTCToLocalDate(post.date); // "Oct 23, 2025"
   const time = convertUTCToLocalTime(post.date); // "4:50 PM"
   return (
+    <>
+      {isMediaLoading && (
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes shimmer {
+              0% {
+                transform: translateX(-100%);
+              }
+              100% {
+                transform: translateX(100%);
+              }
+            }
+          `
+        }} />
+      )}
     <motion.div
       className="bg-white hover:bg-gray-100 transition-all duration-300 rounded-[10px] border border-[#F1F1F4] overflow-visible p-4"
       initial={{ opacity: 0, y: 40 }}
@@ -169,15 +189,30 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
               controls={isVideoPlaying}
               poster=""
               webkit-playsinline="true"
-              onError={() => { }}
-              onLoadStart={() => { }}
+              onError={() => {
+                setIsMediaLoading(false);
+              }}
+              onLoadStart={() => {
+                setIsMediaLoading(true);
+              }}
               onLoadedMetadata={() => {
                 // Set video to show first frame for thumbnail on iOS
                 if (videoRef.current) {
                   videoRef.current.currentTime = 1;
                 }
+                setIsMediaLoading(false);
               }}
             />
+            {isMediaLoading && (
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 rounded-[8px] overflow-hidden z-10">
+                <div 
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  style={{
+                    animation: 'shimmer 1.5s infinite'
+                  }}
+                />
+              </div>
+            )}
             {!isVideoPlaying && (
               <div
                 className="absolute inset-0 flex items-center justify-center z-20 cursor-pointer hover:bg-black hover:bg-opacity-20 transition-all duration-200"
@@ -190,13 +225,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
             )}
           </div>
         ) : post.image ? (
-          <Image
-            src={post.image}
-            alt={post.name}
-            width={208}
-            height={138}
-            className="object-cover rounded-[8px] h-[200px] w-full"
-          />
+          <div className="relative rounded-[8px] h-[200px] w-full overflow-hidden">
+            <Image
+              src={post.image}
+              alt={post.name}
+              width={208}
+              height={138}
+              className="object-cover rounded-[8px] h-[200px] w-full"
+              onLoadStart={() => setIsMediaLoading(true)}
+              onLoad={() => setIsMediaLoading(false)}
+              onError={() => setIsMediaLoading(false)}
+            />
+            {isMediaLoading && (
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 rounded-[8px] overflow-hidden z-10">
+                <div 
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  style={{
+                    animation: 'shimmer 1.5s infinite'
+                  }}
+                />
+              </div>
+            )}
+          </div>
         ) : (
           <div className="flex items-center justify-center bg-gray-100 rounded-[8px] h-[165px] w-full">
             <span className="text-gray-400 text-sm">No media available</span>
@@ -295,6 +345,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
 
       </div>
     </motion.div>
+    </>
   );
 };
 
