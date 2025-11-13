@@ -165,13 +165,36 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 			let maxScore = 0;
 
 			apiPosts.forEach(post => {
-				const reach = getInsightValue(post, 'reach');
-				const likes = getInsightValue(post, 'like_count') || getInsightValue(post, 'likes');
-				const comments = getInsightValue(post, 'comments_count') || getInsightValue(post, 'comments');
-				const shares = getInsightValue(post, 'shares');
-				const totalInteractions = getInsightValue(post, 'total_interactions');
-				const retweets = getInsightValue(post, 'retweets') || (getPlatformFromAccountType(post.account_type) === 'X' ? shares : 0);
-				const dislikes = getInsightValue(post, 'dislikes');
+				const platform = getPlatformFromAccountType(post.account_type);
+			
+				let reach = 0;
+				if (platform === 'Facebook') {
+					reach = getInsightValue(post, 'impressions') || getInsightValue(post, 'reach') || 0;
+				} else if (platform === 'LinkedIn') {
+					reach = getInsightValue(post, 'clicks') || getInsightValue(post, 'reach') || 0;
+				} else if (platform === 'YouTube') {
+					reach = getInsightValue(post, 'views') || getInsightValue(post, 'reach') || 0;
+				} else {
+					reach = getInsightValue(post, 'reach') || 0;
+				}
+				
+				const likes = getInsightValue(post, 'like_count') || getInsightValue(post, 'likes') || (platform === 'Facebook' ? getInsightValue(post, 'reactions') : 0) || 0;
+				const comments = getInsightValue(post, 'comments_count') || getInsightValue(post, 'comments') || 0;
+				const shares = getInsightValue(post, 'shares') || 0;
+				
+				let totalInteractions = 0;
+				if (platform === 'Facebook') {
+					totalInteractions = getInsightValue(post, 'clicks') || getInsightValue(post, 'impressions') || 0;
+				} else if (platform === 'Instagram') {
+					totalInteractions = getInsightValue(post, 'total_interactions') || 0;
+				} else if (platform === 'LinkedIn') {
+					totalInteractions = getInsightValue(post, 'engagement') || 0;
+				} else {
+					totalInteractions = getInsightValue(post, 'total_interactions') || 0;
+				}
+				
+				const retweets = getInsightValue(post, 'retweets') || (platform === 'X' ? shares : 0);
+				const dislikes = getInsightValue(post, 'dislikes') || 0;
 				
 				const score = (reach * 1000) + (likes * 100) + (comments * 50) + (shares * 25) + (totalInteractions * 75) + (retweets * 30) + (dislikes * -10);
 				
@@ -196,7 +219,6 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 	const getTopPostPlatform = () => {
 		if (!topPost) return 'All';
 		
-		// Get platform from account_type (API data structure)
 		if (topPost.account_type) {
 			if (topPost.account_type.includes('Instagram')) return 'Instagram';
 			if (topPost.account_type.includes('Facebook')) return 'Facebook';
@@ -206,7 +228,6 @@ export default function AnalyticsDashboard({ selectedPlatform, setSelectedPlatfo
 			if (topPost.account_type.includes('TikTok')) return 'TikTok';
 		}
 		
-		// Fallback to platforms object if available (for backward compatibility)
 		if (topPost.platforms && Object.keys(topPost.platforms).length > 0) {
 			return Object.keys(topPost.platforms)[0];
 		}

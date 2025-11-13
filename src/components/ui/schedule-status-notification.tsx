@@ -112,7 +112,7 @@ export default function ScheduleStatusNotification({
   const latestUpdate = updates[updates.length - 1]
 
   return (
-    <div className={`fixed top-24 left-4 z-30 max-w-xs bg-transparent w-full ${className}`}>
+    <div className={`fixed bottom-6 left-4 z-30 max-w-xs bg-transparent w-full ${className}`}>
       <div className={`backdrop-blur-sm bg-white/60 rounded-lg shadow-lg border-2 p-4 ${latestUpdate.status === 'ready' ? 'border-green-500' : 'border-gray-200'}`}>
         {/* Header */}
         <div className="flex items-start justify-between mb-3">

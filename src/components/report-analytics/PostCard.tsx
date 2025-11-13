@@ -28,9 +28,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
         break;
       case 'Facebook':
         metrics.push(
-          { label: 'Post Clicks', value: platformData?.metrics?.reach?.value || 0 },
+          { label: 'Post Clicks', value: platformData?.metrics?.engagement?.value || 0 },
           { label: 'Impression', value: platformData?.metrics?.impression?.value || 0 },
-          { label: 'Views', value: platformData?.metrics?.engagement?.value || 0 }
+          { label: 'Impressions', value: platformData?.metrics?.reach?.value || 0 }
         );
         break;
       case 'LinkedIn':

@@ -75,7 +75,8 @@ export default function GlobalNotification() {
   }
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] max-w-sm w-full">
+    <div className="px-2">
+    <div className="fixed top-4 md:right-4 right-0 z-[9999] md:max-w-sm max-w-full w-full">
       <div className={`flex items-center p-4 border rounded-lg shadow-lg ${getBackgroundColor()}`}>
         <div className="flex-shrink-0 mr-3">
           {getIcon()}
@@ -92,6 +93,7 @@ export default function GlobalNotification() {
           </svg>
         </button>
       </div>
+    </div>
     </div>
   )
 }

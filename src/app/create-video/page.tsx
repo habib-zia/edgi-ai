@@ -80,7 +80,7 @@ export default function CreateVideoPage() {
             <button 
               onClick={handleCustomAvatarClick}
               disabled={isAnyAvatarProcessing}
-              className={`inline-flex items-center justify-center px-4 py-[9.4px] md:text-[20px] text-[18px] font-semibold rounded-full transition-all !duration-300 border-2 ${
+              className={`inline-flex items-center md:w-fit w-full justify-center px-4 py-[9.4px] md:text-[20px] text-[18px] font-semibold rounded-full transition-all !duration-300 border-2 ${
                 isAnyAvatarProcessing 
                   ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
                   : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
