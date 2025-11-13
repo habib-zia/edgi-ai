@@ -79,15 +79,24 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
           performanceData: generatePerformanceData(post.insights),
           metrics: {
             reach: { 
-              value: getInsightValue(post.insights, 'reach') || 0,
+              value: (() => {
+                const platform = getPlatformFromAccountType(post.account_type);
+                return getPlatformSpecificMetric(platform, 'reach', post.insights);
+              })(),
               change: getInsightValue(post.insights, 'reach_change') || 0
             },
             impression: { 
-              value: getInsightValue(post.insights, 'total_interactions') || getInsightValue(post.insights, 'impression') || 0,
+              value: (() => {
+                const platform = getPlatformFromAccountType(post.account_type);
+                return getPlatformSpecificMetric(platform, 'impression', post.insights);
+              })(),
               change: getInsightValue(post.insights, 'impression_change') || 0
             },
             engagement: { 
-              value: getInsightValue(post.insights, 'engagement') || 0,
+              value: (() => {
+                const platform = getPlatformFromAccountType(post.account_type);
+                return getPlatformSpecificMetric(platform, 'engagement', post.insights);
+              })(),
               change: getInsightValue(post.insights, 'engagement_change') || 0
             }
           },
@@ -124,6 +133,49 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
     if (!insights || !Array.isArray(insights)) return null;
     const insight = insights.find(i => i.type === type);
     return insight?.value || null;
+  };
+
+  const getPlatformSpecificMetric = (platform: string, metricType: string, insights: any[]): number => {
+    if (!insights || !Array.isArray(insights)) return 0;
+
+    switch (metricType) {
+      case 'reach':
+        switch (platform) {
+          case 'Facebook':
+            return getInsightValue(insights, 'impressions') || getInsightValue(insights, 'reach') || 0;
+          case 'LinkedIn':
+            return getInsightValue(insights, 'clicks') || getInsightValue(insights, 'reach') || 0;
+          case 'YouTube':
+            return getInsightValue(insights, 'views') || getInsightValue(insights, 'reach') || 0;
+          case 'Instagram':
+          default:
+            return getInsightValue(insights, 'reach') || 0;
+        }
+      case 'impression':
+        switch (platform) {
+          case 'Facebook':
+            return getInsightValue(insights, 'impressions') || 0;
+          case 'Instagram':
+            return getInsightValue(insights, 'total_interactions') || getInsightValue(insights, 'impression') || 0;
+          case 'LinkedIn':
+            return getInsightValue(insights, 'impressions') || getInsightValue(insights, 'impression') || 0;
+          default:
+            return getInsightValue(insights, 'total_interactions') || getInsightValue(insights, 'impression') || 0;
+        }
+      case 'engagement':
+        switch (platform) {
+          case 'Facebook':
+            return getInsightValue(insights, 'clicks') || getInsightValue(insights, 'engagement') || 0;
+          case 'Instagram':
+            return getInsightValue(insights, 'saved') || getInsightValue(insights, 'engagement') || 0;
+          case 'LinkedIn':
+            return getInsightValue(insights, 'engagement') || 0;
+          default:
+            return getInsightValue(insights, 'engagement') || 0;
+        }
+      default:
+        return getInsightValue(insights, metricType) || 0;
+    }
   };
 
   const generatePerformanceData = (insights: any[]) => {

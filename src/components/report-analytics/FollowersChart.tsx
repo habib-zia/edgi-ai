@@ -32,41 +32,64 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ topPostData }) => {
     
     const getPlatformMetrics = (platformName: string): Array<{ key: string; label: string; getValue: () => number }> => {
       switch (platformName) {
-        case 'Instagram':
         case 'Facebook':
+          return [
+            { key: 'impressions', label: 'Impressions', getValue: () => getInsightValue('impressions') || getInsightValue('reach') || 0 },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('reactions') || getInsightValue('like_count') || getInsightValue('likes') || 0 },
+            { key: 'clicks', label: 'Clicks', getValue: () => getInsightValue('clicks') || 0 },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') || 0 },
+            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') || 0 }
+          ];
+        case 'Instagram':
+          return [
+            { key: 'reach', label: 'Reach', getValue: () => getInsightValue('reach') || 0 },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') || 0 },
+            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') || 0 },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') || 0 },
+            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') || 0 }
+          ];
         case 'LinkedIn':
+          return [
+            { key: 'clicks', label: 'Clicks', getValue: () => getInsightValue('clicks') || getInsightValue('reach') || 0 },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') || 0 },
+            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') || 0 },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') || 0 },
+            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') || 0 },
+            { key: 'video_views', label: 'Video Views', getValue: () => getInsightValue('video_views') || 0 },
+            { key: 'unique_impressions', label: 'Unique Impressions', getValue: () => getInsightValue('unique_impressions') || 0 }
+          ];
         case 'TikTok':
           return [
-            { key: 'reach', label: 'Reach', getValue: () => getInsightValue('reach') },
-            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
-            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') },
-            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') },
-            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') }
+            { key: 'reach', label: 'Reach', getValue: () => getInsightValue('reach') || 0 },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') || 0 },
+            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') || 0 },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') || 0 },
+            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') || 0 }
           ];
         case 'X':
         case 'Twitter':
           return [
-            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') || 0 },
             { 
               key: 'retweets', 
               label: 'Retweets', 
-              getValue: () => getInsightValue('retweets')
+              getValue: () => getInsightValue('retweets') || 0
             }
           ];
         case 'YouTube':
           return [
-            { key: 'reach', label: 'Views', getValue: () => getInsightValue('reach') },
-            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
-            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') },
-            { key: 'dislikes', label: 'Dislikes', getValue: () => getInsightValue('dislikes') }
+            { key: 'views', label: 'Views', getValue: () => getInsightValue('views') || getInsightValue('reach') || 0 },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') || 0 },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') || 0 },
+            { key: 'dislikes', label: 'Dislikes', getValue: () => getInsightValue('dislikes') || 0 }
           ];
         default:
           return [
-            { key: 'reach', label: 'Reach', getValue: () => getInsightValue('reach') },
-            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') },
-            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') },
-            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') },
-            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') }
+            { key: 'reach', label: 'Reach', getValue: () => getInsightValue('reach') || 0 },
+            { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') || 0 },
+            { key: 'total_interactions', label: 'Interactions', getValue: () => getInsightValue('total_interactions') || 0 },
+            { key: 'comments', label: 'Comments', getValue: () => getInsightValue('comments_count') || getInsightValue('comments') || 0 },
+            { key: 'shares', label: 'Shares', getValue: () => getInsightValue('shares') || 0 }
           ];
       }
     };

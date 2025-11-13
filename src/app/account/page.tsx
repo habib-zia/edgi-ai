@@ -6,10 +6,10 @@ import { updateUser } from '@/store/slices/userSlice'
 import { ProfileInfoSection } from '@/components/ui'
 import SubscriptionDetailsSection from '@/components/ui/subscription-details-section'
 import ProtectedRoute from '@/components/features/auth/ProtectedRoute'
-import { CheckCircle, AlertCircle } from 'lucide-react'
 import { apiService } from '@/lib/api-service'
 import StripeProvider from '@/components/providers/StripeProvider'
 import { PaymentMethods } from '@/components/PaymentMethods'
+import { useNotificationStore } from '@/components/ui/global-notification'
 
 interface ProfileFormData {
   firstName: string
@@ -30,6 +30,7 @@ interface FormErrors {
 export default function AccountPage() {
   const { user: currentUser, accessToken } = useAppSelector((state) => state.user)
   const dispatch = useAppDispatch()
+  const { showNotification } = useNotificationStore()
 
   const [profileData, setProfileData] = useState<ProfileFormData>({
     firstName: currentUser?.firstName || '',
@@ -48,11 +49,6 @@ export default function AccountPage() {
   })
 
   const [isUpdating, setIsUpdating] = useState(false)
-  const [showToast, setShowToast] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const [toastType, setToastType] = useState<'success' | 'error'>('success')
-
-  // Synchronize profile data with Redux store
   useEffect(() => {
     if (currentUser && currentUser.id !== 'temp')
     {
@@ -66,19 +62,7 @@ export default function AccountPage() {
     }
   }, [currentUser])
 
-  const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage(message)
-    setToastType(type)
-    setShowToast(true)
-
-    // Auto hide toast after 5 seconds
-    setTimeout(() => {
-      setShowToast(false)
-    }, 5000)
-  }
-
   const handleProfileInputChange = (field: keyof ProfileFormData, value: string) => {
-    // Only allow changes to firstName, lastName, and phone
     if (field === 'email' || field === 'password')
     {
       return
@@ -88,8 +72,6 @@ export default function AccountPage() {
       ...prev,
       [field]: value
     }))
-
-    // Clear error when user starts typing
     if (errors[field])
     {
       setErrors(prev => ({
@@ -111,7 +93,6 @@ export default function AccountPage() {
         password: ''
       })
 
-      // Validate required fields
       const newErrors: FormErrors = {
         firstName: '',
         lastName: '',
@@ -136,7 +117,6 @@ export default function AccountPage() {
         return
       }
 
-      // Call the API to update profile
       const response = await apiService.updateProfile({
         firstName: profileData.firstName.trim(),
         lastName: profileData.lastName.trim(),
@@ -145,14 +125,11 @@ export default function AccountPage() {
 
       if (response.success && response.data)
       {
-        // Update user data in Redux store
         dispatch(updateUser({
           firstName: response.data!.user.firstName,
           lastName: response.data!.user.lastName,
           phone: response.data!.user.phone
         }))
-
-        // Update local form state with the new data from the server
         setProfileData(prev => ({
           ...prev,
           firstName: response.data!.user.firstName || '',
@@ -160,15 +137,15 @@ export default function AccountPage() {
           phone: response.data!.user.phone || ''
         }))
 
-        showToastMessage('Profile updated successfully!', 'success')
+        showNotification('Profile updated successfully!', 'success')
       } else
       {
-        showToastMessage(response.message || 'Failed to update profile. Please try again.', 'error')
+        showNotification(response.message || 'Failed to update profile. Please try again.', 'error')
       }
     } catch (error)
     {
       console.error('Error updating profile:', error)
-      showToastMessage('Something went wrong. Please try again.', 'error')
+      showNotification('Something went wrong. Please try again.', 'error')
     } finally
     {
       setIsUpdating(false)
@@ -191,39 +168,16 @@ export default function AccountPage() {
                 password: errors.password
               }}
               onChange={handleProfileInputChange}
-              isEmailVerified={currentUser?.isEmailVerified || false}
               onUpdateProfile={handleUpdateProfile}
               isUpdating={isUpdating}
             />
 
             {/* Subscription Details Section */}
             <SubscriptionDetailsSection />
-
-
             <StripeProvider>
-      <PaymentMethods authToken={accessToken || ''} />
-    </StripeProvider>
-
+            <PaymentMethods authToken={accessToken || ''} />
+            </StripeProvider>
           </div>
-
-          {/* Toast Notification */}
-          {showToast && (
-            <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-2">
-              <div className={`px-4 py-3 rounded-lg shadow-lg max-w-sm ${toastType === 'success'
-                ? 'bg-green-500 text-white'
-                : 'bg-red-500 text-white'
-                }`}>
-                <div className="flex items-center gap-2">
-                  {toastType === 'success' ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5" />
-                  )}
-                  <p className="text-sm font-medium">{toastMessage}</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </ProtectedRoute>

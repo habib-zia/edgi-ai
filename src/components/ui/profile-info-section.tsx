@@ -1,11 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Eye, EyeOff, AlertCircle, Mail, CheckCircle } from 'lucide-react'
-
-import { useAppDispatch } from '@/store/hooks'
-import { updateUser } from '@/store/slices/userSlice'
-import { apiService } from '@/lib/api-service'
+import { useEffect, useRef } from 'react'
+import { AlertCircle } from 'lucide-react'
 
 interface ProfileFormData {
   firstName: string
@@ -27,84 +23,56 @@ interface ProfileInfoSectionProps {
   data: ProfileFormData
   errors: ProfileFormErrors
   onChange: (field: keyof ProfileFormData, value: string) => void
-  isEmailVerified?: boolean
   onUpdateProfile?: () => void
   isUpdating?: boolean
 }
 
-export default function ProfileInfoSection({ data, errors, onChange, isEmailVerified = false, onUpdateProfile, isUpdating = false }: ProfileInfoSectionProps) {
-  const dispatch = useAppDispatch()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showToast, setShowToast] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const [toastType, setToastType] = useState<'success' | 'error'>('success')
+export default function ProfileInfoSection({ data, errors, onChange, onUpdateProfile, isUpdating = false }: ProfileInfoSectionProps) {
+  const initialValuesRef = useRef<{ firstName: string; lastName: string; phone: string } | null>(null)
 
   const handleInputChange = (field: keyof ProfileFormData, value: string) => {
-    // const processedValue = value.trim() 
     onChange(field, value)
   }
 
-  const showToastMessage = (message: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage(message)
-    setToastType(type)
-    setShowToast(true)
-
-    // Auto hide toast after 5 seconds
-    setTimeout(() => {
-      setShowToast(false)
-    }, 5000)
-  }
-
-  const refreshUserData = async () => {
-    try
-    {
-      const response = await apiService.getCurrentUser()
-      if (response.success && response.data)
-      {
-        // Update user data in Redux store
-        dispatch(updateUser(response.data.user))
-      }
-    } catch (error)
-    {
-      // Silently fail - this is a background refresh
-      // User will see updated status on next manual action
-    }
-  }
-
-  // Periodically refresh user data to check for email verification status updates
   useEffect(() => {
-    if (!isEmailVerified)
-    {
-      const interval = setInterval(() => {
-        refreshUserData()
-      }, 10000) // Check every 10 seconds
-
-      return () => clearInterval(interval)
-    }
-  }, [isEmailVerified])
-
-  const handleResendVerification = async () => {
-    try
-    {
-      const response = await apiService.resendVerification(data.email)
-
-      if (response.success)
-      {
-        showToastMessage('Verification email sent successfully! Please check your inbox.', 'success')
-
-        // Refresh user data to get the latest verification status
-        setTimeout(() => {
-          refreshUserData()
-        }, 1000) // Wait a bit for the server to process
-      } else
-      {
-        showToastMessage(response.message || 'Failed to send verification email. Please try again.', 'error')
+    if (!initialValuesRef.current && (data.firstName || data.lastName || data.phone || data.email)) {
+      initialValuesRef.current = {
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        phone: data.phone || ''
       }
-    } catch (error)
-    {
-      const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-      showToastMessage(errorMessage, 'error')
     }
+  }, [data.firstName, data.lastName, data.phone, data.email])
+
+  const prevIsUpdatingRef = useRef(isUpdating)
+  useEffect(() => {
+    if (prevIsUpdatingRef.current && !isUpdating) {
+      initialValuesRef.current = {
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        phone: data.phone || ''
+      }
+    }
+    prevIsUpdatingRef.current = isUpdating
+  }, [isUpdating, data.firstName, data.lastName, data.phone])
+
+  const hasChanges = (): boolean => {
+    if (!initialValuesRef.current) {
+      return false
+    }
+    
+    const initial = initialValuesRef.current
+    const current = {
+      firstName: data.firstName || '',
+      lastName: data.lastName || '',
+      phone: data.phone || ''
+    }
+    
+    return (
+      initial.firstName !== current.firstName ||
+      initial.lastName !== current.lastName ||
+      initial.phone !== current.phone
+    )
   }
 
   return (
@@ -178,31 +146,6 @@ export default function ProfileInfoSection({ data, errors, onChange, isEmailVeri
             aria-invalid={!!errors.email}
             className="w-full px-4 py-3 bg-[#F3F4F6] border-0 rounded-[8px] text-gray-600 placeholder-[#11101066] cursor-not-allowed"
           />
-          {/* Email Verification Status */}
-          {!isEmailVerified && (
-            <div className="mt-1 flex items-center gap-1">
-              <Mail className="w-3 h-3 text-orange-500" />
-              <span className="text-xs text-orange-600">Email not verified</span>
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                className="text-xs text-[#5046E5] cursor-pointer hover:text-[#4338CA] underline font-medium transition-colors"
-              >
-                Resend verification
-              </button>
-            </div>
-          )}
-          {isEmailVerified && (
-            <div className="mt-1 flex items-center gap-1">
-              <span className="text-[10px] text-green-600 pl-1">Email verified</span>
-            </div>
-          )}
-          {errors.email && (
-            <p id="email-error" className="text-red-500 text-sm mt-1 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {errors.email}
-            </p>
-          )}
         </div>
 
         {/* Phone */}
@@ -236,9 +179,9 @@ export default function ProfileInfoSection({ data, errors, onChange, isEmailVeri
           <button
             type="button"
             onClick={onUpdateProfile}
-            disabled={isUpdating}
-              className={`px-4 py-[11.4px] rounded-full font-semibold text-[14px] hover:text-[#5046E5] text-white transition-colors duration-200 ${isUpdating
-              ? 'bg-gray-400 cursor-not-allowed'
+            disabled={isUpdating || !hasChanges()}
+              className={`px-4 py-[11.4px] rounded-full font-semibold text-[14px] hover:text-[#5046E5] text-white transition-colors duration-200 ${isUpdating || !hasChanges()
+              ? 'bg-gray-400 cursor-not-allowed text-gray-400 hover:text-white'
               : 'hover:bg-transparent bg-[#5046E5] border border-[#5046E5]'
               }`}
           >
@@ -254,24 +197,6 @@ export default function ProfileInfoSection({ data, errors, onChange, isEmailVeri
         </div>
       )}
 
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-2">
-          <div className={`px-4 py-3 rounded-lg shadow-lg max-w-sm ${toastType === 'success'
-            ? 'bg-green-500 text-white'
-            : 'bg-red-500 text-white'
-            }`}>
-            <div className="flex items-center gap-2">
-              {toastType === 'success' ? (
-                <CheckCircle className="w-5 h-5" />
-              ) : (
-                <AlertCircle className="w-5 h-5" />
-              )}
-              <p className="text-sm font-medium">{toastMessage}</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

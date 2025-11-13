@@ -51,7 +51,7 @@ export default function VideoAvatarStatusNotification({
       
       if (latest.status === 'error') {
         const timeout = 60000
-        const countdown = 60
+        const countdown = 300
         
         setTimeRemaining(countdown)
         
@@ -138,6 +138,77 @@ export default function VideoAvatarStatusNotification({
         return step.charAt(0).toUpperCase() + step.slice(1)
     }
   }
+  const extractErrorMessage = (error: any): string => {
+    if (!error) {
+      return 'An error occurred while creating the video avatar.'
+    }
+
+    if (typeof error === 'string') {
+      if (error.includes('Heygen responded')) {
+        try {
+          const jsonMatch = error.match(/Heygen responded \d+: (.+)/)
+          if (jsonMatch && jsonMatch[1]) {
+            const parsed = JSON.parse(jsonMatch[1])
+            if (parsed.error && parsed.error.message) {
+              return parsed.error.message
+            }
+            if (parsed.message) {
+              return parsed.message
+            }
+          }
+          
+          const messageMatch = error.match(/"message"\s*:\s*"([^"]*)"/)
+          if (messageMatch && messageMatch[1]) {
+            return messageMatch[1]
+          }
+        } catch {
+          const cleaned = error.replace(/^Heygen responded \d+:\s*/, '')
+          if (cleaned !== error) {
+            try {
+              const parsed = JSON.parse(cleaned)
+              if (parsed.error && parsed.error.message) {
+                return parsed.error.message
+              }
+              if (parsed.message) {
+                return parsed.message
+              }
+            } catch {
+              return cleaned.length < error.length ? cleaned : error
+            }
+          }
+        }
+      }
+      
+      if (error.trim().startsWith('{') || error.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(error)
+          if (parsed.error && parsed.error.message) {
+            return parsed.error.message
+          }
+          if (parsed.message) {
+            return parsed.message
+          }
+        } catch {
+          return error
+        }
+      }
+      
+      return error
+    }
+
+    if (typeof error === 'object') {
+      if (error.error && error.error.message) {
+        return error.error.message
+      }
+      if (error.message) {
+        return error.message
+      }
+      if (error.error && typeof error.error === 'string') {
+        return error.error
+      }
+    }
+    return 'An error occurred while creating the video avatar.'
+  }
 
   if (!isVisible || updates.length === 0) {
     return (
@@ -201,7 +272,7 @@ export default function VideoAvatarStatusNotification({
 
           {latestUpdate.status === 'error' && latestUpdate.data?.error && (
             <div className="mt-3 p-2 bg-red-50 rounded text-sm text-red-700">
-              {latestUpdate.data.error}
+              {extractErrorMessage(latestUpdate.data.error)}
             </div>
           )}
 

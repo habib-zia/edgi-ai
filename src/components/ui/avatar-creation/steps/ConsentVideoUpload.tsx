@@ -23,26 +23,17 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
   const consentUpload = useVideoUpload();
   const { videoAvatarUpdates } = useUnifiedSocketContext();
 
-  // Restore video preview when navigating back if consentVideoFile exists
   useEffect(() => {
     if (avatarData.consentVideoFile && !consentUpload.uploadState.preview) {
-      // Create preview URL and validate the video
       consentUpload.handleFileSelect(avatarData.consentVideoFile, 'consent');
     }
   }, [avatarData.consentVideoFile]);
 
-  // Listen for video avatar updates and close modal when status is progress
-  // Flow: User clicks Create → text appears → API call made → Socket receives 'progress' status → Modal closes
-  // After modal closes, VideoAvatarStatusNotification (global toast) continues to show updates until completed/error
   useEffect(() => {
     if (isCreating && videoAvatarUpdates.length > 0) {
       const latestUpdate = videoAvatarUpdates[videoAvatarUpdates.length - 1];
-      // Close modal when socket status is progress (processing started)
-      // Toast notifications will continue to appear via VideoAvatarStatusNotification component
-      if (latestUpdate.status === 'progress') {
-        console.log('🎬 Video avatar process started, closing modal:', latestUpdate.status);
-        // Close modal immediately when processing starts
-        // Toast will continue showing progress updates until completed or failed
+      if (latestUpdate.status === 'progress' || latestUpdate.status === 'error') {
+        console.log('🎬 Video avatar status update, closing modal:', latestUpdate.status);
         if (onClose) {
           onClose();
         }
@@ -70,30 +61,38 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
     setAvatarData({ ...avatarData, consentVideoFile: null });
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!avatarData.consentVideoFile || !avatarData.videoFile) {
       return;
     }
 
-    // Immediately set creating state to hide buttons and show message
     setIsCreating(true);
     setErrorMessage(null);
     
-    // Hide close button when creation starts
     if (onCreateStart) {
       onCreateStart();
     }
     
-    // Fire and forget - call API without waiting for response
     const avatarName = trainingVideoNameRef.current || avatarData.name || '';
-    apiService.createVideoAvatar(
-      avatarData.videoFile,
-      avatarData.consentVideoFile,
-      avatarName
-    ).catch((error) => {
-      console.error('❌ Error creating video avatar:', error);
-      // Don't reset state on error - let user continue and they'll get notification via WebSocket
-    });
+    try {
+      const result = await apiService.createVideoAvatar(
+        avatarData.videoFile,
+        avatarData.consentVideoFile,
+        avatarName
+      );
+      
+      if (!result.success) {
+        console.error('❌ Video avatar creation failed:', result.message);
+        if (onClose) {
+          onClose();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Exception creating video avatar:', error);
+      if (onClose) {
+        onClose();
+      }
+    }
   };
 
   const canProceedConsent = avatarData.consentVideoFile && consentUpload.uploadState.isValid && !consentUpload.uploadState.isValidating;
