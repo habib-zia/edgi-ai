@@ -6,7 +6,6 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import AuthInitializer from '@/components/features/auth/AuthInitializer'
 import TokenValidator from '@/components/features/auth/TokenValidator'
 import { useAuthErrorHandler } from '@/hooks/useAuthErrorHandler'
-import { useDeploymentReload } from '@/hooks/useDeploymentReload'
 import ApiServiceProvider from './ApiServiceProvider'
 import { UnifiedSocketProvider } from './UnifiedSocketProvider'
 import { ModalScrollLockProvider } from './ModalScrollLockProvider'
@@ -17,7 +16,6 @@ interface ClientProvidersProps {
 
 function ClientProvidersContent({ children }: ClientProvidersProps) {
   useAuthErrorHandler()
-  useDeploymentReload()
   
   return (
     <>
