@@ -97,7 +97,7 @@ function HomePageContent() {
       console.log('Email verified successfully!');
     }
   }, [searchParams]);
-
+  alert('1')
   const checkForPosts = useCallback(async () => {
     if (isAuthenticated) {
       setPostsLoading(true);
