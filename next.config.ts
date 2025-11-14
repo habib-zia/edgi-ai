@@ -112,6 +112,11 @@ const nextConfig: NextConfig = {
 
   poweredByHeader: false, // hide "x-powered-by"
   serverExternalPackages: ["dompurify"],
+  
+  // Inject build time as environment variable for deployment detection
+  env: {
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
 };
 
 export default nextConfig;
