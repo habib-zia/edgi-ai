@@ -288,6 +288,7 @@ export default function FormDropdown({
                                       height={80}
                                       className={`rounded-lg object-cover w-[80px] h-[80px] ${(isAvatarPending ? isAvatarPending(avatar) : false) ? 'opacity-50' : ''
                                         }`}
+                                      unoptimized={(avatar?.preview_image_url || avatar?.imageUrl || '').includes('heygen.ai')}
                                       onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.src = '/images/avatars/avatargirl.png';
@@ -410,6 +411,7 @@ export default function FormDropdown({
                                       height={80}
                                       className={`rounded-lg object-cover w-[80px] h-[80px] ${(isAvatarPending ? isAvatarPending(avatar) : false) ? 'opacity-50' : ''
                                         }`}
+                                      unoptimized={(avatar?.preview_image_url || avatar?.imageUrl || '').includes('heygen.ai')}
                                       onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.src = '/images/avatars/avatargirl.png';
@@ -517,6 +519,7 @@ export default function FormDropdown({
                                       width={80}
                                       height={80}
                                       className="rounded-lg object-cover w-[80px] h-[80px]"
+                                      unoptimized={(avatar?.preview_image_url || avatar?.imageUrl || '').includes('heygen.ai')}
                                       onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.src = '/images/avatars/avatargirl.png';
@@ -593,6 +596,7 @@ export default function FormDropdown({
                               width={50}
                               height={50}
                               className="rounded-lg object-cover w-[50px] h-[50px]"
+                              unoptimized={(selectedAvatars.title?.preview_image_url || selectedAvatars.title?.imageUrl || '').includes('heygen.ai')}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = '/images/avatars/avatargirl.png';
@@ -638,6 +642,7 @@ export default function FormDropdown({
                               width={50}
                               height={50}
                               className="rounded-lg object-cover w-[50px] h-[50px]"
+                              unoptimized={(selectedAvatars.body?.preview_image_url || selectedAvatars.body?.imageUrl || '').includes('heygen.ai')}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = '/images/avatars/avatargirl.png';
@@ -682,6 +687,7 @@ export default function FormDropdown({
                               width={50}
                               height={50}
                               className="rounded-lg object-cover w-[50px] h-[50px]"
+                              unoptimized={(selectedAvatars.conclusion?.preview_image_url || selectedAvatars.conclusion?.imageUrl || '').includes('heygen.ai')}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = '/images/avatars/avatargirl.png';
