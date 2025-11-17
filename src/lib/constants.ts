@@ -1,3 +1,5 @@
+import { Info, MessageCircle, Shield, Settings, HelpCircle, Play, Layers, UserCheck, Headphones, DollarSign, RefreshCw, Download, Edit, FileText, Video, Smartphone } from 'lucide-react';
+
 export const BRAND_NAME = "EdgeAIRealty";
 
 export const NAVIGATION_ITEMS = [
@@ -178,3 +180,117 @@ export const REVIEW_SLIDER_ITEMS = [
     image: "https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
   },
 ];
+
+
+export const FAQ_DATA = {
+  'Series & Videos': [
+    {
+      id: 'what-is-edge-ai-realty',
+      question: 'What is Edge Ai Realty?',
+      answer: 'Edge Ai Realty is a cutting-edge platform that empowers real estate professionals to create high-quality, customized Ai-generated videos for property listings, market updates, and personal branding. Our goal is to streamline your marketing efforts, saving you time and enhancing your online presence.',
+      icon: Info
+    },
+    {
+      id: 'subscription-plan-differences',
+      question: 'What are the differences between the subscription plans?',
+      answer: 'Our plan is priced at $997/month and includes 30 videos per month, unlimited photo avatars, unlimited video avatars, and unlimited custom voices. This comprehensive plan is designed to meet all your content creation needs with complete flexibility.',
+      icon: Layers
+    },
+    {
+      id: 'multiple-avatars-availability',
+      question: 'Can I use multiple avatars in my videos?',
+      answer: 'Yes, our plan includes unlimited photo avatars and unlimited video avatars, giving you complete flexibility to create multiple avatars for your content.',
+      icon: UserCheck
+    },
+    {
+      id: 'quarterly-strategy-session',
+      question: 'What is included in the quarterly strategy session?',
+      answer: 'The quarterly strategy session is a 30-minute call with our team to discuss your marketing goals, review past video performance, and plan future content strategies. Please contact our support team for more information about strategy session availability.',
+      icon: MessageCircle
+    },
+    {
+      id: 'how-to-get-started',
+      question: 'How do I get started?',
+      answer: 'Choose the plan that best fits your needs and complete the sign-up process on our website. You\'ll then go through our onboarding process to set up your avatar and provide information for your first video.',
+      icon: Play
+    },
+    {
+      id: 'need-more-videos',
+      question: 'What if I need more videos than my plan offers?',
+      answer: 'If you require additional videos beyond your plan\'s allocation, please contact our sales team to discuss custom solutions or upgrading to a higher-tier plan.',
+      icon: Video
+    },
+    {
+      id: 'contract-cancellation-policy',
+      question: 'Is there a contract or can I cancel anytime?',
+      answer: 'Our plan is a monthly subscription with no long-term contracts. You can cancel anytime before your next billing cycle.',
+      icon: RefreshCw
+    },
+    {
+      id: 'support-options',
+      question: 'What kind of support do you offer?',
+      answer: 'We offer priority email support with responses within 24 hours. Our support team is dedicated to helping you get the most out of your subscription and resolve any issues quickly.',
+      icon: Headphones
+    },
+    {
+      id: 'plan-upgrade-downgrade',
+      question: 'Can I upgrade or downgrade my plan?',
+      answer: 'Yes, you can change your subscription plan at any time through your account settings or by contacting our support team. Changes will take effect in the next billing cycle.',
+      icon: Settings
+    },
+  ],
+  'Billing': [
+    {
+      id: 'manage-subscription',
+      question: 'How do I manage my subscription?',
+      answer: 'You can update or cancel your plan anytime from your account dashboard or by emailing our support team.',
+      icon: Settings
+    },
+    {
+      id: 'when-am-i-billed',
+      question: 'When am I billed?',
+      answer: 'All subscriptions are billed monthly on the date of your original sign-up.',
+      icon: DollarSign
+    },
+    {
+      id: 'cancel-anytime',
+      question: 'Can I cancel anytime?',
+      answer: 'Yes. You\'ll retain access to your plan until the end of your billing period — no penalties or surprise fees.',
+      icon: Shield
+    },
+  ],
+  'Account': [
+    {
+      id: 'access-my-videos',
+      question: 'How do I access my videos?',
+      answer: 'Once your videos are ready, you\'ll get an email notification with a download link and social-ready formats.',
+      icon: Download
+    },
+    {
+      id: 'update-avatar-branding',
+      question: 'Can I update my avatar or branding later?',
+      answer: 'Yes — you can request changes anytime. With unlimited avatars and voices, you have full flexibility to update your avatar or branding as needed.',
+      icon: Edit
+    },
+  ],
+  'Technical': [
+    {
+      id: 'video-file-issues',
+      question: 'What if I have issues with my video or files?',
+      answer: 'Just email us — we\'ll resolve most issues within 24 hours.',
+      icon: HelpCircle
+    },
+    {
+      id: 'special-software-needed',
+      question: 'Do I need special software to use the videos?',
+      answer: 'Nope. All videos are delivered in standard MP4 formats, ready for upload to Instagram, YouTube, TikTok, and more.',
+      icon: Smartphone
+    },
+    {
+      id: 'preview-scripts-changes',
+      question: 'Can I preview scripts or request changes?',
+      answer: 'Yes. Our plan includes script customization with optimization and review built-in.',
+      icon: FileText
+    },
+  ]
+};
