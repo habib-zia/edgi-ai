@@ -28,7 +28,7 @@ export interface AvatarData {
   videoFile: File | null
   consentVideoFile: File | null
   photoFiles: File[]
-  audioFile: File | null
+  audioFiles: (File | null)[]
   avatarType: AvatarType | null
 }
 
@@ -52,7 +52,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     videoFile: null,
     consentVideoFile: null,
     photoFiles: [],
-    audioFile: null,
+    audioFiles: [null, null, null],
     avatarType: null
   })
 
@@ -104,7 +104,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
       videoFile: null,
       consentVideoFile: null,
       photoFiles: [],
-      audioFile: null,
+      audioFiles: [null, null, null],
       avatarType: null
     })
     onClose()
@@ -253,7 +253,7 @@ export default function AvatarCreationModal({ isOpen, onClose, onShowToast }: Av
     if (selectedAvatarType == 'voice-avatar' && currentStep == 3) {
       return {
         maxWidth: isNarrowWidth() ? 'max-w-[760px]' : 'max-w-[760px]',
-        maxHeight: 'max-h-[550px]',
+        maxHeight: 'max-h-[650px]',
         padding: 'p-3'
       }
     }
