@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
-import { Info, MessageCircle, Minus, Shield, Settings, HelpCircle, Play, Layers, UserCheck, Headphones, DollarSign, RefreshCw, Download, Edit, FileText, Video, Smartphone, Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
+import { FAQ_DATA } from '@/lib/constants';
 
 interface FAQItem {
   id: string;
   question: string;
   answer: string;
   icon: LucideIcon;
-}
-
-interface FAQData {
-  [key: string]: FAQItem[];
 }
 
 const FAQSection = () => {
@@ -24,129 +21,15 @@ const FAQSection = () => {
     'Technical'
   ];
 
-  const faqData: FAQData = {
-    'Series & Videos': [
-      {
-        id: 'what-is-edge-ai-realty',
-        question: 'What is Edge Ai Realty?',
-        answer: 'Edge Ai Realty is a cutting-edge platform that empowers real estate professionals to create high-quality, customized Ai-generated videos for property listings, market updates, and personal branding. Our goal is to streamline your marketing efforts, saving you time and enhancing your online presence.',
-        icon: Info
-      },
-      {
-        id: 'subscription-plan-differences',
-        question: 'What are the differences between the subscription plans?',
-        answer: 'Starter ($99 one-time): Includes one Ai-generated video and one avatar. Ideal for trying out our service. Growth ($199/month): Offers four Ai-generated videos per month with one avatar. Suitable for regular content creation. Pro ($399/month): Provides 12 Ai-generated videos per month with one avatar and includes a quarterly 30-minute strategy session. Designed for serious marketers. Enterprise ($799+/month): Delivers 25+ Ai-generated videos per month with up to three avatars, advanced customization, and a quarterly strategy session. Tailored for large teams and brokerages.',
-        icon: Layers
-      },
-      {
-        id: 'multiple-avatars-availability',
-        question: 'Can I use multiple avatars in my videos?',
-        answer: 'Multiple avatars are available exclusively in our Enterprise plan, which includes up to three avatars. Our Starter, Growth, and Pro plans include one avatar.',
-        icon: UserCheck
-      },
-      {
-        id: 'quarterly-strategy-session',
-        question: 'What is included in the quarterly strategy session?',
-        answer: 'The quarterly strategy session is a 30-minute call with our team to discuss your marketing goals, review past video performance, and plan future content strategies. This session is included in the Pro and Enterprise plans.',
-        icon: MessageCircle
-      },
-      {
-        id: 'how-to-get-started',
-        question: 'How do I get started?',
-        answer: 'Choose the plan that best fits your needs and complete the sign-up process on our website. You\'ll then go through our onboarding process to set up your avatar and provide information for your first video.',
-        icon: Play
-      },
-      {
-        id: 'need-more-videos',
-        question: 'What if I need more videos than my plan offers?',
-        answer: 'If you require additional videos beyond your plan\'s allocation, please contact our sales team to discuss custom solutions or upgrading to a higher-tier plan.',
-        icon: Video
-      },
-      {
-        id: 'contract-cancellation-policy',
-        question: 'Is there a contract or can I cancel anytime?',
-        answer: 'Our Starter plan is a one-time purchase. The Growth, Pro, and Enterprise plans are monthly subscriptions with no long-term contracts. You can cancel anytime before your next billing cycle.',
-        icon: RefreshCw
-      },
-      {
-        id: 'support-options',
-        question: 'What kind of support do you offer?',
-        answer: 'Starter Plan: Email support with a 24–48 hour response time. Growth Plan: Priority email support with responses within 24 hours. Pro and Enterprise Plans: Priority email support with responses within 12 hours, plus quarterly strategy sessions.',
-        icon: Headphones
-      },
-      {
-        id: 'plan-upgrade-downgrade',
-        question: 'Can I upgrade or downgrade my plan?',
-        answer: 'Yes, you can change your subscription plan at any time through your account settings or by contacting our support team. Changes will take effect in the next billing cycle.',
-        icon: Settings
-      },
-    ],
-    'Billing': [
-      {
-        id: 'manage-subscription',
-        question: 'How do I manage my subscription?',
-        answer: 'You can update or cancel your plan anytime from your account dashboard or by emailing our support team.',
-        icon: Settings
-      },
-      {
-        id: 'when-am-i-billed',
-        question: 'When am I billed?',
-        answer: 'All subscriptions are billed monthly on the date of your original sign-up.',
-        icon: DollarSign
-      },
-      {
-        id: 'cancel-anytime',
-        question: 'Can I cancel anytime?',
-        answer: 'Yes. You\'ll retain access to your plan until the end of your billing period — no penalties or surprise fees.',
-        icon: Shield
-      },
-    ],
-    'Account': [
-      {
-        id: 'access-my-videos',
-        question: 'How do I access my videos?',
-        answer: 'Once your videos are ready, you\'ll get an email notification with a download link and social-ready formats.',
-        icon: Download
-      },
-      {
-        id: 'update-avatar-branding',
-        question: 'Can I update my avatar or branding later?',
-        answer: 'Yes — you can request changes anytime. Growth and Pro plans allow moderate edits; Enterprise plans get full brand flexibility.',
-        icon: Edit
-      },
-    ],
-    'Technical': [
-      {
-        id: 'video-file-issues',
-        question: 'What if I have issues with my video or files?',
-        answer: 'Just email us — we\'ll resolve most issues within 24 hours. Pro and Enterprise users get response priority.',
-        icon: HelpCircle
-      },
-      {
-        id: 'special-software-needed',
-        question: 'Do I need special software to use the videos?',
-        answer: 'Nope. All videos are delivered in standard MP4 formats, ready for upload to Instagram, YouTube, TikTok, and more.',
-        icon: Smartphone
-      },
-      {
-        id: 'preview-scripts-changes',
-        question: 'Can I preview scripts or request changes?',
-        answer: 'Yes. All plans include some level of script customization. Pro and Enterprise plans come with optimization and review built-in.',
-        icon: FileText
-      },
-    ]
-  };
 
-  const currentFAQs = faqData[activeTab] || [];
+  const currentFAQs = FAQ_DATA[activeTab as keyof typeof FAQ_DATA] || [];
 
   const toggleAccordion = (questionId: string) => {
     setOpenAccordion(openAccordion === questionId ? null : questionId);
   };
 
   return (
-    <section className="max-w-[1260px] mx-auto px-3 py-4 lg:py-10" aria-labelledby="faq-heading">
-      {/* Header */}
-        
+    <section className="max-w-[1260px] mx-auto px-3 py-4 lg:py-10" aria-labelledby="faq-heading">        
         <div className="text-center mb-8 sm:mb-12 lg:mb-16" id="faq">
         <h1 
           id="faq-heading"
@@ -173,11 +56,10 @@ const FAQSection = () => {
             <button
               key={tabName}
               onClick={() => setActiveTab(tabName)}
-              className={`px-3 sm:px-4 md:px-6 lg:px-8 py-1.5 sm:py-2 md:py-[6.4px] rounded-full cursor-pointer text-sm sm:text-base md:text-lg lg:text-[20px] leading-tight sm:leading-normal lg:leading-[32px] font-semibold transition-all duration-300 whitespace-nowrap
+              className={`px-3 sm:px-4 md:px-6 lg:px-8 py-1.5 sm:py-2 md:py-[6.4px] rounded-full cursor-pointer text-sm sm:text-base md:text-lg lg:text-[20px] leading-tight sm:leading-normal lg:leading-[32px] font-semibold transition-all duration-300 whitespace-nowrap border-2
                   ${isActive
-                  ? `text-white bg-gradient-to-r from-[#5046E5] to-[#3A2DFD] hover:!bg-transparent hover:text-white hover:border-2 hover:border-[#5046E5]`
-                  : `text-[#5046E5] border-2 border-[#5046E5] bg-transparent
-                      hover:bg-gradient-to-r hover:from-[#5046E5] hover:to-[#3A2DFD] hover:text-white`
+                  ? 'text-white bg-[#5046E5] border-[#5046E5]'
+                  : 'text-[#5046E5] border-[#5046E5] bg-transparent hover:bg-[#5046E5] hover:text-white hover:border-[#5046E5]'
                   }`}
               role="tab"
               aria-selected={isActive}

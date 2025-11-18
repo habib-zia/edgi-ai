@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { IoMdArrowDropdown } from 'react-icons/io'
 import { useSelector } from 'react-redux'
@@ -32,6 +32,16 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
   const genderOptions = [{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]
   const languageOptions = [{ value: 'en', label: 'English' }]
 
+  useEffect(() => {
+    if (errors.general) {
+      const timer = setTimeout(() => {
+        setErrors(prev => ({ ...prev, general: undefined }))
+      }, 10000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [errors.general])
+
   const handleInputChange = (field: keyof AvatarData, value: string) => {
     setAvatarData({ ...avatarData, [field]: value });
     if (errors[field]) setErrors({ ...errors, [field]: undefined });
@@ -50,21 +60,27 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
     if (!avatarData.gender) newErrors.gender = 'Gender is required'
     if (!avatarData.language) newErrors.language = 'Language is required'
     if (!agreedToTerms) newErrors.terms = 'You must agree to the terms'
-    if (!avatarData.audioFile) newErrors.general = 'Please upload an audio file first'
+    if (!avatarData.audioFiles || avatarData.audioFiles.length < 1) {
+      newErrors.general = 'Please record at least 1 voice sample (first sample is required)'
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleCreate = async () => {
     setShowErrors(true)
-    if (!validateForm() || !avatarData.audioFile) return
+    if (!validateForm() || !avatarData.audioFiles || avatarData.audioFiles.length < 1) return
 
     setIsCreating(true)
     if (onHideCloseButton) onHideCloseButton()
     clearAvatarUpdates()
 
     const formData = new FormData()
-    formData.append('files', avatarData.audioFile)
+    avatarData.audioFiles.forEach(file => {
+      if (file !== null) {
+        formData.append('files', file)
+      }
+    })
     formData.append('name', avatarData.name)
     formData.append('description', avatarData.description)
     formData.append('gender', avatarData.gender.toLowerCase())
