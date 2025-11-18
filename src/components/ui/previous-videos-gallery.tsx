@@ -6,7 +6,7 @@ import ConnectAccountsModal from './connect-accounts-modal'
 import CreatePostModal from './create-post-modal'
 import DeleteVideoConfirmationModal from './delete-video-confirmation-modal'
 import { IoMdArrowDropdown } from "react-icons/io";
-import { X, NotebookPen, AlertCircle } from 'lucide-react'
+import { X, NotebookPen, AlertCircle, PencilLine } from 'lucide-react'
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { apiService } from '@/lib/api-service';
@@ -563,27 +563,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
           filteredAndSortedVideos.map((video) => (
             <div
               key={video.id}
-              className="bg-[#EEEEEE] rounded-[12px] overflow-hidden transition-all duration-300 group min-h-[240px] relative h-[353px]"
+              className="bg-[#EEEEEE] rounded-[12px] overflow-hidden transition-all duration-300 group min-h-[240px] relative h-[384px]"
             >
-              {/* Note Icon Button - Top Right */}
-              {!video.id.startsWith('loading-') && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleOpenNoteModal(video)
-                  }}
-                  className="absolute top-4 right-4 z-30 p-2 bg-white/90 hover:bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center group/note"
-                  title={videoNotes[video.videoId || video.id] ? 'Edit note' : 'Add note'}
-                >
-                  <NotebookPen 
-                    className={`w-5 h-5 transition-colors duration-200 ${
-                      videoNotes[video.videoId || video.id] 
-                        ? 'text-[#5046E5] fill-[#5046E5]/20' 
-                        : 'text-black group-hover/note:text-[#5046E5]'
-                    }`} 
-                  />
-                </button>
-              )}
+              
               {/* Video Player Container */}
               <div className="relative aspect-video max-h-[200px] w-full bg-[#EEEEEE] px-3 pt-3 rounded-[8px] group">
                 {/* Video Player */}
@@ -703,7 +685,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
               </div>
 
               {/* Content */}
-              <div className="p-4 flex flex-col justify-between h-[154px]">
+              <div className="p-4 flex flex-col justify-between h-[160px]">
                 {/* Video Title */}
                 {video.id.startsWith('loading-') ? (
                   /* Professional Skeleton Title */
@@ -719,25 +701,58 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                     </h3>
                     {/* Note Display */}
                     {videoNotes[video.videoId || video.id] ? (
-                      <div className="mt-2 px-2 py-1 bg-blue-50 border border-blue-100 rounded-[6px]">
-                        <div className="flex items-start gap-1">
-                          {/* <NotebookPen className="w-4 h-4 text-[#5046E5] mt-0.5 flex-shrink-0" /> */}
-                          <h3 className="text-sm font-medium text-[#171717]">Note:</h3>
-                          <p className="text-sm text-gray-700 line-clamp-1 flex-1">
-                            {videoNotes[video.videoId || video.id]}
+                      <div className="mt-2 p-2 min-h-[60px] bg-white border border-blue-100 hover:border-blue-200 rounded-[6px] relative transition-all duration-300">
+                        <div className="flex items-start gap-1 relative z-10 pr-[24px]">
+                          <p className="text-sm text-[#5F5F5F] line-clamp-2 flex-1">
+                           <span className="font-medium text-[#5F5F5F]">Note:</span> {videoNotes[video.videoId || video.id]}
                           </p>
                         </div>
+                        {!video.id.startsWith('loading-') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleOpenNoteModal(video)
+                            }}
+                            className="absolute top-2 right-2 z-30 transition-all duration-200 flex items-center justify-center group/note"
+                            title={videoNotes[video.videoId || video.id] ? 'Edit note' : 'Add note'}
+                          >
+                            <PencilLine 
+                              className={`w-5 h-5 transition-colors duration-200 ${
+                                videoNotes[video.videoId || video.id] 
+                                  ? 'text-[#5F5F5F] hover:text-[#5046E5] ' 
+                                  : 'text-[#5F5F5F] group-hover/note:text-[#5046E5]'
+                              }`} 
+                            />
+                          </button>
+                        )}
                       </div>
                     ) : (
-                      <div className="mt-2 px-2 py-1 bg-blue-50 border border-blue-100 rounded-[6px]">
+                      <div className="mt-2 p-2 min-h-[60px] bg-white border border-blue-50 hover:border-blue-200 rounded-[6px] relative transition-all duration-300">
                         <div className="flex items-start gap-1">
-                          <button onClick={() => handleOpenNoteModal(video)} className="text-sm font-medium text-[#171717]">Add a note</button>
+                          <p className="text-sm font-normal text-[#9C9B9B]">Add a note</p>
+                          {!video.id.startsWith('loading-') && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleOpenNoteModal(video)
+                              }}
+                              className="absolute top-2 right-2 z-30 transition-all duration-200 flex items-center justify-center group/note"
+                              title={videoNotes[video.videoId || video.id] ? 'Edit note' : 'Add note'}
+                            >
+                              <PencilLine 
+                                className={`w-5 h-5 transition-colors duration-200 ${
+                                  videoNotes[video.videoId || video.id] 
+                                    ? 'text-[#5046E5] ' 
+                                    : 'text-[#5F5F5F] hover:text-[#5046E5]'
+                                }`} 
+                              />
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
                 )}
-
                 {/* Buttons Container */}
                 {video.id.startsWith('loading-') ? (
                   /* Professional Skeleton Buttons */
