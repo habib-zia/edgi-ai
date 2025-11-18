@@ -519,6 +519,20 @@ class ApiService {
     }, true);
   }
 
+  async updateVideoNote(videoId: string, note: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>(`${API_CONFIG.ENDPOINTS.VIDEO.NOTE}/${videoId}/note`, {
+        method: 'PUT',
+        body: JSON.stringify({ note }),
+      }, true);
+      return response;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update video note';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
   async getVideoStatus(videoId: string): Promise<ApiResponse<any>> {
     return this.request<any>(`${API_CONFIG.ENDPOINTS.VIDEO.STATUS}/${videoId}`, {
       method: 'GET',

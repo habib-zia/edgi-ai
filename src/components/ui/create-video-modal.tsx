@@ -35,6 +35,12 @@ interface CreateVideoModalProps {
 
 type ModalStep = 'form' | 'loading' | 'complete'
 
+const CHARACTER_LIMITS = {
+  prompt: 250,  
+  description: 850,
+  conclusion: 250
+} as const
+
 interface VideoGenerationData {
   hook: string
   body: string
@@ -59,6 +65,16 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     conclusion: webhookResponse?.conclusion || ''
   })
   const [errors, setErrors] = useState({
+    prompt: '',
+    description: '',
+    conclusion: ''
+  })
+  const [aiGeneratedContent, setAiGeneratedContent] = useState({
+    prompt: webhookResponse?.prompt || '',
+    description: webhookResponse?.description || '',
+    conclusion: webhookResponse?.conclusion || ''
+  })
+  const [characterErrors, setCharacterErrors] = useState({
     prompt: '',
     description: '',
     conclusion: ''
@@ -134,7 +150,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }
   }, [isOpen, openModal, closeModal, startAtComplete, videoData])
 
-  // Update form data when webhookResponse changes
+  // Update form data and AI-generated content when webhookResponse changes
   useEffect(() => {
     if (webhookResponse) {
       const newFormData = {
@@ -143,6 +159,11 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         conclusion: webhookResponse.conclusion || ''
       }
       setFormData(newFormData)
+      setAiGeneratedContent({
+        prompt: webhookResponse.prompt || '',
+        description: webhookResponse.description || '',
+        conclusion: webhookResponse.conclusion || ''
+      })
     }
   }, [webhookResponse])
 
@@ -198,6 +219,12 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       conclusion: webhookResponse?.conclusion || ''
     })
     setErrors({ prompt: '', description: '', conclusion: '' })
+    setCharacterErrors({ prompt: '', description: '', conclusion: '' })
+    setAiGeneratedContent({
+      prompt: webhookResponse?.prompt || '',
+      description: webhookResponse?.description || '',
+      conclusion: webhookResponse?.conclusion || ''
+    })
     setIsDownloading(false)
 
     // Only clear localStorage keys and completed updates when closing after creating a new video
@@ -254,19 +281,75 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }
   }, [currentStep, onClose])
 
+  const getUserAddedContent = (field: keyof typeof formData, currentValue: string): string => {
+    const aiContent = aiGeneratedContent[field]
+    
+    if (aiContent.length === 0) {
+      return currentValue
+    }
+    if (currentValue.length <= aiContent.length) {
+      return ''
+    }
+    
+    if (currentValue.startsWith(aiContent)) {
+      return currentValue.slice(aiContent.length)
+    }
+    
+    if (currentValue.length > aiContent.length) {
+      return ' '.repeat(currentValue.length - aiContent.length)
+    }
+    return ''
+  }
+
+  const hasUserAddedContent = (field: keyof typeof formData): boolean => {
+    const currentValue = formData[field]
+    const userAdded = getUserAddedContent(field, currentValue)
+    return userAdded.length > 0
+  }
+
+  const shouldShowRedStyling = (field: keyof typeof formData): boolean => {
+    const hasUserContent = hasUserAddedContent(field)
+    const exceedsLimit = formData[field].length > CHARACTER_LIMITS[field]
+    return hasUserContent && exceedsLimit
+  }
+  const validateCharacterLimit = (
+    field: keyof typeof formData,
+    currentValue: string,
+    aiContent: string,
+    maxLength: number
+  ): string => {
+    const oldCharacter = aiContent
+    const newCharacter = getUserAddedContent(field, currentValue)
+    if (oldCharacter.length > 0 && newCharacter.length > 0) {
+      const totalLength = currentValue.length
+      if (totalLength > maxLength) {
+        return `Total content exceeds ${maxLength} characters. Please reduce your additions.`
+      }
+    }
+    return ''
+  }
+
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
 
-    // Clear error when user starts typing
+    // Clear required field error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
         [field]: ''
       }))
     }
+    const aiContent = aiGeneratedContent[field]
+    const maxLength = CHARACTER_LIMITS[field]
+    const characterError = validateCharacterLimit(field, value, aiContent, maxLength)
+    
+    setCharacterErrors(prev => ({
+      ...prev,
+      [field]: characterError
+    }))
   }
 
 
@@ -277,6 +360,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       conclusion: ''
     }
 
+    // Required field validation
     if (!formData.prompt.trim()) {
       newErrors.prompt = 'Prompt is required'
     }
@@ -287,8 +371,28 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       newErrors.conclusion = 'Conclusion is required'
     }
 
+    const newCharacterErrors = {
+      prompt: '',
+      description: '',
+      conclusion: ''
+    }
+
+    Object.keys(CHARACTER_LIMITS).forEach((field) => {
+      const fieldKey = field as keyof typeof formData
+      const aiContent = aiGeneratedContent[fieldKey]
+      const currentValue = formData[fieldKey]
+      const maxLength = CHARACTER_LIMITS[fieldKey]
+      newCharacterErrors[fieldKey] = validateCharacterLimit(fieldKey, currentValue, aiContent, maxLength)
+    })
+
     setErrors(newErrors)
-    return !newErrors.prompt && !newErrors.description && !newErrors.conclusion
+    setCharacterErrors(newCharacterErrors)
+    
+    // Form is valid if no required field errors and no character limit errors
+    const hasRequiredErrors = !!(newErrors.prompt || newErrors.description || newErrors.conclusion)
+    const hasCharacterErrors = !!(newCharacterErrors.prompt || newCharacterErrors.description || newCharacterErrors.conclusion)
+    
+    return !hasRequiredErrors && !hasCharacterErrors
   }
 
 
@@ -478,6 +582,21 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }
   }
 
+  const isFormValid = () => {
+    if (!formData.prompt.trim() || !formData.description.trim() || !formData.conclusion.trim()) {
+      return false
+    }
+    if (characterErrors.prompt || characterErrors.description || characterErrors.conclusion) {
+      return false
+    }
+    return true
+  }
+  const getCharacterCount = (field: keyof typeof formData): string => {
+    const currentLength = formData[field].length
+    const maxLength = CHARACTER_LIMITS[field]
+    return `${currentLength} / ${maxLength} characters`
+  }
+
   if (!isOpen) return null
 
   return (
@@ -516,14 +635,19 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
             <>
               <div className="flex gap-2 mb-8 md:flex-row flex-col">
                 <div className='w-full'>
-                  <label className="block text-base font-normal text-[#5F5F5F] mb-2">
-                    Prompt <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-base font-normal text-[#5F5F5F]">
+                      Intro <span className="text-red-500">*</span>
+                    </label>
+                    <span className={`text-sm ${shouldShowRedStyling('prompt') ? 'text-red-500' : 'text-[#5F5F5F]'}`}>
+                      {getCharacterCount('prompt')}
+                    </span>
+                  </div>
                   <textarea
                     value={formData.prompt}
                     onChange={(e) => handleInputChange('prompt', e.target.value)}
                     placeholder="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to"
-                    className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.prompt ? 'ring-2 ring-red-500' : ''
+                    className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.prompt || (characterErrors.prompt && hasUserAddedContent('prompt')) ? 'ring-2 ring-red-500' : ''
                       }`}
                   />
                   {errors.prompt && (
@@ -532,17 +656,28 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                       {errors.prompt}
                     </p>
                   )}
+                  {characterErrors.prompt && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {characterErrors.prompt}
+                    </p>
+                  )}
                 </div>
 
                 <div className='w-full'>
-                  <label className="block text-base font-normal text-[#5F5F5F] mb-2">
-                    Description <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-base font-normal text-[#5F5F5F]">
+                      Body <span className="text-red-500">*</span>
+                    </label>
+                    <span className={`text-sm ${shouldShowRedStyling('description') ? 'text-red-500' : 'text-[#5F5F5F]'}`}>
+                      {getCharacterCount('description')}
+                    </span>
+                  </div>
                   <textarea
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     placeholder="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to"
-                    className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.description ? 'ring-2 ring-red-500' : ''
+                    className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.description || (characterErrors.description && hasUserAddedContent('description')) ? 'ring-2 ring-red-500' : ''
                       }`}
                   />
                   {errors.description && (
@@ -551,23 +686,40 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                       {errors.description}
                     </p>
                   )}
+                  {characterErrors.description && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {characterErrors.description}
+                    </p>
+                  )}
                 </div>
 
                 <div className='w-full'>
-                  <label className="block text-base font-normal text-[#5F5F5F] mb-2">
-                    Conclusion <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-base font-normal text-[#5F5F5F]">
+                      Conclusion <span className="text-red-500">*</span>
+                    </label>
+                    <span className={`text-sm ${shouldShowRedStyling('conclusion') ? 'text-red-500' : 'text-[#5F5F5F]'}`}>
+                      {getCharacterCount('conclusion')}
+                    </span>
+                  </div>
                   <textarea
                     value={formData.conclusion}
                     onChange={(e) => handleInputChange('conclusion', e.target.value)}
                     placeholder="Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to"
-                    className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.conclusion ? 'ring-2 ring-red-500' : ''
+                    className={`w-full md:h-[371px] h-[200px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white ${errors.conclusion || (characterErrors.conclusion && hasUserAddedContent('conclusion')) ? 'ring-2 ring-red-500' : ''
                       }`}
                   />
                   {errors.conclusion && (
                     <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                       <AlertCircle className="w-4 h-4" />
                       {errors.conclusion}
+                    </p>
+                  )}
+                  {characterErrors.conclusion && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {characterErrors.conclusion}
                     </p>
                   )}
                 </div>
@@ -588,7 +740,12 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
 
               <button
                 onClick={handleCreateVideo}
-                className="w-full bg-[#5046E5] text-white py-[11.4px] px-6 rounded-full font-semibold text-[20px] hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-colors duration-300 cursor-pointer"
+                disabled={!isFormValid()}
+                className={`w-full bg-[#5046E5] text-white py-[11.4px] px-6 rounded-full font-semibold text-[20px] border-2 border-[#5046E5] transition-colors duration-300 ${
+                  !isFormValid()
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:bg-transparent hover:text-[#5046E5] cursor-pointer'
+                }`}
               >
                 Create Video
               </button>
