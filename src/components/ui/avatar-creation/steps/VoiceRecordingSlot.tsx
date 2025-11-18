@@ -41,6 +41,8 @@ export default function VoiceRecordingSlot({
         <div className="flex items-center gap-2">
           <h3 className="text-[16px] font-semibold text-[#101010]">
             Voice Sample {slotIndex + 1}
+            {slotIndex === 0 && <span className="text-red-500 ml-1">*</span>}
+            {slotIndex > 0 && <span className="text-[#5F5F5F] text-sm font-normal ml-2">(Optional)</span>}
           </h3>
           {isRecorded && <CheckCircle2 className="w-5 h-5 text-green-500" />}
         </div>

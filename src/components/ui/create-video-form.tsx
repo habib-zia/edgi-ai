@@ -1655,7 +1655,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     type: string = 'text',
     autoComplete?: string
   ) => {
-    const isDisabled = field === 'email' || field === 'topicKeyPoints'
+    const isDisabled = field === 'email'
     
     // Filter errors for prefilled forms - only show errors after manual interaction or submit attempt
     // Check both formManuallyTouched and submitAttempted to ensure errors show on first submit

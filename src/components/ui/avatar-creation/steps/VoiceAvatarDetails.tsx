@@ -60,8 +60,8 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
     if (!avatarData.gender) newErrors.gender = 'Gender is required'
     if (!avatarData.language) newErrors.language = 'Language is required'
     if (!agreedToTerms) newErrors.terms = 'You must agree to the terms'
-    if (!avatarData.audioFiles || avatarData.audioFiles.length !== 3 || !avatarData.audioFiles.every(f => f !== null)) {
-      newErrors.general = 'Please record all 3 voice samples first'
+    if (!avatarData.audioFiles || avatarData.audioFiles.length < 1) {
+      newErrors.general = 'Please record at least 1 voice sample (first sample is required)'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -69,7 +69,7 @@ export default function VoiceAvatarDetails({ onBack, avatarData, setAvatarData, 
 
   const handleCreate = async () => {
     setShowErrors(true)
-    if (!validateForm() || !avatarData.audioFiles || avatarData.audioFiles.length !== 3 || !avatarData.audioFiles.every(f => f !== null)) return
+    if (!validateForm() || !avatarData.audioFiles || avatarData.audioFiles.length < 1) return
 
     setIsCreating(true)
     if (onHideCloseButton) onHideCloseButton()

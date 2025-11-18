@@ -85,21 +85,21 @@ export default function VoiceAudioUpload({ onNext, onBack, avatarData, setAvatar
   }
 
   const recordedCount = getRecordedCount(paddedFiles)
-  const allRecorded = recordedCount === SLOT_COUNT
+  const hasMinimumRequired = recordedCount >= 1
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto pr-2 space-y-4">
         <div className="text-left">
           <p className="text-[16px] text-[#5F5F5F] font-normal leading-[24px]">
-          Record 3 voice samples to create a high-quality voice clone. The speaking style in the samples you provide will be replicated in the output, so depending on what delivery you are looking for, the training data should correspond to that style (e.g. if you want a more engaging, up-beat vocalization, make sure your voice reflects the tones and inflections that reflect that style). It is better to just include one style in the uploaded samples for consistencies sake.
+          Record at least 1 voice sample (required) to create a high-quality voice clone. You can optionally record up to 2 additional samples for better quality. The speaking style in the samples you provide will be replicated in the output, so depending on what delivery you are looking for, the training data should correspond to that style (e.g. if you want a more engaging, up-beat vocalization, make sure your voice reflects the tones and inflections that reflect that style). It is better to just include one style in the uploaded samples for consistencies sake.
           </p>
           <p className="text-[14px] text-[#5F5F5F] font-normal leading-[18px] mt-2">
             Recording duration: minimum {MIN_AUDIO_DURATION} seconds, maximum {MAX_AUDIO_DURATION / 60} minutes per sample
           </p>
           {recordedCount > 0 && (
             <p className="text-[14px] text-[#5046E5] font-medium mt-2">
-              Progress: {recordedCount}/{SLOT_COUNT} voice samples recorded
+              Progress: {recordedCount}/{SLOT_COUNT} voice samples recorded (minimum 1 required)
             </p>
           )}
         </div>
@@ -137,14 +137,19 @@ export default function VoiceAudioUpload({ onNext, onBack, avatarData, setAvatar
         </button>
         <button 
           onClick={onNext} 
-          disabled={!allRecorded}
+          disabled={!hasMinimumRequired}
           className={`px-8 py-[11.3px] font-semibold text-[20px] rounded-full transition-colors duration-300 w-full ${
-            allRecorded 
+            hasMinimumRequired 
               ? 'bg-[#5046E5] text-white hover:text-[#5046E5] hover:bg-transparent border-2 border-[#5046E5]' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {allRecorded ? 'Continue' : `Record ${SLOT_COUNT - recordedCount} more sample${SLOT_COUNT - recordedCount !== 1 ? 's' : ''}`}
+          {hasMinimumRequired 
+            ? 'Continue' 
+            : recordedCount === 0 
+              ? 'Record at least 1 voice sample' 
+              : `Record ${SLOT_COUNT - recordedCount} more sample${SLOT_COUNT - recordedCount !== 1 ? 's' : ''} (optional)`
+          }
         </button>
       </div>
     </div>

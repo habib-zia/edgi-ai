@@ -6,6 +6,7 @@ import ConnectAccountsModal from './connect-accounts-modal'
 import CreatePostModal from './create-post-modal'
 import DeleteVideoConfirmationModal from './delete-video-confirmation-modal'
 import { IoMdArrowDropdown } from "react-icons/io";
+import { X, NotebookPen, AlertCircle } from 'lucide-react'
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { apiService } from '@/lib/api-service';
@@ -71,6 +72,12 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [loadingVideos, setLoadingVideos] = useState<Set<string>>(new Set())
+  // Note feature state
+  const [videoNotes, setVideoNotes] = useState<Record<string, string>>({})
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
+  const [selectedVideoForNote, setSelectedVideoForNote] = useState<VideoCard | null>(null)
+  const [currentNoteText, setCurrentNoteText] = useState('')
+  const [noteError, setNoteError] = useState<string>('')
 
   // Notification hook
   const { showNotification } = useNotificationStore()
@@ -113,6 +120,14 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
             }
           })
         setVideos(mappedVideos)
+        const notesFromAPI: Record<string, string> = {}
+        result.data.videos.forEach((video: any) => {
+          const videoId = video.videoId || video.id
+          if (videoId && video.note) {
+            notesFromAPI[videoId] = video.note
+          }
+        })
+        setVideoNotes(notesFromAPI)
       } else {
         throw new Error(result.message || 'Failed to fetch videos')
       }
@@ -259,7 +274,82 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     setVideoToDelete(null)
   }
 
-// Filter and sort videos based on search query and sort order
+  const validateNote = (note: string): string => {
+    const trimmedNote = note.trim()
+    if (trimmedNote.length === 0) {
+      return 'Note is required'
+    }
+    const words = trimmedNote.split(/\s+/).filter(word => word.length > 0)
+    if (words.length === 0) {
+      return 'Note must contain at least one word'
+    }
+    return ''
+  }
+
+  // Note feature handlers
+  const handleOpenNoteModal = (video: VideoCard) => {
+    const videoId = video.videoId || video.id
+    setSelectedVideoForNote(video)
+    setCurrentNoteText(videoNotes[videoId] || '')
+    setNoteError('')
+    setIsNoteModalOpen(true)
+  }
+
+  const handleSaveNote = async () => {
+    if (!selectedVideoForNote) return
+    
+    const videoId = selectedVideoForNote.videoId || selectedVideoForNote.id
+    if (!videoId) {
+      showNotification('Video ID not found', 'error')
+      return
+    }
+
+    // Validate note before saving
+    const validationError = validateNote(currentNoteText)
+    if (validationError) {
+      setNoteError(validationError)
+      return
+    }
+
+    try {
+      const noteText = currentNoteText.trim()
+      const result = await apiService.updateVideoNote(videoId, noteText)
+      
+      if (result.success) {
+        setVideoNotes(prev => ({
+          ...prev,
+          [videoId]: noteText
+        }))
+        showNotification('Note saved successfully', 'success')
+        // Close modal
+        setIsNoteModalOpen(false)
+        setSelectedVideoForNote(null)
+        setCurrentNoteText('')
+        setNoteError('')
+      } else {
+        showNotification(result.message || 'Failed to save note', 'error')
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to save note'
+      showNotification(errorMessage, 'error')
+    }
+  }
+
+  const handleCancelNote = () => {
+    setIsNoteModalOpen(false)
+    setSelectedVideoForNote(null)
+    setCurrentNoteText('')
+    setNoteError('')
+  }
+
+  const handleNoteTextChange = (value: string) => {
+    setCurrentNoteText(value)
+    // Validate and update error state
+    const error = validateNote(value)
+    setNoteError(error)
+  }
+
+  // Filter and sort videos based on search query and sort order
   const filteredAndSortedVideos = useMemo(() => {
     console.log('🔄 Recalculating filteredAndSortedVideos:', {
       pendingVideosCount: pendingVideos.length,
@@ -473,8 +563,27 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
           filteredAndSortedVideos.map((video) => (
             <div
               key={video.id}
-              className="bg-[#EEEEEE] rounded-[12px] overflow-hidden transition-all duration-300 group min-h-[200px]"
+              className="bg-[#EEEEEE] rounded-[12px] overflow-hidden transition-all duration-300 group min-h-[240px] relative h-[353px]"
             >
+              {/* Note Icon Button - Top Right */}
+              {!video.id.startsWith('loading-') && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOpenNoteModal(video)
+                  }}
+                  className="absolute top-4 right-4 z-30 p-2 bg-white/90 hover:bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center group/note"
+                  title={videoNotes[video.videoId || video.id] ? 'Edit note' : 'Add note'}
+                >
+                  <NotebookPen 
+                    className={`w-5 h-5 transition-colors duration-200 ${
+                      videoNotes[video.videoId || video.id] 
+                        ? 'text-[#5046E5] fill-[#5046E5]/20' 
+                        : 'text-black group-hover/note:text-[#5046E5]'
+                    }`} 
+                  />
+                </button>
+              )}
               {/* Video Player Container */}
               <div className="relative aspect-video max-h-[200px] w-full bg-[#EEEEEE] px-3 pt-3 rounded-[8px] group">
                 {/* Video Player */}
@@ -594,7 +703,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
               </div>
 
               {/* Content */}
-              <div className="p-4">
+              <div className="p-4 flex flex-col justify-between h-[154px]">
                 {/* Video Title */}
                 {video.id.startsWith('loading-') ? (
                   /* Professional Skeleton Title */
@@ -604,9 +713,29 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                   </div>
                 ) : (
                   /* Regular Title */
-                  <h3 className="text-[18px] font-medium text-[#171717] my-3 line-clamp-2">
-                    {video.title}
-                  </h3>
+                  <div className="my-3">
+                    <h3 className="text-[18px] font-medium text-[#171717] line-clamp-1">
+                      {video.title}
+                    </h3>
+                    {/* Note Display */}
+                    {videoNotes[video.videoId || video.id] ? (
+                      <div className="mt-2 px-2 py-1 bg-blue-50 border border-blue-100 rounded-[6px]">
+                        <div className="flex items-start gap-1">
+                          {/* <NotebookPen className="w-4 h-4 text-[#5046E5] mt-0.5 flex-shrink-0" /> */}
+                          <h3 className="text-sm font-medium text-[#171717]">Note:</h3>
+                          <p className="text-sm text-gray-700 line-clamp-1 flex-1">
+                            {videoNotes[video.videoId || video.id]}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-2 px-2 py-1 bg-blue-50 border border-blue-100 rounded-[6px]">
+                        <div className="flex items-start gap-1">
+                          <button onClick={() => handleOpenNoteModal(video)} className="text-sm font-medium text-[#171717]">Add a note</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Buttons Container */}
@@ -709,6 +838,70 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         videoTitle={videoToDelete?.title}
         isDeleting={isDeleting}
       />
+
+      {/* Note Modal */}
+      {isNoteModalOpen && selectedVideoForNote && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-black">
+                {videoNotes[selectedVideoForNote.videoId || selectedVideoForNote.id] ? 'Edit Note' : 'Add Note'}
+              </h2>
+              <button
+                type="button"
+                onClick={handleCancelNote}
+                className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors duration-200"
+              >
+                <X className="w-5 h-5 text-black" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Note for: <span className="text-gray-500 font-normal">{selectedVideoForNote.title}</span>
+                </label>
+                <textarea
+                  value={currentNoteText}
+                  onChange={(e) => handleNoteTextChange(e.target.value)}
+                  required={true}
+                  placeholder="Enter your note here..."
+                  className={`w-full h-32 px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 placeholder-[#11101066] resize-none focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-colors duration-200 ${noteError ? 'ring-2 ring-red-500' : ''}`}
+                  autoFocus
+                />
+                {noteError && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {noteError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={handleCancelNote}
+                  className="px-6 py-2 rounded-full font-semibold text-[16px] border-2 border-gray-300 hover:border-gray-700 text-gray-700 hover:bg-gray-700 hover:text-white transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveNote}
+                  disabled={!!noteError || !currentNoteText.trim() || currentNoteText.trim().split(/\s+/).filter(word => word.length > 0).length === 0}
+                  className={`px-6 py-2 rounded-full font-semibold text-[16px] border-2 border-[#5046E5] transition-colors duration-200 ${
+                    noteError || !currentNoteText.trim() || currentNoteText.trim().split(/\s+/).filter(word => word.length > 0).length === 0
+                      ? 'opacity-50 cursor-not-allowed bg-[#5046E5] text-white'
+                      : 'bg-[#5046E5] text-white hover:bg-transparent hover:text-[#5046E5]'
+                  }`}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
