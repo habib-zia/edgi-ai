@@ -5,7 +5,7 @@ import React from 'react';
 
 const PrivacyPolicy = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="bg-white">
       <div className="max-w-[1030px] mx-auto xl:px-0 px-3 py-8 md:py-14 lg:py-20">
         {/* Header Section */}
         <div className="text-center mb-12 lg:mb-16">

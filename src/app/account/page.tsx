@@ -154,7 +154,7 @@ export default function AccountPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-white py-8 xl:px-0 px-3">
+      <div className="bg-white py-8 xl:px-0 px-3">
         <div className="max-w-[870px] mx-auto">
           <div className="space-y-8">
             {/* Profile Info Section */}

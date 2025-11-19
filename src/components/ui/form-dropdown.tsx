@@ -234,7 +234,7 @@ export default function FormDropdown({
                       {/* Image Avatar Section */}
                       {imageAvatars.length > 0 && (
                         <div className="mb-6">
-                          <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Image Avatar</h4>
+                          <h4 className="lg:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Image Avatar</h4>
                           {/* Info bar */}
                           <div className="flex md:flex-row flex-col items-center justify-between md:mb-3 mb-5 px-3 py-2 bg-purple-100 rounded-lg gap-y-4">
                             <div className="flex items-center gap-2">
@@ -324,7 +324,7 @@ export default function FormDropdown({
                           
                           {/* See More/Less buttons for Image Avatars */}
                           {imageAvatars.length > 12 && (
-                            <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
+                            <div className="flex justify-center lg:flex-row flex-col gap-y-4 gap-2 mt-4">
                               {visibleImageAvatarCount < imageAvatars.length && (
                                 <button
                                   onClick={handleSeeMoreImageAvatars}
@@ -354,7 +354,7 @@ export default function FormDropdown({
                       {/* Video Avatar Section */}
                       {videoAvatars.length > 0 && (
                         <div className="mb-6">
-                          <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Video Avatar</h4>
+                          <h4 className="lg:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Video Avatar</h4>
                           {/* Info bar */}
                           <div className="flex md:flex-row flex-col items-center justify-between md:mb-3 mb-5 px-3 py-2 bg-purple-100 rounded-lg gap-y-4">
                             <div className="flex items-center gap-2">
@@ -456,7 +456,7 @@ export default function FormDropdown({
                           
                           {/* See More/Less buttons for Video Avatars */}
                           {videoAvatars.length > 12 && (
-                            <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
+                            <div className="flex justify-center lg:flex-row flex-col gap-y-4 gap-2 mt-4">
                               {visibleVideoAvatarCount < videoAvatars.length && (
                                 <button
                                   type="button"
@@ -486,7 +486,7 @@ export default function FormDropdown({
                       )}
                       {avatars.default.length > 0 && (
                         <div>
-                          <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Default Avatar</h4>
+                          <h4 className="lg:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Default Avatar</h4>
                           <div className="md:grid flex flex-wrap lg:grid-cols-4 md:grid-cols-2 grid-cols-1 justify-center items-center gap-2">
                             {avatars.default.slice(0, visibleDefaultCount).map((avatar) => {
                               const selectionNumber = getAvatarSelectionNumber ? getAvatarSelectionNumber(avatar) : null
@@ -541,7 +541,7 @@ export default function FormDropdown({
                           
                           {/* See More/Less buttons for Default Avatars */}
                           {avatars.default.length > 12 && (
-                            <div className="flex justify-center md:flex-row flex-col gap-y-4 gap-2 mt-4">
+                            <div className="flex justify-center lg:flex-row flex-col gap-y-4 gap-2 mt-4">
                               {visibleDefaultCount < avatars.default.length && (
                                 <button
                                   type="button"
@@ -575,7 +575,7 @@ export default function FormDropdown({
 
                 {/* Right Side - Drop Zones */}
                 <div className="lg:max-w-80 max-w-[50%] py-4 px-6 bg-white">
-                  <h4 className="md:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Sort Avatar</h4>
+                  <h4 className="lg:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Sort Avatar</h4>
                   <p className="text-sm text-[#5F5F5F] mb-6">Drag and drop the selected Images</p>
 
                   {/* Drop Zones */}

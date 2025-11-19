@@ -84,6 +84,9 @@ export default function HybridTopicInput({
   
   const hasValidSelection = currentValue && currentValue.trim()
 
+  const wordCount = (inputValue || '').trim().split(/\s+/).filter(Boolean).length
+  const isShortContent = wordCount <=3
+
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="relative">
@@ -96,7 +99,7 @@ export default function HybridTopicInput({
           onBlur={handleInputBlur}
           placeholder={placeholder}
           readOnly
-          className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white cursor-pointer ${hasError ? 'ring-2 ring-red-500' : ''} ${hasValidSelection ? 'text-gray-800' : 'text-[#11101066]'} ${isCustomInput ? 'bg-[#F5F5F5]' : ''}`}
+          className={`w-full px-4 ${isShortContent ? 'text-[18px] py-[10.5px]' : 'text-[14px] py-[13.5px]'} font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white cursor-pointer ${hasError ? 'ring-2 ring-red-500' : ''} ${hasValidSelection ? 'text-gray-800' : 'text-[#11101066]'} ${isCustomInput ? 'bg-[#F5F5F5]' : ''}`}
           aria-describedby={hasError ? `${field}-error` : undefined}
         />
         <button

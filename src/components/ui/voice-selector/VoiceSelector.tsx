@@ -237,6 +237,10 @@ export default function VoiceSelector({
     return null
   }, [selectedVoice, currentValue, voices])
 
+  const displayedName = selectedVoice?.name || (currentValue ? voices.find(v => v.id === currentValue)?.name : null) || ''
+  const wordCount = (displayedName || '').trim().split(/\s+/).filter(Boolean).length
+  const isShortContent = wordCount <= 4
+
   return (
     <div className="relative">
       <button
@@ -249,7 +253,7 @@ export default function VoiceSelector({
             }
           }, 100)
         }}
-        className={`w-full px-4 py-[10.5px] text-[18px] font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${
+        className={`w-full px-4 py-[10.5px] ${isShortContent ? 'text-[18px]' : 'text-[14px]'} font-normal bg-[#EEEEEE] hover:bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer overflow-hidden ${
           hasError ? 'ring-2 ring-red-500' : ''
         } ${selectedVoice || currentValue ? 'text-gray-800 bg-[#F5F5F5]' : 'text-[#11101066]'}`}
         aria-describedby={hasError ? `${field}-error` : undefined}
