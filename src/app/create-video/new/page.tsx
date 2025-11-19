@@ -8,7 +8,7 @@ import { CheckCircle } from "lucide-react";
 export default function NewVideoPage() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-white">
+      <div className="bg-white">
         <div className="max-w-[1260px] mx-auto xl:px-0 px-3 lg:py-20 py-10">
           <div className="text-center mb-8">
             <h1 className="text-[37px] md:text-4xl leading-[40px] lg:text-[42px] font-semibold text-[#171717] mb-4">

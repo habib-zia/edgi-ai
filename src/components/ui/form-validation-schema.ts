@@ -22,7 +22,7 @@ export const createVideoSchema = z.object({
     .min(2, 'Social handles must be at least 2 characters')
     .max(200, 'Social handles must be less than 200 characters'),
   videoTopic: z.string()
-    .min(1, 'Please enter or select a topic')
+    .min(1, 'Please enter a valid topic or key points.')
     .max(100, 'Topic must be less than 100 characters'),
   topicKeyPoints: z.string()
     .min(2, 'Key points are required')

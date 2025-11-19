@@ -1834,6 +1834,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             </label>
             {renderTrendsDropdown('videoTopic', 'Select a trend')}
           </div>
+          
 
           {showCustomTopicInput && (
             <div>
@@ -1854,6 +1855,12 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
                    Please enter a custom topic
                  </p>
                )}
+               {keyPointsError && showCustomTopicInput && (
+              <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
+                <AlertCircle className="w-4 h-4" />
+                {keyPointsError.length > 50 ? `${keyPointsError.substring(0, 50)}...` : keyPointsError}
+              </p>
+            )}
             </div>
           )}
 
@@ -1866,15 +1873,45 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             </label>
             {(() => {
               const isCustomTopic = showCustomTopicInput && customTopicValue && customTopicValue.trim()
-              const placeholder = isCustomTopic ? 'Key points will auto-generate when you finish typing' : 'Key points will auto-fill when topic is selected'
-              return renderInput('topicKeyPoints', placeholder, 'text')
+              const placeholder = isCustomTopic ? 'Key points will generate' : 'Key points will auto-fill';
+              const shouldShowErrors = formManuallyTouched || submitAttempted
+              const filteredErrors = shouldShowErrors ? errors : {}
+              const error = filteredErrors['topicKeyPoints'] as any
+              const { onChange: registerOnChange, ...registerProps } = register('topicKeyPoints')
+              const currentValue = watch('topicKeyPoints') || ''
+              const wordCount = (currentValue || '').trim().split(/\s+/).filter(Boolean).length
+              const isShortContent = wordCount <= 3
+              
+              return (
+                <div className="relative">
+                  <textarea
+                    {...registerProps}
+                    placeholder={placeholder}
+                    rows={isShortContent ? 1 : 2}
+                    onChange={(e) => {
+                      registerOnChange(e)
+                      handleFormFieldChange()
+                    }}
+                    aria-describedby={error ? 'topicKeyPoints-error' : undefined}
+                    aria-invalid={error ? 'true' : 'false'}
+                    className={`w-full px-4 py-[10.5px] ${isShortContent ? 'text-[18px]' : 'text-[14px]'} font-normal placeholder:text-[#11101066] border-0 rounded-[8px] text-gray-800 transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white resize-none
+                    ${error ? 'ring-2 ring-red-500' : ''}
+                    bg-[#EEEEEE] hover:bg-[#F5F5F5]`}
+                  />
+                  {error?.message && (
+                    <p
+                      id="topicKeyPoints-error"
+                      className="text-red-500 text-sm mt-1 flex items-center gap-1"
+                      role="alert"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      {typeof error.message === 'string' ? error.message : String(error.message)}
+                    </p>
+                  )}
+                </div>
+              )
             })()}
-            {keyPointsError && showCustomTopicInput && (
-              <p className="text-red-500 text-sm mt-1 flex items-center gap-1" role="alert">
-                <AlertCircle className="w-4 h-4" />
-                {keyPointsError.length > 50 ? `${keyPointsError.substring(0, 50)}...` : keyPointsError}
-              </p>
-            )}
+            
           </div>
         </div>
         <AvatarSelectionStatus selectedAvatars={selectedAvatars} />

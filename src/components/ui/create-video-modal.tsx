@@ -36,9 +36,9 @@ interface CreateVideoModalProps {
 type ModalStep = 'form' | 'loading' | 'complete'
 
 const CHARACTER_LIMITS = {
-  prompt: 250,  
-  description: 850,
-  conclusion: 250
+  prompt: 350,  
+  description: 1050,
+  conclusion: 350
 } as const
 
 interface VideoGenerationData {
