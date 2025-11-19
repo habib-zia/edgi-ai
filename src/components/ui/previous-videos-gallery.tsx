@@ -713,7 +713,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                               e.stopPropagation()
                               handleOpenNoteModal(video)
                             }}
-                            className="absolute top-2 right-2 z-20 transition-all duration-200 flex items-center justify-center group/note"
+                            className="absolute top-2 right-2 z-10 transition-all duration-200 flex items-center justify-center group/note"
                             title={videoNotes[video.videoId || video.id] ? 'Edit note' : 'Add note'}
                           >
                             <PencilLine 
@@ -736,7 +736,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                                 e.stopPropagation()
                                 handleOpenNoteModal(video)
                               }}
-                              className="absolute top-2 right-2 z-20 transition-all duration-200 flex items-center justify-center group/note"
+                              className="absolute top-2 right-2 z-10 transition-all duration-200 flex items-center justify-center group/note"
                               title={videoNotes[video.videoId || video.id] ? 'Edit note' : 'Add note'}
                             >
                               <PencilLine 
