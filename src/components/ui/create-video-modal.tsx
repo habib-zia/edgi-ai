@@ -6,11 +6,12 @@ import Image from 'next/image'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { apiService } from '@/lib/api-service'
-import { API_CONFIG, getAuthenticatedHeaders } from '@/lib/config'
+import { API_CONFIG } from '@/lib/config'
 import { useAvatarStorage } from '@/hooks/useAvatarStorage'
 import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketProvider'
 import { VideoInProgress } from '@/hooks/useUnifiedSocket'
 import { useModalScrollLock } from '@/components/providers/ModalScrollLockProvider'
+import { toast } from 'sonner'
 
 
 interface CreateVideoModalProps {
@@ -527,59 +528,32 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     }
   }
 
-  const handleDownload = async () => {
+  const getDownloadUrl = () => {
     if (!videoData?.youtubeUrl) {
+      return null
+    }
+
+    const token = localStorage.getItem(API_CONFIG.AUTH.TOKEN_KEY)
+    if (!token) {
+      return null
+    }
+
+    return `${API_CONFIG.BACKEND_URL}/api/video/download-proxy?token=${encodeURIComponent(token)}&url=${encodeURIComponent(videoData.youtubeUrl)}`
+  }
+
+  const downloadUrl = getDownloadUrl()
+
+  const handleDownloadClick = () => {
+    if (!downloadUrl) {
+      toast.error('Authentication required. Please log in again.')
       return
     }
 
-
-    try {
-      // Set loading state
-      setIsDownloading(true)
-
-      // Use our proxy to avoid CORS issues
-      if (!videoData?.youtubeUrl) {
-        throw new Error('No video URL available for download')
-      }
-      const proxyUrl = `${API_CONFIG.BACKEND_URL}/api/video/download-proxy?url=${encodeURIComponent(videoData.youtubeUrl)}`
-
-      const headers = getAuthenticatedHeaders()
-      delete headers['Content-Type']
-      const response = await fetch(proxyUrl, {
-        headers: headers
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to download video: ${response.status} ${response.statusText}`)
-      }
-
-      // Convert response to blob
-      const blob = await response.blob()
-
-      // Create blob URL
-      const blobUrl = window.URL.createObjectURL(blob)
-
-      // Create download link
-      const link = document.createElement('a')
-      link.href = blobUrl
-      link.download = `${videoData.title || 'video'}.mp4`
-
-      // Trigger download
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      // Clean up blob URL
-      window.URL.revokeObjectURL(blobUrl)
-
-
-    } catch (err) {
-      console.error('Download failed:', err)
-      alert('Download failed. Please try again.')
-    } finally {
-      // Reset loading state
+    setIsDownloading(true)
+    
+    setTimeout(() => {
       setIsDownloading(false)
-    }
+    }, 5000)
   }
 
   const isFormValid = () => {
@@ -807,23 +781,25 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
                 </>
               )}
 
-              <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className={`w-full bg-[#5046E5] text-white py-[11.4px] px-6 rounded-full font-semibold text-[20px] border-2 border-[#5046E5] transition-colors duration-300 flex items-center justify-center gap-2 ${isDownloading
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-transparent hover:text-[#5046E5] cursor-pointer'
-                  }`}
-              >
-                {isDownloading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Downloading...
-                  </>
-                ) : (
-                  'Download'
-                )}
-              </button>
+            <a
+              href={downloadUrl || '#'}
+              download={downloadUrl ? `${videoData?.title || 'video'}.mp4` : undefined}
+              className={`w-full bg-[#5046E5] text-white py-[11.4px] px-6 rounded-full font-semibold text-[20px] border-2 border-[#5046E5] transition-colors duration-300 flex items-center justify-center gap-2 no-underline ${isDownloading
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:bg-transparent hover:text-[#5046E5] cursor-pointer'
+                }`}
+              onClick={handleDownloadClick}
+              style={{ pointerEvents: downloadUrl ? 'auto' : 'none' }}
+            >
+              {isDownloading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Downloading...
+                </>
+              ) : (
+                'Download'
+              )}
+            </a>
             </div>
           )}
         </div>
