@@ -13,6 +13,7 @@ interface PostConfirmationModalProps {
   videoTitle?: string
   date?: string
   time?: string
+  postNow?: boolean
 }
 
 export default function PostConfirmationModal({ 
@@ -23,7 +24,8 @@ export default function PostConfirmationModal({
   selectedAccountsCount,
   videoTitle,
   date,
-  time
+  time,
+  postNow = false
 }: PostConfirmationModalProps) {
   useModalScrollLock(isOpen)
 
@@ -45,10 +47,10 @@ export default function PostConfirmationModal({
             <CheckCircle className="w-8 h-8 text-blue-600" />
           </div>
 
-          <h2 className="text-xl font-semibold text-[#282828] mb-2">Confirm Schedule</h2>
+          <h2 className="text-xl font-semibold text-[#282828] mb-2">{postNow ? 'Confirm Post' : 'Confirm Schedule'}</h2>
 
           <div className="text-[#5F5F5F] mb-6 space-y-2">
-            <p>Are you sure you want to schedule this post?</p>
+            <p>{postNow ? 'Are you sure you want to post this right now?' : 'Are you sure you want to schedule this post?'}</p>
             {selectedAccountsCount !== undefined && selectedAccountsCount > 0 && (
               <p className="text-sm">
                 This will published to {selectedAccountsCount} account{selectedAccountsCount > 1 ? 's' : ''}.
@@ -59,7 +61,7 @@ export default function PostConfirmationModal({
                 Video: &quot;{videoTitle}&quot;
               </p>
             )}
-            {date && time && (
+            {!postNow && date && time && (
               <p className="text-sm">
                 Scheduled for: {date} at {time}
               </p>
