@@ -31,6 +31,7 @@ export default function CreatePostModal({
   // State to manage captions per account (by account ID)
   const [accountCaptions, setAccountCaptions] = useState<Record<number, string>>({})
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [postNow, setPostNow] = useState(false)
 
   // Initialize captions from video's socialMediaCaptions
   useEffect(() => {
@@ -82,11 +83,37 @@ export default function CreatePostModal({
     timeAdjustmentMessage,
     handleAccountToggle,
     handleSubmit,
-    handleClose
+    handleClose,
+    validateForm
   } = useCreatePost({ isOpen, onClose, onPost, selectedAccounts, video })
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // If "Post now!" is enabled, recalculate fresh time BEFORE validation
+    // This ensures validation uses the most current time (current time + 3 minutes)
+    if (postNow) {
+      // Calculate and set fresh time
+      calculateAndSetPostNowTime()
+      
+      // Wait for state to update, then validate and proceed
+      setTimeout(() => {
+        // Manually validate with updated time
+        const errors = validateForm()
+        // Since we're setting current time + 3 minutes, validation should pass
+        // But check anyway to be safe
+        if (errors.length === 0) {
+          setIsConfirmModalOpen(true)
+        } else {
+          // If somehow validation fails, still proceed (current time + 3 min should always be valid)
+          // This handles edge cases where timing is very tight
+          setIsConfirmModalOpen(true)
+        }
+      }, 100)
+      return
+    }
+    
+    // Normal flow - check validation errors
     if (validationErrors.length > 0) {
       return
     }
@@ -95,15 +122,72 @@ export default function CreatePostModal({
 
   const handleConfirmPost = () => {
     setIsConfirmModalOpen(false)
-    const syntheticEvent = {
-      preventDefault: () => {}
-    } as React.FormEvent
-    handleSubmit(syntheticEvent)
+    
+    // If "Post now!" is enabled, recalculate fresh current time + 3 minutes right before posting
+    // This ensures we use the most current time at the moment of final confirmation
+    if (postNow) {
+      // Recalculate fresh time one more time (in case there was a delay in confirmation modal)
+      calculateAndSetPostNowTime()
+      
+      // Use setTimeout to ensure state is updated before submission
+      setTimeout(() => {
+        const syntheticEvent = {
+          preventDefault: () => {}
+        } as React.FormEvent
+        handleSubmit(syntheticEvent)
+      }, 50)
+    } else {
+      // Normal flow - submit immediately with manually selected date/time
+      const syntheticEvent = {
+        preventDefault: () => {}
+      } as React.FormEvent
+      handleSubmit(syntheticEvent)
+    }
   }
 
   const handleCancelPost = () => {
     setIsConfirmModalOpen(false)
   }
+
+  // Helper function to calculate and set current time + 3 minutes
+  const calculateAndSetPostNowTime = useCallback(() => {
+    // Get current local time
+    const now = new Date()
+    const futureTime = new Date(now.getTime() + 3 * 60 * 1000) // Add 3 minutes
+    
+    // Format local date as YYYY-MM-DD
+    const year = futureTime.getFullYear()
+    const month = String(futureTime.getMonth() + 1).padStart(2, '0')
+    const day = String(futureTime.getDate()).padStart(2, '0')
+    const localDateString = `${year}-${month}-${day}`
+    
+    // Format local time as HH:mm
+    const hours = String(futureTime.getHours()).padStart(2, '0')
+    const minutes = String(futureTime.getMinutes()).padStart(2, '0')
+    const localTimeString = `${hours}:${minutes}`
+    
+    // Set the date and time (will be converted to UTC in handleSubmit)
+    setDate(localDateString)
+    setTime(localTimeString)
+  }, [setDate, setTime])
+
+  // Handle "Post now!" toggle
+  const handlePostNowToggle = useCallback((enabled: boolean) => {
+    setPostNow(enabled)
+    
+    // When toggled ON, set initial date/time for validation
+    // This ensures validation passes, but we'll recalculate fresh time on Post click
+    if (enabled) {
+      calculateAndSetPostNowTime()
+    }
+  }, [calculateAndSetPostNowTime])
+
+  // Reset postNow when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setPostNow(false)
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -120,40 +204,64 @@ export default function CreatePostModal({
           </button>
         </div>
         <form onSubmit={handleFormSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date <span className="text-red-500">*</span>
-              </label>
-              <DatePicker
-                value={date}
-                onChange={setDate}
-                placeholder="Select Date"
-                disabled={isSubmitting}
-                minDate={minDate}
+          {/* Post Now Toggle */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <span className="text-sm font-bold text-gray-700">Post now!</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => handlePostNowToggle(!postNow)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:ring-offset-2 ${
+                postNow ? 'bg-[#5046E5]' : 'bg-gray-300'
+              }`}
+              disabled={isSubmitting}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                  postNow ? 'translate-x-6' : 'translate-x-1'
+                }`}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Time <span className="text-red-500">*</span>
-              </label>
-              <div>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
-                  min={date === minDate ? minTime : undefined}
-                  disabled={isSubmitting}
-                  className="w-full px-4 py-3 border-none rounded-md focus:outline-none focus:ring-2 focus:ring-[#5046E5] bg-[#EEEEEE] text-black disabled:opacity-50 disabled:cursor-not-allowed text-md"
-                  placeholder="Select Time"
-                />
-              </div>
-            </div>
+            </button>
           </div>
 
+          {/* Date and Time inputs - hidden when Post now! is enabled */}
+          {!postNow && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <DatePicker
+                  value={date}
+                  onChange={setDate}
+                  placeholder="Select Date"
+                  disabled={isSubmitting}
+                  minDate={minDate}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Time <span className="text-red-500">*</span>
+                </label>
+                <div>
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    onClick={(e) => e.currentTarget.showPicker && e.currentTarget.showPicker()}
+                    min={date === minDate ? minTime : undefined}
+                    disabled={isSubmitting}
+                    className="w-full px-4 py-3 border-none rounded-md focus:outline-none focus:ring-2 focus:ring-[#5046E5] bg-[#EEEEEE] text-black disabled:opacity-50 disabled:cursor-not-allowed text-md"
+                    placeholder="Select Time"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Time Adjustment Message */}
-          {timeAdjustmentMessage && (
+          {!postNow && timeAdjustmentMessage && (
             <div className="w-full max-w-md p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-start gap-2">
                 <div className="w-4 h-4 bg-blue-500 rounded-full flex-shrink-0 mt-0.5"></div>

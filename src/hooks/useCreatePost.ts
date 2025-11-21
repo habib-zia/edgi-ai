@@ -44,10 +44,10 @@ export const useCreatePost = ({
 
   const { date: minDate, time: minTime } = getCurrentDateTime()
 
-  // Get minimum time for today (current time + 20 minutes)
+  // Get minimum time for today (current time + 3 minutes)
   const getMinTimeForToday = useCallback(() => {
     const now = new Date()
-    const minTime = new Date(now.getTime() + 20 * 60 * 1000) // Add 20 minutes
+    const minTime = new Date(now.getTime() + 3 * 60 * 1000) // Add 3 minutes
     return minTime.toTimeString().slice(0, 5)
   }, [])
 
@@ -81,13 +81,13 @@ export const useCreatePost = ({
     
     if (isToday && time) {
       const currentTime = new Date()
-      const minTime = new Date(currentTime.getTime() + 20 * 60 * 1000) // Add 20 minutes
+      const minTime = new Date(currentTime.getTime() + 3 * 60 * 1000) // Add 3 minutes
       const selectedTime = new Date(`${newDate}T${time}:00`)
       const minTimeForToday = new Date(`${newDate}T${minTime.toTimeString().slice(0, 5)}:00`)
       
       if (selectedTime < minTimeForToday) {
         const adjustedTime = minTime.toTimeString().slice(0, 5)
-        setTimeAdjustmentMessage(`Time automatically adjusted to ${adjustedTime} (20 minutes from now)`)
+        setTimeAdjustmentMessage(`Time automatically adjusted to ${adjustedTime} (3 minutes from now)`)
         setTime(adjustedTime)
         setTimeout(() => setTimeAdjustmentMessage(null), 5000)
       }
@@ -104,13 +104,13 @@ export const useCreatePost = ({
     
     if (isToday) {
       const currentTime = new Date()
-      const minTime = new Date(currentTime.getTime() + 20 * 60 * 1000) // Add 20 minutes
+      const minTime = new Date(currentTime.getTime() + 3 * 60 * 1000) // Add 3 minutes
       const selectedTime = new Date(`${date}T${newTime}:00`)
       const minTimeForToday = new Date(`${date}T${minTime.toTimeString().slice(0, 5)}:00`)
       
       if (selectedTime < minTimeForToday) {
         const adjustedTime = minTime.toTimeString().slice(0, 5)
-        setTimeAdjustmentMessage(`Time automatically adjusted to ${adjustedTime} (20 minutes from now)`)
+        setTimeAdjustmentMessage(`Time automatically adjusted to ${adjustedTime} (3 minutes from now)`)
         setTime(adjustedTime)
         setTimeout(() => setTimeAdjustmentMessage(null), 5000)
         return
@@ -134,7 +134,7 @@ export const useCreatePost = ({
     if (!time || time.trim() === '') {
       errors.push('Time is required')
     } else if (date === minDate) {
-      // Check if selected time is at least 20 minutes from current time in user's timezone
+      // Check if selected time is at least 3 minutes from current time in user's timezone
       const formattedTime = time.includes(':') && time.split(':').length === 2 
         ? `${time}:00` 
         : time;
@@ -151,11 +151,11 @@ export const useCreatePost = ({
       const timeDifference = selectedDateTime.getTime() - now.getTime()
       const minutesDifference = timeDifference / (60 * 1000)
       
-      // Require at least 20 minutes difference
-      if (minutesDifference < 19) {
-        const minTime = new Date(now.getTime() + 20 * 60 * 1000)
+      // Require at least 3 minutes difference
+      if (minutesDifference < 2) {
+        const minTime = new Date(now.getTime() + 3 * 60 * 1000)
         const minTimeString = minTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        errors.push(`Please select a time at least 20 minutes from now. Minimum time should be ${minTimeString}`)
+        errors.push(`Please select a time at least 3 minutes from now. Minimum time should be ${minTimeString}`)
       }
     }
 
@@ -190,7 +190,7 @@ export const useCreatePost = ({
     // Re-validate before submission to check current time in user's timezone
     const errors = validateForm()
     
-    // Additional validation: Check if selected time is at least 20 minutes from now (for today only)
+    // Additional validation: Check if selected time is at least 3 minutes from now (for today only)
     if (date === minDate && time) {
       const formattedTime = time.includes(':') && time.split(':').length === 2 
         ? `${time}:00` 
@@ -208,11 +208,11 @@ export const useCreatePost = ({
       const timeDifference = selectedDateTime.getTime() - now.getTime()
       const minutesDifference = timeDifference / (60 * 1000)
       
-      // If less than 20 minutes, add error
-      if (minutesDifference < 19) {
-        const minTime = new Date(now.getTime() + 20 * 60 * 1000)
+      // If less than 3 minutes, add error
+      if (minutesDifference < 2) {
+        const minTime = new Date(now.getTime() + 3 * 60 * 1000)
         const minTimeString = minTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        const errorMsg = `Please select a time at least 20 minutes from now. Minimum time should be ${minTimeString}`
+        const errorMsg = `Please select a time at least 3 minutes from now. Minimum time should be ${minTimeString}`
         if (!errors.includes(errorMsg)) {
           errors.push(errorMsg)
         }

@@ -85,6 +85,7 @@ const presetOptions = [
 
 const languageOptions = [
   { value: 'English', label: 'English' },
+  { value: 'Spanish', label: 'Spanish' },
 ]
 
 interface CreateVideoFormProps {
@@ -1094,13 +1095,16 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     }
   }, [user?.email, setValue])
 
-  // Set default language to English if not set
+  // Set default language to English if not set (only after user-settings have been checked)
   useEffect(() => {
-    const currentLanguage = watch('language')
-    if (!currentLanguage || currentLanguage.trim() === '') {
-      setValue('language', 'English', { shouldValidate: false, shouldDirty: false })
+    // Only set default if user-settings have been loaded (or if no user email, meaning no settings to load)
+    if (userSettingsLoaded || !user?.email) {
+      const currentLanguage = watch('language')
+      if (!currentLanguage || currentLanguage.trim() === '') {
+        setValue('language', 'English', { shouldValidate: false, shouldDirty: false })
+      }
     }
-  }, [watch, setValue])
+  }, [watch, setValue, userSettingsLoaded, user?.email])
 
   // Reset preset, voice, and music fields when gender changes and APIs are called
   // Use a ref to track previous gender to avoid resetting on initial mount
@@ -1249,8 +1253,14 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     dispatch(setVideoLoading(true))
     try
     {
+      // Ensure language is included in the data
+      const videoData = {
+        ...data,
+        language: data.language || watch('language') || 'English'
+      };
+      
       // Make API call using apiService
-      const result = await apiService.createVideo(data);
+      const result = await apiService.createVideo(videoData);
 
       if (!result.success)
       {
@@ -1323,7 +1333,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         },
         name: data.name,
         position: data.position,
-        language: data.language,
+        language: data.language || watch('language') || 'English',
         preset: data.preset || '',
         companyName: data.companyName,
         license: data.license,

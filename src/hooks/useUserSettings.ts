@@ -11,6 +11,7 @@ interface UserSettings {
   conclusionAvatar?: string | { avatar_id: string; avatarType?: 'video_avatar' | 'photo_avatar' }
   name: string
   position: string
+  language?: string
   companyName: string
   license: string
   tailoredFit: string
@@ -81,6 +82,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         }
         setValue('name', settings.name || '')
         setValue('position', settings.position || '')
+        setValue('language', settings.language || '')
         setValue('companyName', settings.companyName || '')
         setValue('license', settings.license || '')
         setValue('tailoredFit', settings.tailoredFit || '')
@@ -243,6 +245,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
           : getAvatarId(userSettingsData.conclusionAvatar),
         name: userSettingsData.name,
         position: userSettingsData.position,
+        language: userSettingsData.language || '',
         companyName: userSettingsData.companyName,
         license: userSettingsData.license,
         tailoredFit: userSettingsData.tailoredFit,
