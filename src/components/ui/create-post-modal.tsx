@@ -7,6 +7,9 @@ import { useCreatePost } from '@/hooks/useCreatePost'
 import AccountSelection from './account-selection'
 import DatePicker from '../scheduled-post/DatePicker'
 import PostConfirmationModal from './post-confirmation-modal'
+import { API_CONFIG, getApiUrl, getAuthenticatedHeaders } from '@/lib/config'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 
 // Helper function to map account type to caption field name
 const getCaptionFieldName = (accountType: string): 'instagram_caption' | 'facebook_caption' | 'linkedin_caption' | 'twitter_caption' | 'tiktok_caption' | 'youtube_caption' | null => {
@@ -32,6 +35,10 @@ export default function CreatePostModal({
   const [accountCaptions, setAccountCaptions] = useState<Record<number, string>>({})
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
   const [postNow, setPostNow] = useState(false)
+  const [isPostingNow, setIsPostingNow] = useState(false) // Loading state for "Post now!" mode
+  
+  // Get user ID from Redux store for direct API call
+  const userId = useSelector((state: RootState) => state.user.user?.id)
 
   // Initialize captions from video's socialMediaCaptions
   useEffect(() => {
@@ -90,54 +97,139 @@ export default function CreatePostModal({
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    // If "Post now!" is enabled, recalculate fresh time BEFORE validation
-    // This ensures validation uses the most current time (current time + 3 minutes)
+    // If "Post now!" is enabled, skip validation and go directly to confirmation
+    // Time will be calculated fresh when user clicks Confirm
     if (postNow) {
-      // Calculate and set fresh time
-      calculateAndSetPostNowTime()
-      
-      // Wait for state to update, then validate and proceed
-      setTimeout(() => {
-        // Manually validate with updated time
-        const errors = validateForm()
-        // Since we're setting current time + 3 minutes, validation should pass
-        // But check anyway to be safe
-        if (errors.length === 0) {
-          setIsConfirmModalOpen(true)
-        } else {
-          // If somehow validation fails, still proceed (current time + 3 min should always be valid)
-          // This handles edge cases where timing is very tight
-          setIsConfirmModalOpen(true)
-        }
-      }, 100)
+      setIsConfirmModalOpen(true)
       return
     }
     
-    // Normal flow - check validation errors
+    // Normal flow - check validation errors for manually selected date/time
     if (validationErrors.length > 0) {
       return
     }
     setIsConfirmModalOpen(true)
   }
 
-  const handleConfirmPost = () => {
+  const handleConfirmPost = async () => {
     setIsConfirmModalOpen(false)
     
-    // If "Post now!" is enabled, recalculate fresh current time + 3 minutes right before posting
-    // This ensures we use the most current time at the moment of final confirmation
+    // If "Post now!" is enabled, calculate fresh current time + 3 minutes and call API directly
+    // This bypasses validation and ensures immediate posting with current time
     if (postNow) {
-      // Recalculate fresh time one more time (in case there was a delay in confirmation modal)
-      calculateAndSetPostNowTime()
+      // Set loading state
+      setIsPostingNow(true)
       
-      // Use setTimeout to ensure state is updated before submission
-      setTimeout(() => {
-        const syntheticEvent = {
-          preventDefault: () => {}
-        } as React.FormEvent
-        handleSubmit(syntheticEvent)
-      }, 50)
+      try {
+        // Calculate fresh time at the moment of confirmation
+        const now = new Date()
+        const futureTime = new Date(now.getTime() + 3 * 60 * 1000) // Current time + 3 minutes
+        
+        // Format local date as YYYY-MM-DD
+        const year = futureTime.getFullYear()
+        const month = String(futureTime.getMonth() + 1).padStart(2, '0')
+        const day = String(futureTime.getDate()).padStart(2, '0')
+        const localDateString = `${year}-${month}-${day}`
+        
+        // Format local time as HH:mm
+        const hours = String(futureTime.getHours()).padStart(2, '0')
+        const minutes = String(futureTime.getMinutes()).padStart(2, '0')
+        const localTimeString = `${hours}:${minutes}`
+        
+        // Create local date-time from calculated date and time
+        const formattedTime = `${localTimeString}:00`
+        const localDateTime = `${localDateString}T${formattedTime}`
+        const localDate = new Date(localDateTime)
+        
+        // Convert to UTC ISO string
+        const utcTime = localDate.toISOString()
+        const utcDate = utcTime.split('T')[0] // YYYY-MM-DD format
+        const timeOnly = utcTime.split('T')[1].split('.')[0]
+        
+        // Prepare request body with calculated UTC time
+        const requestBody = {
+          accountIds: selectedAccountIds,
+          name: video?.title || '',
+          videoUrl: video?.videoUrl || video?.url || '',
+          date: utcDate,
+          time: timeOnly,
+          caption: 'Caption',
+          userId: userId,
+          selectedAccounts: selectedAccounts.filter(account => selectedAccountIds.includes(account.id)),
+          instagram_caption: accountCaptions[selectedAccounts.find(acc => acc.type === 'instagram.api')?.id || 0] || video?.socialMediaCaptions?.instagram_caption || '',
+          facebook_caption: accountCaptions[selectedAccounts.find(acc => acc.type === 'facebook.page')?.id || 0] || video?.socialMediaCaptions?.facebook_caption || '',
+          linkedin_caption: accountCaptions[selectedAccounts.find(acc => acc.type === 'linkedin.profile')?.id || 0] || video?.socialMediaCaptions?.linkedin_caption || '',
+          twitter_caption: accountCaptions[selectedAccounts.find(acc => acc.type === 'twitter.profile')?.id || 0] || video?.socialMediaCaptions?.twitter_caption || '',
+          tiktok_caption: accountCaptions[selectedAccounts.find(acc => acc.type === 'tiktok.profile')?.id || 0] || video?.socialMediaCaptions?.tiktok_caption || '',
+          youtube_caption: accountCaptions[selectedAccounts.find(acc => acc.type === 'google.youtube')?.id || 0] || video?.socialMediaCaptions?.youtube_caption || ''
+        }
+        
+        // Call API directly, bypassing validation
+        const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.SOCIALBU.MEDIA_CREATE_POST), {
+          method: 'POST',
+          headers: getAuthenticatedHeaders(),
+          body: JSON.stringify(requestBody)
+        })
+        
+        const responseData = await response.json()
+        
+        if (response.ok && responseData.success) {
+          // Show success notification
+          if ((window as any).showNotification) {
+            (window as any).showNotification({
+              type: 'success',
+              title: 'Post Created Successfully',
+              message: 'Your post has been scheduled successfully!',
+              duration: 5000
+            })
+          }
+          
+          // Call the original onPost callback
+          const selectedAccountsForPost = selectedAccounts.filter(account => 
+            selectedAccountIds.includes(account.id)
+          )
+          const postData = {
+            date: localDateString,
+            time: localTimeString,
+            caption: '',
+            accounts: selectedAccountsForPost,
+            video
+          }
+          onPost(postData)
+          
+          // Close modal
+          handleClose()
+        } else {
+          // Handle API error
+          const errorMessage = responseData.error || responseData.message || 'Failed to create post'
+          if ((window as any).showNotification) {
+            (window as any).showNotification({
+              type: 'error',
+              title: 'Post Failed',
+              message: errorMessage,
+              duration: 8000
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error creating post:', error)
+        const errorMessage = 'Failed to create post. Please try again.'
+        if ((window as any).showNotification) {
+          (window as any).showNotification({
+            type: 'error',
+            title: 'Network Error',
+            message: errorMessage,
+            duration: 8000
+          })
+        }
+      } finally {
+        // Always reset loading state
+        setIsPostingNow(false)
+      }
     } else {
-      // Normal flow - submit immediately with manually selected date/time
+      // MANUAL MODE - Original logic preserved exactly as before
+      // Uses the hook's handleSubmit which includes all validation, time conversion, etc.
+      // This flow is completely unchanged from the original implementation
       const syntheticEvent = {
         preventDefault: () => {}
       } as React.FormEvent
@@ -288,7 +380,8 @@ export default function CreatePostModal({
               </div>
             </div>
           )}
-          {validationErrors.length > 0 && (
+          {/* Only show validation errors when postNow is disabled */}
+          {!postNow && validationErrors.length > 0 && (
             <div className="p-4 rounded-lg border-2 border-red-200 bg-red-50">
               <h3 className="font-semibold text-red-800 mb-2">Please fix the following errors:</h3>
               <ul className="text-sm text-red-700 space-y-1">
@@ -303,15 +396,15 @@ export default function CreatePostModal({
           )}
           <button
             type="submit"
-            disabled={isSubmitting || validationErrors.length > 0}
+            disabled={(isSubmitting || isPostingNow) || selectedAccountIds.length === 0 || (!postNow && validationErrors.length > 0)}
             className="w-full bg-[#5046E5] text-white py-3 px-6 rounded-full font-semibold text-lg hover:bg-[#4338CA] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isSubmitting ? (
+            {(isSubmitting || isPostingNow) ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                Scheduling...
+                {postNow ? 'Posting...' : 'Scheduling...'}
               </>
-            ) : validationErrors.length > 0 ? (
+            ) : (!postNow && validationErrors.length > 0) ? (
               'Continue'
             ) : (
               'Post'
@@ -329,6 +422,7 @@ export default function CreatePostModal({
         videoTitle={video?.title}
         date={date}
         time={time}
+        postNow={postNow}
       />
     </div>
   )
