@@ -89,8 +89,8 @@ const languageOptions = [
 ]
 
 const videoCaptionOptions = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' }
+  { value: 'true', label: 'Yes' },
+  { value: 'false', label: 'No' }
 ]
 
 interface CreateVideoFormProps {
