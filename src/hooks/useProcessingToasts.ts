@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { VideoInProgress } from './useUnifiedSocket'
 
 export interface ProcessingToast {
@@ -38,13 +38,9 @@ export function useProcessingToasts(): UseProcessingToastsReturn {
         minimized: minimizedMap.get(video.id) ?? false // Preserve existing minimize state or default to false
       }))
 
-      // Remove toasts that are no longer in the videos list (videos completed/removed)
-      // But keep minimized toasts temporarily so they can be restored
-      const existingIds = new Set(videos.map(v => v.id))
-      const removedToasts = prev.filter(t => !existingIds.has(t.id) && t.minimized)
-      
-      // Combine new toasts with removed but minimized toasts
-      return [...newToasts, ...removedToasts]
+      // Return only toasts for videos that are still pending
+      // All toasts (including minimized ones) are removed when their video completes/fails
+      return newToasts
     })
   }, [])
 

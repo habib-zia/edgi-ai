@@ -26,6 +26,7 @@ interface UserSettings {
   selectedMusicTrackId?: string
   selectedVoicePreset?: string
   selectedMusicPreset?: string
+  videoCaption?: string
 }
 
 interface UserSettingsResponse {
@@ -96,6 +97,7 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         const capitalizedGender = genderValue ? genderValue.charAt(0).toUpperCase() + genderValue.slice(1).toLowerCase() : ''
         setValue('gender', capitalizedGender)
         setValue('preset', settings.preset || '')
+        setValue('videoCaption', settings.videoCaption || '')
 
             // Handle avatar loading - prioritize avatar array from API response
             if (settings.avatar && Array.isArray(settings.avatar)) {
@@ -259,7 +261,8 @@ export const useUserSettings = ({ userEmail, avatars, setSelectedAvatars, setVal
         selectedVoiceId: userSettingsData.selectedVoiceId || '',
         selectedMusicTrackId: userSettingsData.selectedMusicTrackId || '',
         selectedVoicePreset: userSettingsData.selectedVoicePreset || '',
-        selectedMusicPreset: userSettingsData.selectedMusicPreset || ''
+        selectedMusicPreset: userSettingsData.selectedMusicPreset || '',
+        videoCaption: userSettingsData.videoCaption || ''
       }
       
       const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.USER_SETTINGS), {

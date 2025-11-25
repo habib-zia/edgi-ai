@@ -225,8 +225,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
               
               {/* Home Page Navigation Items */}
               {NAVIGATION_ITEMS_MOBILE.filter(item => {
-                // Hide Report Analytics if user is not authenticated
-                if (item.label === "Report Analytics" && !isAuthenticated) {
+                if ((item.label === "Report Analytics" || item.label === "Schedule Post") && !isAuthenticated) {
                   return false;
                 }
                 return true;

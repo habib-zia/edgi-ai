@@ -309,6 +309,9 @@ class ApiService {
   // Global notification callback
   private notificationCallback: ((message: string, type?: 'success' | 'error' | 'warning' | 'info') => void) | null = null;
 
+  // Request deduplication: Track in-flight requests to prevent duplicates
+  private inFlightRequests: Map<string, Promise<ApiResponse<any>>> = new Map();
+
   setGlobalLoadingCallback(callback: (loading: boolean, message?: string) => void) {
     this.globalLoadingCallback = callback;
   }
@@ -329,12 +332,71 @@ class ApiService {
     }
   }
 
+  /**
+   * Generate a unique key for a request to identify duplicates
+   * Key format: method:endpoint:bodyHash
+   * 
+   * For FormData requests, we add a timestamp to prevent deduplication
+   * (since FormData typically contains unique file uploads)
+   */
+  private getRequestKey(endpoint: string, options: RequestInit = {}): string {
+    const method = options.method || 'GET';
+    const body = options.body;
+    
+    // Handle different body types
+    let bodyHash = '';
+    if (body) {
+      if (typeof body === 'string') {
+        // For JSON string bodies, use the string directly
+        try {
+          // Try to parse and re-stringify to normalize (handles whitespace differences)
+          const parsed = JSON.parse(body);
+          bodyHash = JSON.stringify(parsed);
+        } catch {
+          // If not valid JSON, use as-is
+          bodyHash = body;
+        }
+      } else if (body instanceof FormData) {
+        // For FormData, include timestamp to prevent deduplication
+        // FormData requests are typically unique (file uploads, etc.)
+        bodyHash = `formdata-${Date.now()}`;
+      } else if (body instanceof URLSearchParams) {
+        // For URLSearchParams, use the string representation
+        bodyHash = body.toString();
+      } else {
+        // For other types, try to stringify
+        try {
+          bodyHash = JSON.stringify(body);
+        } catch {
+          // If stringification fails, use type name
+          bodyHash = `[${typeof body}]`;
+        }
+      }
+    }
+    
+    // Create a stable hash key
+    // For JSON bodies, use the full stringified body
+    // For empty bodies, use empty string
+    const bodyKey = bodyHash ? `:${bodyHash}` : '';
+    
+    return `${method}:${endpoint}${bodyKey}`;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
     requireAuth: boolean = false,
     timeout: number = 60000
   ): Promise<ApiResponse<T>> {
+    // Generate unique key for this request
+    const requestKey = this.getRequestKey(endpoint, options);
+    
+    // Check if an identical request is already in progress
+    if (this.inFlightRequests.has(requestKey)) {
+      // Return the existing promise instead of making a new request
+      return this.inFlightRequests.get(requestKey)! as Promise<ApiResponse<T>>;
+    }
+
     const url = getApiUrl(endpoint);
     
     const headers = requireAuth 
@@ -353,55 +415,66 @@ class ApiService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    try {
-      const response = await fetch(url, {
-        ...config,
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
+    // Create the request promise
+    const requestPromise = (async (): Promise<ApiResponse<T>> => {
+      try {
+        const response = await fetch(url, {
+          ...config,
+          signal: controller.signal,
+        });
         
-        try {
-          const errorData = JSON.parse(errorText);
-          this.showNotification(errorData.message || 'An error occurred', 'error');
-          return { 
-            success: false, 
-            message: errorData.message || 'An error occurred', 
-            error: errorData.message,
-            status: response.status 
-          };
-        } catch {
-          this.showNotification(errorText || 'An unexpected error occurred', 'error');
-          return { 
-            success: false, 
-            message: errorText || 'An unexpected error occurred', 
-            error: errorText,
-            status: response.status 
-          };
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          
+          try {
+            const errorData = JSON.parse(errorText);
+            this.showNotification(errorData.message || 'An error occurred', 'error');
+            return { 
+              success: false, 
+              message: errorData.message || 'An error occurred', 
+              error: errorData.message,
+              status: response.status 
+            };
+          } catch {
+            this.showNotification(errorText || 'An unexpected error occurred', 'error');
+            return { 
+              success: false, 
+              message: errorText || 'An unexpected error occurred', 
+              error: errorText,
+              status: response.status 
+            };
+          }
         }
-      }
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      
-      let errorMessage = 'An unexpected error occurred';
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = 'Request timed out. Please try again.';
-        } else {
-          errorMessage = error.message;
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        let errorMessage = 'An unexpected error occurred';
+        
+        if (error instanceof Error) {
+          if (error.name === 'AbortError') {
+            errorMessage = 'Request timed out. Please try again.';
+          } else {
+            errorMessage = error.message;
+          }
         }
+        
+        this.showNotification(errorMessage, 'error');
+        return { success: false, message: errorMessage, error: errorMessage };
+      } finally {
+        // Remove from tracking when request completes (success or error)
+        this.inFlightRequests.delete(requestKey);
       }
-      
-      this.showNotification(errorMessage, 'error');
-      return { success: false, message: errorMessage, error: errorMessage };
-    }
+    })();
+
+    // Store the promise in the tracking map
+    this.inFlightRequests.set(requestKey, requestPromise);
+
+    return requestPromise;
   }
 
 

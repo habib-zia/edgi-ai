@@ -56,6 +56,7 @@ interface VideoGenerationData {
   avatar_conclusion: string
   music?: string
   text?: string
+  full_audio_url?: string
 }
 
 export default function CreateVideoModal({ isOpen, onClose, startAtComplete = false, videoData, webhookResponse }: CreateVideoModalProps) {
@@ -449,13 +450,14 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
         }
 
         // Validate that all required URLs are present
-        const { hook_url, body_url, conclusion_url } = textToSpeechResponse.data
-        if (!hook_url || !body_url || !conclusion_url) {
+        const { hook_url, body_url, conclusion_url, full_audio_url } = textToSpeechResponse.data
+        if (!hook_url || !body_url || !conclusion_url || !full_audio_url) {
           // URLs are missing - STOP and show error
           console.error('❌ Text-to-speech API returned missing URLs - NOT calling generateVideo:', {
             hook_url: !!hook_url,
             body_url: !!body_url,
-            conclusion_url: !!conclusion_url
+            conclusion_url: !!conclusion_url,
+            full_audio_url: !!full_audio_url
           })
           setAvatarError('Text-to-speech URLs are missing. Please try again.')
           setCurrentStep('form') // Stop loading, go back to form
@@ -476,6 +478,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           avatar_title: avatarIds.avatar_title,
           avatar_body: avatarIds.avatar_body,
           avatar_conclusion: avatarIds.avatar_conclusion,
+          full_audio_url: full_audio_url,
           music: webhookResponse?.music_url || ''
         }
 
