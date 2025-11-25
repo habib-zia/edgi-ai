@@ -260,11 +260,17 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
   }
 
   const handleClose = () => {
-    setFrequency('Once a Week')
-    setPosts([
-      { day: '', date: '', time: '', _isNextWeek: false },
-      { day: '', date: '', time: '', _isNextWeek: false }
-    ])
+    const resetFrequency = 'Once a Week'
+    const postCount = getPostCount(resetFrequency)
+    setFrequency(resetFrequency)
+    setPosts(
+      Array.from({ length: postCount }, () => ({
+        day: '',
+        date: '',
+        time: '',
+        _isNextWeek: false
+      }))
+    )
     setShowFrequencyDropdown(false)
     setIsSubmitting(false)
     clearValidationErrors()
@@ -322,7 +328,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
               <button
                 type="button"
                 onClick={() => setShowFrequencyDropdown(!showFrequencyDropdown)}
-                className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-left transition-colors duration-200 flex items-center justify-between cursor-pointer"
+                className="w-full px-4 !py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-left transition-colors duration-200 flex items-center justify-between cursor-pointer"
               >
                 <span className="text-gray-800">{frequency}</span>
                 <svg
@@ -388,7 +394,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                         <select
                           value={post.day}
                           onChange={(e) => handlePostChange(index, 'day', e.target.value)}
-                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                          className={`w-full px-4 !py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 transition-colors duration-200 focus:outline-none focus:ring-2 ${
                             getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
                           }`}
                         >
@@ -418,7 +424,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                           type="date"
                           value={post.date}
                           onChange={(e) => handlePostChange(index, 'date', e.target.value)}
-                          className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                          className={`w-full px-4 !py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
                             getFieldError(`day_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
                           }`}
                           style={{
@@ -452,7 +458,7 @@ export default function SchedulePostModal({ isOpen, onClose, onNext, title = "Sc
                         // Open time picker by focusing and clicking
                         e.currentTarget.showPicker?.()
                       }}
-                      className={`w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
+                      className={`w-full px-4 !py-3 bg-gray-100 hover:bg-gray-200 border-0 rounded-lg text-gray-800 placeholder-gray-500 transition-colors duration-200 focus:outline-none focus:ring-2 ${
                         getFieldError(`time_${index}`) ? 'focus:ring-red-500 border-red-300 ring-2 ring-red-200' : 'focus:ring-blue-500'
                       }`}
                       style={{

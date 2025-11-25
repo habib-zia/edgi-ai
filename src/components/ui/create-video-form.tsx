@@ -88,6 +88,11 @@ const languageOptions = [
   { value: 'Spanish', label: 'Spanish' },
 ]
 
+const videoCaptionOptions = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' }
+]
+
 interface CreateVideoFormProps {
   className?: string
 }
@@ -592,7 +597,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       voice: '',
       music: '',
       language: '',
-      gender: ''
+      gender: '',
+      videoCaption: ''
     }
   })
 
@@ -1348,7 +1354,8 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         selectedVoiceId: selectedVoice?.id || data.voice || '',
         selectedMusicTrackId: selectedMusic?._id || selectedMusic?.id || data.music || '',
         selectedVoicePreset: (selectedVoice as any)?.energy || selectedVoice?.type || '',
-        selectedMusicPreset: (selectedMusic as any)?.energyCategory || selectedMusic?.type || ''
+        selectedMusicPreset: (selectedMusic as any)?.energyCategory || selectedMusic?.type || '',
+        videoCaption: data.videoCaption || ''
       }
 
       const userSettingsResult = await saveUserSettings(userSettingsPayload)
@@ -1923,8 +1930,26 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             })()}
             
           </div>
+
+          <div>
+            <label className="block text-[16px] font-normal text-[#5F5F5F] mb-1">
+              Video Caption
+            </label>
+            {renderDropdown('videoCaption', videoCaptionOptions, 'Please select an option')}
+            {watch('videoCaption') === 'yes' && (
+              <div className="flex items-start gap-3 ml-2 mt-1">
+                <p className="text-gray-600 text-[10px] leading-[13px] max-w-[280px]">
+                Video captions are generated using OpenAI, and may occasionally appear unexpected.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
+        
+
+        
         <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
+        
          <SubmitButton
            isLoading={isLoading}
            disabled={

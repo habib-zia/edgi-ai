@@ -617,7 +617,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                       </div>
                     )}
                     {/* View Video Button Overlay - Only visible on hover */}
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-grey100 bg-opacity-30 rounded-[6px] z-20">
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-grey100 bg-opacity-30 rounded-[6px]" style={{ zIndex: 0 }}>
                       <button
                         onClick={() => handleViewVideo(video)}
                         className="bg-[#5046E5] text-white px-6 py-3 rounded-full font-semibold text-[16px] hover:bg-[#4338CA]/80 transition-colors duration-300 flex items-center justify-center gap-2 shadow-lg"

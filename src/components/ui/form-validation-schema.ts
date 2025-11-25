@@ -44,7 +44,8 @@ export const createVideoSchema = z.object({
   preset: z.string().optional(),
   voice: z.string().optional(),
   music: z.string().optional(),
-  language: z.string().optional()
+  language: z.string().optional(),
+  videoCaption: z.string().min(1, 'Please select an option')
 })
 
 // Type inference from schema
