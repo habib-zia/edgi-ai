@@ -3,7 +3,7 @@ export const API_CONFIG = {
   // Express Backend URL
   // BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.edgeairealty.com',
   BACKEND_URL: 'https://backend.edgeairealty.com',
-  // BACKEND_URL: 'http://192.168.1.85:4000',
+  // BACKEND_URL: 'http://192.168.1.95:4000',
   // BACKEND_URL: 'https://4bbfdd263eef.ngrok-free.app',
   // BACKEND_URL: 'http://localhost:4000',
   
@@ -72,10 +72,16 @@ export const API_CONFIG = {
       ADD_VOICE: '/api/elevenlabs/voices/add',
     },
     
-    // Video Avatar endpoints (HeyGen API)
+    // Video Avatar endpoints (HeyGen API) - OLD/COMMENTED OUT
+    // VIDEO_AVATAR: {
+    //   CREATE: '/api/v2/video_avatar',
+    //   STATUS: '/v2/video_avatar', // Will be appended with /{id} in the method
+    // },
+
+    // Video Avatar endpoints (New API)
     VIDEO_AVATAR: {
-      CREATE: '/api/v2/video_avatar',
-      STATUS: '/v2/video_avatar', // Will be appended with /{id} in the method
+      CREATE: '/api/user/avatar-videos',
+      STATUS: '/video_avatar', // Will be appended with /{id} in the method
     },
 
     // SocialBu endpoints

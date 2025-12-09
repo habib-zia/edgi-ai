@@ -7,6 +7,7 @@ import { apiService } from "../../../../lib/api-service";
 import { AvatarData } from '../AvatarCreationModal'
 import { trainingVideoNameRef } from './TrainingVideoUpload'
 import { useUnifiedSocketContext } from "../../../../components/providers/UnifiedSocketProvider";
+import { useNotificationStore } from '../../global-notification'
 
 interface ConsentVideoUploadProps {
   onNext: () => void
@@ -22,6 +23,7 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const consentUpload = useVideoUpload();
   const { videoAvatarUpdates } = useUnifiedSocketContext();
+  const { showNotification } = useNotificationStore();
 
   useEffect(() => {
     if (avatarData.consentVideoFile && !consentUpload.uploadState.preview) {
@@ -81,14 +83,28 @@ export default function ConsentVideoUpload({ onNext, onBack, onClose, avatarData
         avatarName
       );
       
-      if (!result.success) {
+      if (result.success) {
+        // Reset loading state
+        setIsCreating(false);
+        
+        // Show success toast
+        showNotification('Your video avatar request created successfully', 'success');
+        
+        // Close modal
+        if (onClose) {
+          onClose();
+        }
+        return;
+      } else {
         console.error('❌ Video avatar creation failed:', result.message);
+        setIsCreating(false);
         if (onClose) {
           onClose();
         }
       }
     } catch (error) {
       console.error('❌ Exception creating video avatar:', error);
+      setIsCreating(false);
       if (onClose) {
         onClose();
       }

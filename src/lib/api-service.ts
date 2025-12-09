@@ -1073,23 +1073,124 @@ class ApiService {
     }
   }
 
+  // OLD createVideoAvatar method - COMMENTED OUT
+  // async createVideoAvatar(
+  //   trainingVideoFile: File, 
+  //   consentVideoFile: File, 
+  //   avatarName: string
+  // ): Promise<ApiResponse<CreateVideoAvatarResponse>> {
+  //   try {
+  //     console.log('🎬 Starting video avatar creation process...')
+
+  //     // Create FormData for multipart/form-data request
+  //     const formData = new FormData();
+  //     formData.append('avatar_name', avatarName);
+  //     formData.append('training_footage', trainingVideoFile);
+  //     formData.append('consent_statement', consentVideoFile);
+
+  //     const url = getApiUrl(API_CONFIG.ENDPOINTS.VIDEO_AVATAR.CREATE);
+
+  //     const headers = postHeyGenHeaders();
+
+  //     const response = await fetch(url, {
+  //       method: 'POST',
+  //       headers,
+  //       body: formData,
+  //     });
+
+  //     if (!response.ok) {
+  //       const errorText = await response.text();
+  //       try {
+  //         const errorData = JSON.parse(errorText);
+  //         let errorMessage = 'Failed to create video avatar';
+          
+  //         // Handle nested error structure from HeyGen API
+  //         if (errorData.error && errorData.error.message) {
+  //           errorMessage = errorData.error.message;
+  //         } else if (errorData.message) {
+  //           // Extract the actual error message from the wrapped message
+  //           // Format: "Heygen responded 400: {\"data\":null,\"error\":{\"code\":\"internal_error\",\"message\":\"You've reached the limit of 1 verified avatar group slots.\"}}"
+  //           const messageMatch = errorData.message.match(/Heygen responded \d+: \{[^}]*"message":"([^"]*)"[^}]*\}/);
+  //           if (messageMatch && messageMatch[1]) {
+  //             errorMessage = messageMatch[1];
+  //           } else {
+  //             // Try to parse the JSON within the message
+  //             try {
+  //               const jsonMatch = errorData.message.match(/Heygen responded \d+: (.+)/);
+  //               if (jsonMatch && jsonMatch[1]) {
+  //                 const innerError = JSON.parse(jsonMatch[1]);
+  //                 if (innerError.error && innerError.error.message) {
+  //                   errorMessage = innerError.error.message;
+  //                 } else {
+  //                   errorMessage = errorData.message;
+  //                 }
+  //               } else {
+  //                 errorMessage = errorData.message;
+  //               }
+  //             } catch {
+  //               errorMessage = errorData.message;
+  //             }
+  //           }
+  //         }
+          
+  //         this.showNotification(errorMessage, 'error');
+  //         return { 
+  //           success: false, 
+  //           message: errorMessage, 
+  //           error: errorMessage,
+  //           status: response.status 
+  //         };
+  //       } catch {
+  //         this.showNotification(errorText || 'Failed to create video avatar', 'error');
+  //         return { 
+  //           success: false, 
+  //           message: errorText || 'Failed to create video avatar', 
+  //           error: errorText,
+  //           status: response.status 
+  //         };
+  //       }
+  //     }
+
+  //     const result = await response.json();
+  //     console.log('✅ Video avatar creation initiated successfully:', result);
+      
+  //     // Show initial success notification
+  //     this.showNotification('Video avatar creation started! You will receive real-time updates.', 'success');
+      
+  //     return {
+  //       success: true,
+  //       message: 'Video avatar creation started successfully',
+  //       data: result
+  //     };
+  //   } catch (error) {
+  //     const errorMessage = error instanceof Error ? error.message : 'Failed to create video avatar';
+  //     console.error('❌ Error creating video avatar:', error);
+  //     this.showNotification(errorMessage, 'error');
+  //     return { success: false, message: errorMessage, error: errorMessage };
+  //   }
+  // }
+
+  // New createVideoAvatar method using /api/v1/user/avatar-videos endpoint
   async createVideoAvatar(
     trainingVideoFile: File, 
     consentVideoFile: File, 
-    avatarName: string
+    avatarName?: string // Optional, not used in new API but kept for backward compatibility
   ): Promise<ApiResponse<CreateVideoAvatarResponse>> {
     try {
       console.log('🎬 Starting video avatar creation process...')
 
       // Create FormData for multipart/form-data request
       const formData = new FormData();
-      formData.append('avatar_name', avatarName);
-      formData.append('training_footage', trainingVideoFile);
-      formData.append('consent_statement', consentVideoFile);
+      formData.append('consentVideo', consentVideoFile);
+      formData.append('trainingVideo', trainingVideoFile);
+      formData.append('isAvatarCreated', 'false');
 
       const url = getApiUrl(API_CONFIG.ENDPOINTS.VIDEO_AVATAR.CREATE);
 
-      const headers = postHeyGenHeaders();
+      // Use authenticated headers with Bearer token
+      const headers = getAuthenticatedHeaders();
+      // Remove Content-Type to let browser set multipart boundary
+      delete headers['Content-Type'];
 
       const response = await fetch(url, {
         method: 'POST',
@@ -1101,36 +1202,7 @@ class ApiService {
         const errorText = await response.text();
         try {
           const errorData = JSON.parse(errorText);
-          let errorMessage = 'Failed to create video avatar';
-          
-          // Handle nested error structure from HeyGen API
-          if (errorData.error && errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else if (errorData.message) {
-            // Extract the actual error message from the wrapped message
-            // Format: "Heygen responded 400: {\"data\":null,\"error\":{\"code\":\"internal_error\",\"message\":\"You've reached the limit of 1 verified avatar group slots.\"}}"
-            const messageMatch = errorData.message.match(/Heygen responded \d+: \{[^}]*"message":"([^"]*)"[^}]*\}/);
-            if (messageMatch && messageMatch[1]) {
-              errorMessage = messageMatch[1];
-            } else {
-              // Try to parse the JSON within the message
-              try {
-                const jsonMatch = errorData.message.match(/Heygen responded \d+: (.+)/);
-                if (jsonMatch && jsonMatch[1]) {
-                  const innerError = JSON.parse(jsonMatch[1]);
-                  if (innerError.error && innerError.error.message) {
-                    errorMessage = innerError.error.message;
-                  } else {
-                    errorMessage = errorData.message;
-                  }
-                } else {
-                  errorMessage = errorData.message;
-                }
-              } catch {
-                errorMessage = errorData.message;
-              }
-            }
-          }
+          const errorMessage = errorData.message || errorData.error?.message || 'Failed to create video avatar';
           
           this.showNotification(errorMessage, 'error');
           return { 
