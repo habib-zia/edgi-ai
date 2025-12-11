@@ -40,7 +40,7 @@ export function ReviewSlider({
   return (
     <div className={cn("relative w-full max-w-[1260px] mx-auto px-3 py-14")}>
       <div className="flex flex-col justify-between items-center gap-5">
-      <h2 className="text-[30px] leading-normal md:text-[42px] font-semibold text-[#171717] text-center">
+      <h2 className="text-[32px] md:text-[42px] font-semibold text-[#171717] text-center leading-[120%]">
       What Our Clients Are Saying
       </h2>
       <p className="md:text-[20px] text-[18px] leading-[24px] mb-6 flex-grow text-[#5F5F5F] text-center max-w-[650px] mx-auto">

@@ -130,7 +130,7 @@ function HomePageContent() {
     } else
     {
       e.preventDefault();
-      smoothScrollTo('how-it-works');
+      smoothScrollTo('pricing');
     }
   };
 
@@ -189,9 +189,9 @@ function HomePageContent() {
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
 
-              {isAuthenticated ? (
-                <>
-                <button 
+          {isAuthenticated ? (
+            <>
+            <button 
             onClick={handleCustomAvatarClick}
             disabled={isAnyAvatarProcessing}
             className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
@@ -218,13 +218,13 @@ function HomePageContent() {
               ) : (
                 <>
                 <button 
-            onClick={handleCustomAvatarClick}
-            disabled={isAnyAvatarProcessing}
-            className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
-              isAnyAvatarProcessing 
-                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
-                : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
-            }`}>
+                  onClick={handleCustomAvatarClick}
+                  disabled={isAnyAvatarProcessing}
+                  className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
+                    isAnyAvatarProcessing 
+                      ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                      : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
+                  }`}>
                     {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
                   </button> 
                   <button
@@ -233,10 +233,6 @@ function HomePageContent() {
                   >
                     Get Started
                   </button>
-                  
-                  {/* <button onClick={handleReportAnalyticsClick} className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Report Analytics
-                  </button> */}
                 </>
               )}
             </div>  

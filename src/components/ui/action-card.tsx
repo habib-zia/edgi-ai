@@ -18,7 +18,7 @@ export default function ActionCard(){
       window.location.href = '/create-video';
     } else {
       e.preventDefault();
-      smoothScrollTo('how-it-works');
+      smoothScrollTo('pricing');
     }
   };
 

@@ -63,16 +63,6 @@ const featureItems: FeatureItem[] = [
     description: "Showcase Edge during your next listing appointment and watch how sellers respond. Agents using AI video marketing report winning up to 35% more listings, simply by showing they're ahead of the curve."
   },
   {
-    id: "sell-faster",
-    icon: (
-        <svg width="32" height="32" className="w-[30px] h-[30px]" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 2.93548V15.5161C32 16.5836 31.103 17.4516 30 17.4516H25.669L17.3038 23.6422C17.2618 23.6739 17.2145 23.698 17.1642 23.715L7.14824 27.0859L7.4694 27.9295C7.56364 28.1776 7.43474 28.4535 7.17985 28.5485L0.679898 30.9679C0.620817 30.9896 0.559782 31 0.500212 31C0.29953 31 0.110078 30.8823 0.0334183 30.69C-0.0657022 30.4405 0.0632032 30.1603 0.320526 30.0644L6.36052 27.8166L3.19844 19.5104L0.658414 20.3298C0.394256 20.4149 0.113496 20.2773 0.0260941 20.0241C-0.0613077 19.7703 0.0802929 19.4963 0.34201 19.4121L3.34199 18.4444C3.59785 18.3603 3.87617 18.4907 3.96943 18.736L4.18509 19.3024L5.10467 19.0048L5.26043 18.5517C6.06853 16.2079 8.29508 14.6169 10.8346 14.5507L13.6813 12.5501C14.4562 12.0019 15.4069 11.7893 16.3536 11.9533C17.3019 12.1167 18.1178 12.6337 18.6515 13.4096C18.7672 13.5863 18.8253 13.7796 18.8253 13.9776C18.8253 14.2663 18.7008 14.5422 18.4835 14.7355L13.3366 19.2614C13.132 19.441 12.816 19.4268 12.63 19.2288C12.4445 19.0308 12.4596 18.7246 12.6637 18.545L17.8087 14.021C17.8194 14.0116 17.8253 13.9917 17.8253 13.9776C17.4381 13.3921 16.8556 13.0226 16.1783 12.9059C15.5035 12.7906 14.8243 12.9404 14.2701 13.3326L11.2941 15.424C11.2086 15.484 11.1056 15.5161 11.0001 15.5161C8.8234 15.5161 6.89812 16.8591 6.20916 18.8579L5.97478 19.5402C5.92498 19.6843 5.80779 19.7977 5.65887 19.8459L4.53092 20.2109L6.8026 26.1779L16.7599 22.8266L24.0233 17.4516H17.4303C17.1539 17.4516 16.9303 17.2352 16.9303 16.9677C16.9303 16.7003 17.1539 16.4839 17.4303 16.4839H30C30.5513 16.4839 31 16.0496 31 15.5161V2.93548C31 2.402 30.5513 1.96774 30 1.96774H6.00018C5.44891 1.96774 5.00018 2.402 5.00018 2.93548V15.5161C5.00018 15.8266 5.14569 16.1073 5.40008 16.2868C5.62274 16.4442 5.67205 16.7471 5.50897 16.963C5.34686 17.178 5.03485 17.2262 4.81024 17.0684C4.2956 16.705 4.00019 16.1389 4.00019 15.5161V2.93548C4.00019 1.86804 4.89716 1 6.00018 1H30C31.103 1 32 1.86804 32 2.93548ZM19.5152 15.5161H27.5C27.7764 15.5161 28 15.2997 28 15.0323C28 14.2318 28.6729 13.5806 29.5 13.5806C29.7764 13.5806 30 13.3642 30 13.0968V5.35484C30 5.08739 29.7764 4.87097 29.5 4.87097C28.6729 4.87097 28 4.21982 28 3.41935C28 3.1519 27.7764 2.93548 27.5 2.93548H8.50016C8.22379 2.93548 8.00016 3.1519 8.00016 3.41935C8.00016 4.21982 7.32731 4.87097 6.50017 4.87097C6.22381 4.87097 6.00018 5.08739 6.00018 5.35484V13.0968C6.00018 13.3642 6.22381 13.5806 6.50017 13.5806C7.05339 13.5806 7.5612 13.8746 7.82536 14.3476C7.95671 14.5829 8.26041 14.6717 8.5026 14.5437C8.74576 14.4166 8.83658 14.1231 8.70524 13.8883C8.34733 13.2466 7.7194 12.8033 7.00017 12.6616V5.79004C7.97819 5.59725 8.75065 4.8497 8.94986 3.90323H27.0503C27.2495 4.8497 28.022 5.59725 29 5.79004V12.6616C28.022 12.8544 27.2495 13.6019 27.0503 14.5484H19.5152C19.2389 14.5484 19.0152 14.7648 19.0152 15.0323C19.0152 15.2997 19.2389 15.5161 19.5152 15.5161ZM19.0631 12.2873C18.8331 12.4352 18.7706 12.7358 18.9234 12.9583C19.0201 13.0987 19.1788 13.1743 19.3404 13.1743C19.4356 13.1743 19.5318 13.1483 19.6168 13.0935C20.7784 12.3459 21.5001 10.8636 21.5001 9.22581C21.5001 6.82441 19.9298 4.87097 18.0001 4.87097C16.0704 4.87097 14.5001 6.82441 14.5001 9.22581C14.5001 9.87884 14.6197 10.5347 14.8468 11.1225C14.943 11.373 15.2316 11.5001 15.4899 11.4065C15.7486 11.3134 15.88 11.0347 15.7833 10.7842C15.5983 10.3036 15.5001 9.76449 15.5001 9.22581C15.5001 7.35837 16.6217 5.83871 18.0001 5.83871C19.3785 5.83871 20.5001 7.35837 20.5001 9.22581C20.5001 10.5238 19.9361 11.7255 19.0631 12.2873ZM10.5001 8.74194C10.2238 8.74194 10.0001 8.95835 10.0001 9.22581C10.0001 9.49326 10.2238 9.70968 10.5001 9.70968H12.5001C12.7765 9.70968 13.0001 9.49326 13.0001 9.22581C13.0001 8.95835 12.7765 8.74194 12.5001 8.74194H10.5001ZM25.5 9.70968C25.7764 9.70968 26 9.49326 26 9.22581C26 8.95835 25.7764 8.74194 25.5 8.74194H23.5001C23.2237 8.74194 23.0001 8.95835 23.0001 9.22581C23.0001 9.49326 23.2237 9.70968 23.5001 9.70968H25.5Z" fill="#5046E5"/>
-        </svg>        
-    ),
-    title: "Sell Properties 30% Faster",
-    description: "Video listings attract 4x more interest than static ones (NAR), and homes marketed with Edge often sell 20–30% faster. More visibility = faster closings and happier clients."
-  },
-  {
     id: "stand-out",
     icon: (
         <svg width="32" height="32" className="w-[30px] h-[30px]" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -121,7 +111,7 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
   };
 
   return (
-    <section className={cn("w-full pt-16 md:pt-10 bg-white", className)}>
+    <section className={cn("w-full pt-0 bg-white", className)}>
       <div className="max-w-[1260px] mx-auto xl:px-0 px-3">
         {/* Header Section */}
         <div className="text-center mb-14">
@@ -137,9 +127,9 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${!isAuthenticated ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
           {featureItems.map((item) => (
-            <div key={item.id} className="flex flex-col items-start bg-[#FAFAFA] rounded-[16px] p-6">
+            <div key={item.id} className="flex flex-col items-start bg-[#FAFAFA] rounded-[16px] p-6 hover:shadow-xl transition-all duration-600">
               {/* Icon */}
               <div className="w-[42px] h-[42px] rounded-[45px] bg-[#5046E5]/20 flex items-center justify-center mb-5">
                 {item.icon}
@@ -156,9 +146,8 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
               </p>
             </div>
           ))}
-          
-          {/* Blue CTA Box as 6th item */}
-          <div className="flex flex-col justify-between items-start bg-[#5046E5] rounded-[16px] p-6 text-white min-h-[230px]">
+        {!isAuthenticated && (
+        <div className="flex flex-col justify-between items-start bg-[#5046E5] rounded-[16px] p-6 text-white min-h-[230px] hover:shadow-2xl transition-all duration-600">
             <h3 className="text-[28px] md:text-[32px] font-semibold mb-6 text-left leading-tight">
               Get Started Today
             </h3>
@@ -174,7 +163,9 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
             </button>
             )}
           </div>
+          )}
         </div>
+
       </div>
 
       {/* Signup Modal */}

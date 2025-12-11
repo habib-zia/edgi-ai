@@ -161,7 +161,7 @@ export default function ContactForm() {
 
             {/* Main Heading */}
             <div className="space-y-2">
-              <h2 className="md:text-[38px] text-[30px] md:leading-[46px] font-semibold text-[#282828]">
+              <h2 className="md:text-[38px] text-[30px] md:leading-[46px] font-semibold text-[#282828] leading-[120%]">
                 We get it. Sometimes you <br className='md:block hidden' /> just need to talk to a <br className='md:block hidden' /> human - reach out to us here.
               </h2>
             </div>
