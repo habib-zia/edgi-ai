@@ -65,8 +65,14 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     }
   } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [limit] = useState(10) // Fixed limit, can be made configurable later
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   // State for API data
   const [videos, setVideos] = useState<VideoCard[]>([])
   const [loading, setLoading] = useState(true)
@@ -95,7 +101,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   // Store fetchVideos in ref to avoid dependency issues
   const fetchVideosRef = useRef<(() => Promise<void>) | null>(null)
 
-  // Fetch videos from API
+  // Fetch videos from API with pagination, search, and sort
   const fetchVideos = useCallback(async () => {
     if (!accessToken) {
       setError('Authentication required')
@@ -107,7 +113,12 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       setLoading(true)
       setError(null)
 
-      const result = await apiService.getVideoGallery()
+      const result = await apiService.getVideoGallery({
+        page: currentPage,
+        limit: limit,
+        sort: sortOrder,
+        search: debouncedSearchQuery || undefined
+      })
 
       if (result.success && result.data) {
         // Map API response to VideoCard format, preserving original videoUrl
@@ -120,6 +131,18 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
             }
           })
         setVideos(mappedVideos)
+        
+        // Update pagination metadata
+        if (result.data.totalCount !== undefined) {
+          setTotalCount(result.data.totalCount)
+        }
+        if (result.data.totalPages !== undefined) {
+          setTotalPages(result.data.totalPages)
+        } else if (result.data.totalCount !== undefined) {
+          // Calculate totalPages if not provided by API
+          setTotalPages(Math.ceil(result.data.totalCount / limit))
+        }
+        
         const notesFromAPI: Record<string, string> = {}
         result.data.videos.forEach((video: any) => {
           const videoId = video.videoId || video.id
@@ -137,17 +160,33 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     } finally {
       setLoading(false)
     }
-  }, [accessToken])
+  }, [accessToken, currentPage, limit, sortOrder, debouncedSearchQuery])
+
+  // Debounce search query to avoid excessive API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      // Reset to page 1 when search changes
+      setCurrentPage(1)
+    }, 500) // 500ms debounce delay
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Reset to page 1 when sort order changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [sortOrder])
 
   // Update ref when fetchVideos changes
   useEffect(() => {
     fetchVideosRef.current = fetchVideos
   }, [fetchVideos])
 
-  // Fetch videos on component mount and when access token changes
+  // Fetch videos on component mount and when dependencies change
   useEffect(() => {
     fetchVideosRef.current?.()
-  }, [accessToken]) // Only depend on accessToken, not fetchVideos
+  }, [accessToken, currentPage, sortOrder, debouncedSearchQuery]) // Trigger on pagination, sort, and search changes
 
   // No need for cleanup effects since we're using derived state from socket updates
 
@@ -349,17 +388,18 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     setNoteError(error)
   }
 
-  // Filter and sort videos based on search query and sort order
-  const filteredAndSortedVideos = useMemo(() => {
-    console.log('🔄 Recalculating filteredAndSortedVideos:', {
+  // Merge pending videos (from socket) with API videos
+  // Server-side filtering and sorting is already handled by the API
+  const displayVideos = useMemo(() => {
+    console.log('🔄 Recalculating displayVideos:', {
       pendingVideosCount: pendingVideos.length,
-      pendingVideos
+      apiVideosCount: videos.length
     })
 
-    // Start with regular videos
+    // Start with API videos (already filtered, sorted, and paginated by server)
     const allVideos = [...videos]
 
-    // Add loading cards for each pending video
+    // Add loading cards for each pending video (processing videos from socket)
     if (pendingVideos.length > 0) {
       console.log(`➕ Adding ${pendingVideos.length} loading card(s) to video list`)
       
@@ -379,59 +419,28 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         }
       }))
 
-      // Add loading cards at the beginning (newest position)
-      allVideos.unshift(...loadingCards)
+      // Separate processing videos from completed videos
+      const processingVideos = allVideos.filter(video => video.status === 'processing')
+      const completedVideos = allVideos.filter(video => video.status !== 'processing')
+
+      // Sort processing videos by creation date (newest first) for consistent display
+      const sortedProcessingVideos = processingVideos.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime()
+        const dateB = new Date(b.createdAt).getTime()
+        return dateB - dateA
+      })
+
+      // Always show pending videos first, then processing videos from API, then completed videos
+      return [...loadingCards, ...sortedProcessingVideos, ...completedVideos]
     }
 
-    // Filter by search query
-    const filtered = allVideos.filter(video =>
-      video.title.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-
-    // Separate processing videos from completed videos
-    const processingVideos = filtered.filter(video => video.status === 'processing')
-    const completedVideos = filtered.filter(video => video.status !== 'processing')
-
-    // Sort completed videos by creation date
-    const sortedCompletedVideos = completedVideos.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime()
-      const dateB = new Date(b.createdAt).getTime()
-
-      if (sortOrder === 'newest') {
-        return dateB - dateA // Newest first
-      } else {
-        return dateA - dateB // Oldest first
-      }
-    })
-
-    // Sort processing videos by creation date (newest first)
-    const sortedProcessingVideos = processingVideos.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime()
-      const dateB = new Date(b.createdAt).getTime()
-      return dateB - dateA // Newest processing videos first
-    })
-
-    // Always show processing videos first, then completed videos
-    return [...sortedProcessingVideos, ...sortedCompletedVideos]
-  }, [videos, pendingVideos, searchQuery, sortOrder])
+    // If no pending videos, return API videos as-is (already sorted by server)
+    return allVideos
+  }, [videos, pendingVideos])
 
   const handleSortChange = (newSortOrder: SortOrder) => {
     setSortOrder(newSortOrder)
     setIsSortDropdownOpen(false)
-  }
-
-
-  if (loading) {
-    return (
-      <div className={`w-full ${className}`}>
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5] mx-auto mb-4"></div>
-            <p className="text-gray-500 text-lg">Loading your videos...</p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   if (error) {
@@ -499,13 +508,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
             disabled={loading}
             className="px-4 py-[7.4px] bg-[#5046E5] text-white rounded-[39px] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] flex items-center gap-2 min-w-[120px] justify-center text-[20px] font-semibold hover:bg-[#4338CA] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 4V10H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H10M20 20V14H19.4185M19.4185 14C18.2317 16.9318 15.3574 19 12 19C7.92038 19 4.55399 15.9463 4.06189 12M19.4185 14H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 4V10H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H10M20 20V14H19.4185M19.4185 14C18.2317 16.9318 15.3574 19 12 19C7.92038 19 4.55399 15.9463 4.06189 12M19.4185 14H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             Refresh
           </button>
 
@@ -553,14 +558,21 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
 
       {/* Video Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
-        {filteredAndSortedVideos.length === 0 ? (
+        {loading ? (
+          <div className="col-span-full text-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5046E5] mx-auto mb-4"></div>
+              <p className="text-gray-500 text-lg">Loading your videos...</p>
+            </div>
+          </div>
+        ) : displayVideos.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <p className="text-gray-500 text-lg">
-              {searchQuery ? 'No videos found matching your search.' : 'No videos available.'}
+              {debouncedSearchQuery ? 'No videos found matching your search.' : 'No videos available.'}
             </p>
           </div>
         ) : (
-          filteredAndSortedVideos.map((video) => (
+          displayVideos.map((video) => (
             <div
               key={video.id}
               className="bg-[#EEEEEE] rounded-[12px] overflow-hidden transition-all duration-300 group min-h-[240px] relative h-[384px]"
@@ -786,6 +798,38 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
           ))
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1 || loading}
+            className="px-4 py-2 bg-[#5046E5] text-white rounded-[39px] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#4338CA] text-[16px] font-semibold"
+          >
+            Previous
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-[#5F5F5F] text-[16px] font-semibold">
+              Page {currentPage} of {totalPages}
+            </span>
+            {totalCount > 0 && (
+              <span className="text-[#9C9B9B] text-[14px]">
+                ({totalCount} {totalCount === 1 ? 'video' : 'videos'})
+              </span>
+            )}
+          </div>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages || loading}
+            className="px-4 py-2 bg-[#5046E5] text-white rounded-[39px] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#4338CA] text-[16px] font-semibold"
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {/* Click outside to close dropdown */}
       {isSortDropdownOpen && (

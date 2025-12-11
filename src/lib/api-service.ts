@@ -561,20 +561,55 @@ class ApiService {
     }, false);
   }
 
-  async getVideoGallery(): Promise<ApiResponse<{
+  async getVideoGallery(params?: {
+    page?: number;
+    limit?: number;
+    sort?: 'newest' | 'oldest';
+    search?: string;
+  }): Promise<ApiResponse<{
     videos: any[];
     totalCount: number;
     readyCount: number;
     processingCount: number;
     failedCount: number;
+    page?: number;
+    totalPages?: number;
+    hasMore?: boolean;
   }>> {
+    // Build query string from parameters
+    const queryParams = new URLSearchParams();
+    
+    if (params?.page !== undefined && params.page > 0) {
+      queryParams.append('page', params.page.toString());
+    }
+    
+    if (params?.limit !== undefined && params.limit > 0) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    
+    if (params?.sort) {
+      queryParams.append('sort', params.sort);
+    }
+    
+    if (params?.search && params.search.trim()) {
+      queryParams.append('search', params.search.trim());
+    }
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString 
+      ? `${API_CONFIG.ENDPOINTS.VIDEO.GALLERY}?${queryString}`
+      : API_CONFIG.ENDPOINTS.VIDEO.GALLERY;
+    
     return this.request<{
       videos: any[];
       totalCount: number;
       readyCount: number;
       processingCount: number;
       failedCount: number;
-    }>(API_CONFIG.ENDPOINTS.VIDEO.GALLERY, {
+      page?: number;
+      totalPages?: number;
+      hasMore?: boolean;
+    }>(endpoint, {
       method: 'GET',
     }, true);
   }
