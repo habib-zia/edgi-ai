@@ -63,10 +63,23 @@ export interface VideoData {
 
 export interface VideoGalleryResponse {
   videos: VideoData[];
-  totalCount: number;
-  readyCount: number;
-  processingCount: number;
-  failedCount: number;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  stats?: {
+    totalCount: number;
+    readyCount: number;
+    processingCount: number;
+    failedCount: number;
+  };
+  // Legacy fields for backward compatibility
+  totalCount?: number;
+  readyCount?: number;
+  processingCount?: number;
+  failedCount?: number;
 }
 
 // Pending Workflow Types
@@ -568,10 +581,23 @@ class ApiService {
     search?: string;
   }): Promise<ApiResponse<{
     videos: any[];
-    totalCount: number;
-    readyCount: number;
-    processingCount: number;
-    failedCount: number;
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+    stats?: {
+      totalCount: number;
+      readyCount: number;
+      processingCount: number;
+      failedCount: number;
+    };
+    // Legacy fields for backward compatibility
+    totalCount?: number;
+    readyCount?: number;
+    processingCount?: number;
+    failedCount?: number;
     page?: number;
     totalPages?: number;
     hasMore?: boolean;
@@ -602,10 +628,23 @@ class ApiService {
     
     return this.request<{
       videos: any[];
-      totalCount: number;
-      readyCount: number;
-      processingCount: number;
-      failedCount: number;
+      pagination?: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+      stats?: {
+        totalCount: number;
+        readyCount: number;
+        processingCount: number;
+        failedCount: number;
+      };
+      // Legacy fields for backward compatibility
+      totalCount?: number;
+      readyCount?: number;
+      processingCount?: number;
+      failedCount?: number;
       page?: number;
       totalPages?: number;
       hasMore?: boolean;

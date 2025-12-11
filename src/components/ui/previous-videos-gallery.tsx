@@ -121,8 +121,28 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       })
 
       if (result.success && result.data) {
+        // Type assertion for API response structure
+        const apiData = result.data as {
+          videos: any[];
+          pagination?: {
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+          };
+          stats?: {
+            totalCount: number;
+            readyCount: number;
+            processingCount: number;
+            failedCount: number;
+          };
+          // Legacy fields for backward compatibility
+          totalCount?: number;
+          totalPages?: number;
+        };
+        
         // Map API response to VideoCard format, preserving original videoUrl
-        const mappedVideos = result.data.videos
+        const mappedVideos = apiData.videos
           .map((video: any) => {
             return {
               ...video,
@@ -132,19 +152,19 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
           })
         setVideos(mappedVideos)
         
-        // Update pagination metadata
-        if (result.data.totalCount !== undefined) {
-          setTotalCount(result.data.totalCount)
+        if (apiData.stats?.totalCount !== undefined) {
+          setTotalCount(apiData.stats.totalCount)
         }
-        if (result.data.totalPages !== undefined) {
-          setTotalPages(result.data.totalPages)
-        } else if (result.data.totalCount !== undefined) {
-          // Calculate totalPages if not provided by API
-          setTotalPages(Math.ceil(result.data.totalCount / limit))
+        if (apiData.pagination?.totalPages !== undefined) {
+          setTotalPages(apiData.pagination.totalPages)
+        } else if (apiData.pagination?.total !== undefined) {
+          setTotalPages(Math.ceil(apiData.pagination.total / limit))
+        } else if (apiData.stats?.totalCount !== undefined) {
+          setTotalPages(Math.ceil(apiData.stats.totalCount / limit))
         }
         
         const notesFromAPI: Record<string, string> = {}
-        result.data.videos.forEach((video: any) => {
+        apiData.videos.forEach((video: any) => {
           const videoId = video.videoId || video.id
           if (videoId && video.note) {
             notesFromAPI[videoId] = video.note
