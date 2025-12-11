@@ -175,7 +175,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
       <div className="max-w-[1260px] mx-auto xl:px-0 px-3">
         {/* Header Section */}
         <div className="text-center mb-10">
-          <h2 className="text-[42px] md:text-[54px] lg:text-[64px] font-semibold text-[#282828] leading-tight mb-3">
+          <h2 className="text-[42px] md:text-[54px] lg:text-[64px] font-semibold text-[#282828] md:leading-tight leading-[110%] mb-3">
             Three simple steps.
           </h2>
           <p className="text-[18px] md:text-[20px] text-[#5F5F5F] max-w-[800px] mx-auto leading-relaxed">
@@ -248,13 +248,6 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
                     {step.description}
                   </p>
                 </div>
-                
-                {/* Connecting Line */}
-                {/* {index < steps.length - 1 && (
-                  <div className="md:hidden flex justify-center py-4">
-                    <div className="w-0.5 h-8 bg-gradient-to-b from-[#6366f1] to-[#a855f7]"></div>
-                  </div>
-                )} */}
               </div>
             ))}
             </div>
@@ -262,13 +255,13 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
         </div>
 
         {/* CTA Button */}
-        <div className="text-center flex gap-4 justify-center flex-wrap">
-          {/* <Link 
+        {/* <div className="text-center flex gap-4 justify-center flex-wrap">
+          <Link 
             href="#faq" 
             className="inline-flex items-center gap-3 bg-transparent border-2 border-[#5046E5] text-[#5046E5] hover:bg-[#5046E5] hover:text-white py-[15.4px] rounded-full text-[16px] font-semibold transition-all duration-300 group max-w-[340px] w-full text-center justify-center mx-auto"
           >
             Have More Questions? See our FAQ
-          </Link> */}
+          </Link>
           <button 
             onClick={handleCustomAvatarClick}
             disabled={isAnyAvatarProcessing}
@@ -286,7 +279,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
           >
             Default Avatar
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Avatar Creation Modal */}

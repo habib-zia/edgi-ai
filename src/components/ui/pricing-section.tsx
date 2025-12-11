@@ -124,8 +124,8 @@ const PricingSection = () => {
   const handlePlanSelection = async (plan: PricingPlan) => {
     if (!isAuthenticated || !accessToken)
     {
-      showNotification('Please login first to access this feature', 'warning');
-      setIsSigninModalOpen(true);
+      showNotification('Please signup first to access this feature', 'warning');
+      setIsSignupModalOpen(true);
       return;
     }
 

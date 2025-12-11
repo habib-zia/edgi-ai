@@ -33,7 +33,7 @@ const FAQSection = () => {
         <div className="text-center mb-8 sm:mb-12 lg:mb-16" id="faq">
         <h1 
           id="faq-heading"
-          className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-semibold mb-2 sm:mb-4 lg:mb-1" 
+          className="text-[32px] md:text-4xl lg:text-[42px] font-semibold mb-2 sm:mb-4 lg:mb-4 leading-[120%]" 
           style={{ color: '#171717' }}
         >
           Frequently Asked Questions

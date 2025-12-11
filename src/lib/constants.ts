@@ -119,23 +119,23 @@ export const SLIDER_ITEMS = [
     content: "of Homeowners Prefer Agents Who Use Video. Clients trust agents who show up on video. It's not just flash — it's credibility.",
     attribution: "— National Association of Realtors",
   },
-  {
-    id: "more-inquiries",
-    statistic: "403%",
-    content: "More Inquiries for Listings With Video. You'll get more calls, more clicks, and more showings — period.",
-    attribution: "— PhotoUp",
-  },
+  // {
+  //   id: "more-inquiries",
+  //   statistic: "403%",
+  //   content: "More Inquiries for Listings With Video. You'll get more calls, more clicks, and more showings — period.",
+  //   attribution: "— PhotoUp",
+  // },
   {
     id: "social-engagement",
     statistic: "20 Hours",
     content: "Increase in Social Media Engagement with Video. Compared to image or text posts, video dominates on every platform.",
   },
-  {
-    id: "faster-sales",
-    statistic: "32%",
-    content: "Properties with video tours sell faster and for more money. Turn browsers into buyers with compelling video presentations.",
-    attribution: "— Real Estate Analytics",
-  },
+  // {
+  //   id: "faster-sales",
+  //   statistic: "32%",
+  //   content: "Properties with video tours sell faster and for more money. Turn browsers into buyers with compelling video presentations.",
+  //   attribution: "— Real Estate Analytics",
+  // },
   {
     id: "client-satisfaction",
     statistic: "67%",
