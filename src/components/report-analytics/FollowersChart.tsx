@@ -73,7 +73,8 @@ const FollowersChart: React.FC<FollowersChartProps> = ({ topPostData }) => {
             { key: 'likes', label: 'Likes', getValue: () => getInsightValue('like_count') || getInsightValue('likes') || 0 },
             { key: 'retweets', label: 'Retweets', getValue: () => getInsightValue('retweets') || 0 },
             { key: 'replies', label: 'Replies', getValue: () => getInsightValue('replies') || 0 },
-            { key: 'quote_tweets', label: 'Quote Tweets', getValue: () => getInsightValue('quote_tweets') || 0 }
+            { key: 'quote_tweets', label: 'Quote Tweets', getValue: () => getInsightValue('quote_tweets') || 0 },
+            { key: 'bookmarks', label: 'Bookmarks', getValue: () => getInsightValue('bookmarks') || 0 }
           ];
         case 'YouTube':
           return [

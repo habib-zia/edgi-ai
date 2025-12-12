@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { FaRegThumbsUp, FaRegCommentDots, FaRegShareSquare, FaClock, FaPlay } from "react-icons/fa";
+import { FaRegThumbsUp, FaRegCommentDots, FaRegShareSquare, FaClock, FaPlay, FaBookmark } from "react-icons/fa";
 import { getPlatformIcon } from "./PlatformIcon";
 
 interface PublishedPost {
@@ -86,7 +86,8 @@ const PublishedPostCard: React.FC<PublishedPostCardProps> = ({ post, index }) =>
       return {
         likes: insights.likes || 0,
         comments: insights.replies || 0,
-        shares: insights.retweets || 0
+        shares: insights.retweets || 0,
+        bookmarks: insights.bookmarks || 0
       };
     }
 
@@ -98,6 +99,7 @@ const PublishedPostCard: React.FC<PublishedPostCardProps> = ({ post, index }) =>
   };
   const [thumbnailUrl1, setThumbnailUrl] = useState<string | null>(null);
   const insightsData = getInsightsData();
+  const isXPlatform = platformName === 'X';
   useEffect(() => {
     const attachment = post.attachments?.[0];
     if (!attachment?.url) return;
@@ -233,7 +235,7 @@ const PublishedPostCard: React.FC<PublishedPostCardProps> = ({ post, index }) =>
             {post.published ? 'Published' : post.draft ? 'Draft' : 'Scheduled'}
           </span>
         </div>
-        <div className="flex justify-between w-full px-2 py-3 bg-gray-50 rounded-lg">
+        <div className={`flex ${isXPlatform ? 'justify-between' : 'justify-between'} w-full px-2 py-3 bg-gray-50 rounded-lg`}>
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-1">
               <FaRegThumbsUp className="text-sm text-[#282828]" />
@@ -255,6 +257,15 @@ const PublishedPostCard: React.FC<PublishedPostCardProps> = ({ post, index }) =>
             </div>
             <span className="text-[10px] text-[#858999] font-medium">Shares</span>
           </div>
+          {isXPlatform && (
+            <div className="flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1">
+                <FaBookmark className="text-sm text-[#282828]" />
+                <span className="font-medium text-sm text-[#282828]">{(insightsData as any).bookmarks || 0}</span>
+              </div>
+              <span className="text-[10px] text-[#858999] font-medium">Bookmarks</span>
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

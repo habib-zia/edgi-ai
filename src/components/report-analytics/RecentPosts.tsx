@@ -190,7 +190,8 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
             return (getInsightValue(insights, 'likes') || 0) + 
                    (getInsightValue(insights, 'retweets') || 0) + 
                    (getInsightValue(insights, 'replies') || 0) + 
-                   (getInsightValue(insights, 'quote_tweets') || 0);
+                   (getInsightValue(insights, 'quote_tweets') || 0) +
+                   (getInsightValue(insights, 'bookmarks') || 0);
           default:
             return getInsightValue(insights, 'engagement') || 0;
         }

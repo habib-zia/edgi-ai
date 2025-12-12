@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { FaRegThumbsUp, FaRegThumbsDown, FaRegCommentDots, FaRegShareSquare, FaClock, FaPlayCircle } from "react-icons/fa";
+import { FaRegThumbsUp, FaRegThumbsDown, FaRegCommentDots, FaRegShareSquare, FaClock, FaPlayCircle, FaBookmark } from "react-icons/fa";
 import { getPlatformIcon, PostCardProps } from "./PlatformIcon";
 import { convertUTCToLocalDate, convertUTCToLocalTime } from "@/utils/dateTimeUtils";
 
@@ -103,9 +103,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
         );
         break;
       case 'X':
+        const repliesValue = getInsightValue('replies');
+        const quoteTweetsValue = getInsightValue('quote_tweets');
+        const bookmarksValue = getInsightValue('bookmarks');
+        
         engagement.push(
-          { label: 'Replies', value: getInsightValue('replies') || 0, icon: <FaRegCommentDots className="text-sm text-[#282828]" /> },
-          { label: 'Quote Tweets', value: getInsightValue('quote_tweets') || 0, icon: <FaRegShareSquare className="text-sm text-[#282828]" /> }
+          { label: 'Replies', value: repliesValue, icon: <FaRegCommentDots className="text-sm text-[#282828]" /> },
+          { label: 'Quote Tweets', value: quoteTweetsValue, icon: <FaRegShareSquare className="text-sm text-[#282828]" /> },
+          { label: 'Bookmarks', value: bookmarksValue, icon: <FaBookmark className="text-sm text-[#282828]" /> }
         );
         break;
       case 'TikTok':
@@ -336,18 +341,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
             <div className="w-full h-[1px] bg-[#AFAFAF] mb-4"></div>
 
             {/* Platform-Specific Engagement Details */}
-            <div className="flex justify-between w-full">
-              {getPlatformEngagement(actualPlatform, currentPlatformData).map((item, index) => (
-                <div key={index} className={`flex flex-col ${index === 0 ? 'items-start' : index === getPlatformEngagement(actualPlatform, currentPlatformData).length - 1 ? 'items-end' : 'items-center'} gap-0 ${index === 1 ? 'mr-0' : ''}`}>
-                  <span className="text-[10px] text-[#858999] font-medium">{item.label}</span>
-                  <div className="flex items-center gap-1">
-                    {item.icon}
-                    <span className="font-medium text-base text-[#282828]">
-                      {item.value.toLocaleString()}
-                    </span>
+            <div className="flex justify-between w-full gap-2">
+              {getPlatformEngagement(actualPlatform, currentPlatformData).map((item, index) => {
+                const engagementItems = getPlatformEngagement(actualPlatform, currentPlatformData);
+                const isFirst = index === 0;
+                const isLast = index === engagementItems.length - 1;
+                const isMiddle = !isFirst && !isLast;
+                
+                return (
+                  <div 
+                    key={index} 
+                    className={`flex flex-col flex-1 ${isFirst ? 'items-start' : isLast ? 'items-end' : 'items-center'} gap-0`}
+                  >
+                    <span className="text-[10px] text-[#858999] font-medium">{item.label}</span>
+                    <div className="flex items-center gap-1">
+                      {item.icon}
+                      <span className="font-medium text-base text-[#282828]">
+                        {item.value.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
