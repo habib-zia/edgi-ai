@@ -15,6 +15,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
   const actualPlatform = selectedPlatform === 'All' ? Object.keys(post.platforms)[0] : selectedPlatform;
   const currentPlatformData = post.platforms[actualPlatform];
 
+  // Helper function to get insight value from post.insights array
+  const getInsightValue = (type: string): number => {
+    if (!post.insights || !Array.isArray(post.insights)) return 0;
+    const insight = post.insights.find((i: any) => i.type === type);
+    return insight?.value || 0;
+  };
+
   const getPlatformMetrics = (platform: string, platformData: any) => {
     const metrics: Array<{ label: string; value: any; icon?: React.ReactNode }> = [];
 
@@ -42,8 +49,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
         break;
       case 'X':
         metrics.push(
-          { label: 'Likes', value: platformData?.engagement?.likes || 0 },
-          { label: 'Retweets', value: platformData?.engagement?.shares || 0 }
+          { label: 'Impressions', value: platformData?.metrics?.impression?.value || getInsightValue('impressions') || 0 },
+          { label: 'Likes', value: platformData?.engagement?.likes || getInsightValue('likes') || 0 },
+          { label: 'Retweets', value: platformData?.engagement?.shares || getInsightValue('retweets') || 0 }
         );
         break;
       case 'TikTok':
@@ -95,6 +103,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
         );
         break;
       case 'X':
+        engagement.push(
+          { label: 'Replies', value: getInsightValue('replies') || 0, icon: <FaRegCommentDots className="text-sm text-[#282828]" /> },
+          { label: 'Quote Tweets', value: getInsightValue('quote_tweets') || 0, icon: <FaRegShareSquare className="text-sm text-[#282828]" /> }
+        );
         break;
       case 'TikTok':
         engagement.push(
@@ -318,28 +330,25 @@ const PostCard: React.FC<PostCardProps> = ({ post, index, selectedPlatform }) =>
           })()}
         </div>
 
-        {/* Only show separator and engagement for platforms that have separate engagement section */}
-        {actualPlatform !== 'X' && (
+        {/* Separator Line */}
+        {getPlatformEngagement(actualPlatform, currentPlatformData).length > 0 && (
           <>
-            {/* Separator Line */}
             <div className="w-full h-[1px] bg-[#AFAFAF] mb-4"></div>
 
             {/* Platform-Specific Engagement Details */}
-            {getPlatformEngagement(actualPlatform, currentPlatformData).length > 0 && (
-              <div className="flex justify-between w-full">
-                {getPlatformEngagement(actualPlatform, currentPlatformData).map((item, index) => (
-                  <div key={index} className={`flex flex-col ${index === 0 ? 'items-start' : index === getPlatformEngagement(actualPlatform, currentPlatformData).length - 1 ? 'items-end' : 'items-center'} gap-0 ${index === 1 ? 'mr-0' : ''}`}>
-                    <span className="text-[10px] text-[#858999] font-medium">{item.label}</span>
-                    <div className="flex items-center gap-1">
-                      {item.icon}
-                      <span className="font-medium text-base text-[#282828]">
-                        {item.value.toLocaleString()}
-                      </span>
-                    </div>
+            <div className="flex justify-between w-full">
+              {getPlatformEngagement(actualPlatform, currentPlatformData).map((item, index) => (
+                <div key={index} className={`flex flex-col ${index === 0 ? 'items-start' : index === getPlatformEngagement(actualPlatform, currentPlatformData).length - 1 ? 'items-end' : 'items-center'} gap-0 ${index === 1 ? 'mr-0' : ''}`}>
+                  <span className="text-[10px] text-[#858999] font-medium">{item.label}</span>
+                  <div className="flex items-center gap-1">
+                    {item.icon}
+                    <span className="font-medium text-base text-[#282828]">
+                      {item.value.toLocaleString()}
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </>
         )}
 

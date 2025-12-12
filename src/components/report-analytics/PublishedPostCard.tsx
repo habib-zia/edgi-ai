@@ -47,7 +47,7 @@ const PublishedPostCard: React.FC<PublishedPostCardProps> = ({ post, index }) =>
     if (accountType.includes('Facebook')) return 'Facebook';
     if (accountType.includes('LinkedIn')) return 'LinkedIn';
     if (accountType.includes('YouTube')) return 'YouTube';
-    if (accountType.includes('Twitter')) return 'Twitter';
+    if (accountType.includes('Twitter') || accountType.includes('X')) return 'X';
     return 'Instagram';
   };
 
@@ -80,6 +80,15 @@ const PublishedPostCard: React.FC<PublishedPostCardProps> = ({ post, index }) =>
       acc[insight.type] = insight.value;
       return acc;
     }, {} as Record<string, number>);
+
+    // For Twitter/X, map replies to comments and retweets to shares
+    if (platformName === 'X') {
+      return {
+        likes: insights.likes || 0,
+        comments: insights.replies || 0,
+        shares: insights.retweets || 0
+      };
+    }
 
     return {
       likes: insights.likes || 0,

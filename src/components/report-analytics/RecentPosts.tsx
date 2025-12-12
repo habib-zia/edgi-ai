@@ -108,8 +108,20 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
               }
               return getInsightValue(post.insights, 'likes') || 0;
             })(),
-            comments: getInsightValue(post.insights, 'comments') || 0,
-            shares: getInsightValue(post.insights, 'shares') || 0
+            comments: (() => {
+              const platform = getPlatformFromAccountType(post.account_type);
+              if (platform === 'X') {
+                return getInsightValue(post.insights, 'replies') || 0;
+              }
+              return getInsightValue(post.insights, 'comments') || 0;
+            })(),
+            shares: (() => {
+              const platform = getPlatformFromAccountType(post.account_type);
+              if (platform === 'X') {
+                return getInsightValue(post.insights, 'retweets') || 0;
+              }
+              return getInsightValue(post.insights, 'shares') || 0;
+            })()
           }
         }
       }
@@ -147,6 +159,8 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
             return getInsightValue(insights, 'clicks') || getInsightValue(insights, 'reach') || 0;
           case 'YouTube':
             return getInsightValue(insights, 'views') || getInsightValue(insights, 'reach') || 0;
+          case 'X':
+            return getInsightValue(insights, 'impressions') || 0;
           case 'Instagram':
           default:
             return getInsightValue(insights, 'reach') || 0;
@@ -159,6 +173,8 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
             return getInsightValue(insights, 'total_interactions') || getInsightValue(insights, 'impression') || 0;
           case 'LinkedIn':
             return getInsightValue(insights, 'impressions') || getInsightValue(insights, 'impression') || 0;
+          case 'X':
+            return getInsightValue(insights, 'impressions') || 0;
           default:
             return getInsightValue(insights, 'total_interactions') || getInsightValue(insights, 'impression') || 0;
         }
@@ -170,6 +186,11 @@ export default function RecentPosts({ selectedPlatform, onPostsChange, onPostsDa
             return getInsightValue(insights, 'saved') || getInsightValue(insights, 'engagement') || 0;
           case 'LinkedIn':
             return getInsightValue(insights, 'engagement') || 0;
+          case 'X':
+            return (getInsightValue(insights, 'likes') || 0) + 
+                   (getInsightValue(insights, 'retweets') || 0) + 
+                   (getInsightValue(insights, 'replies') || 0) + 
+                   (getInsightValue(insights, 'quote_tweets') || 0);
           default:
             return getInsightValue(insights, 'engagement') || 0;
         }
