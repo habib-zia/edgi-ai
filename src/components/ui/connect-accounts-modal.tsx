@@ -78,6 +78,19 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
     }
   }, [isOpen, openModal, closeModal])
 
+  // Auto-dismiss API response after 10 seconds
+  useEffect(() => {
+    if (apiResponse) {
+      const timer = setTimeout(() => {
+        setApiResponse(null)
+      }, 10000) // 10 seconds
+
+      return () => {
+        clearTimeout(timer)
+      }
+    }
+  }, [apiResponse])
+
 
   const handleConnectClick = (platformId: string, platformName: string) => {
     setSelectedPlatform({ id: platformId, name: platformName })
@@ -196,15 +209,31 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
             }
           }
         } else {
-          // Handle CORS and other HTTP errors
+          // Try to get error message from API response
           let errorMessage = 'Failed to create schedule. Please try again.'
           
-          if (response.status === 0) {
-            errorMessage = 'CORS Error: Unable to connect to the server. Please check if the backend is running and CORS is configured properly.'
-          } else if (response.status === 404) {
-            errorMessage = 'API endpoint not found. Please check the server configuration.'
-          } else if (response.status === 500) {
-            errorMessage = 'Server error. Please try again later.'
+          try {
+            const errorText = await response.text()
+            
+            // Try to parse as JSON
+            try {
+              const errorData = JSON.parse(errorText)
+              errorMessage = errorData.message || errorData.error || errorMessage
+            } catch {
+              // If not JSON, use the text directly if it's meaningful
+              if (errorText && errorText.trim().length > 0) {
+                errorMessage = errorText
+              }
+            }
+          } catch (parseError) {
+            // If we can't read the response, use status-based messages
+            if (response.status === 0) {
+              errorMessage = 'CORS Error: Unable to connect to the server. Please check if the backend is running and CORS is configured properly.'
+            } else if (response.status === 404) {
+              errorMessage = 'API endpoint not found. Please check the server configuration.'
+            } else if (response.status === 500) {
+              errorMessage = 'Server error. Please try again later.'
+            }
           }
           
           setApiResponse({ success: false, message: errorMessage })
@@ -220,7 +249,16 @@ export default function ConnectAccountsModal({ isOpen, onClose, onNext, video, s
         }
       } catch (error) {
         console.error('Error creating schedule:', error)
-        const errorMessage = 'Failed to create schedule. Please try again.'
+        
+        let errorMessage = 'Failed to create schedule. Please try again.'
+        
+        if (error instanceof Error) {
+          errorMessage = error.message || errorMessage
+        } else if (typeof error === 'string') {
+          errorMessage = error
+        } else if (error && typeof error === 'object' && 'message' in error) {
+          errorMessage = (error as any).message || errorMessage
+        }
         
         setApiResponse({
           success: false,
