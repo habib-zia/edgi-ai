@@ -30,6 +30,7 @@ import ForgotPasswordModal from "@/components/ui/forgot-password-modal";
 import PendingPaymentToast from "@/components/ui/pending-payment-toast";
 import SubscriptionRequiredToast from "@/components/ui/subscription-required-toast";
 import { useUnifiedSocketContext } from "@/components/providers/UnifiedSocketProvider";
+import { IoMdArrowDropdown } from "react-icons/io";
 
 function HomePageContent() {
   const [isSigninModalOpen, setIsSigninModalOpen] = useState(false);
@@ -38,6 +39,7 @@ function HomePageContent() {
   const { isAuthenticated } = useAppSelector((state) => state.user);
   const searchParams = useSearchParams();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isCreateVideoDropdownOpen, setIsCreateVideoDropdownOpen] = useState(false);
   // Modal states
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
@@ -123,6 +125,24 @@ function HomePageContent() {
     checkForPosts();
   }, [checkForPosts]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isCreateVideoDropdownOpen && !target.closest('.relative.inline-block')) {
+        setIsCreateVideoDropdownOpen(false);
+      }
+    };
+
+    if (isCreateVideoDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCreateVideoDropdownOpen]);
+
   const handleGetStartedClick = (e: React.MouseEvent) => {
     if (isAuthenticated)
     {
@@ -201,9 +221,42 @@ function HomePageContent() {
             }`}>
                     {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
                   </button>
-                  <Link href="/create-video/new" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Create Video
-                  </Link>
+                  <div className="relative inline-block">
+                    <button
+                      onClick={() => setIsCreateVideoDropdownOpen(!isCreateVideoDropdownOpen)}
+                      className="inline-flex cursor-pointer items-center justify-center gap-2 px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
+                    >
+                      Create Video
+                      <IoMdArrowDropdown 
+                        className={`w-4 h-4 transition-transform duration-300 ${isCreateVideoDropdownOpen ? 'rotate-180' : ''}`} 
+                      />
+                    </button>
+                    {isCreateVideoDropdownOpen && (
+                      <div className="absolute z-[9999] bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                        <Link
+                          href="/create-video/new"
+                          onClick={() => setIsCreateVideoDropdownOpen(false)}
+                          className="block px-4 py-3 text-left text-gray-800 hover:bg-[#F5F5F5] transition-colors duration-200"
+                        >
+                          Simple Video
+                        </Link>
+                        <Link
+                          href="/create-video/listing"
+                          onClick={() => setIsCreateVideoDropdownOpen(false)}
+                          className="block px-4 py-3 text-left text-gray-800 hover:bg-[#F5F5F5] transition-colors duration-200 border-t border-gray-200"
+                        >
+                          Video Listing
+                        </Link>
+                        <Link
+                          href="/create-video/ai-listing"
+                          onClick={() => setIsCreateVideoDropdownOpen(false)}
+                          className="block px-4 py-3 text-left text-gray-800 hover:bg-[#F5F5F5] transition-colors duration-200 border-t border-gray-200"
+                        >
+                          AI Listing
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                   <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
                     Gallery
                   </Link>

@@ -41,6 +41,7 @@ interface FormDropdownProps {
   isAvatarPending?: (avatar: Avatar) => boolean
   getAvatarSelectionNumber?: (avatar: Avatar) => number | null
   getAvatarType?: (avatar: Avatar) => string
+  isSingleSelection?: boolean // NEW: Flag for single avatar selection mode
 }
 
 export default function FormDropdown({
@@ -76,7 +77,8 @@ export default function FormDropdown({
   isAvatarTypeAllowed,
   isAvatarPending,
   getAvatarSelectionNumber,
-  getAvatarType
+  getAvatarType,
+  isSingleSelection = false // NEW: Default to multi-selection (original behavior)
 }: FormDropdownProps) {
   // State for managing visible avatar count
   const [visibleDefaultCount, setVisibleDefaultCount] = React.useState(12)
@@ -194,7 +196,7 @@ export default function FormDropdown({
       {isOpen && (
         <div>
           {isAvatarField ? (
-            <div className="absolute z-50 lg:w-[900px] w-full mt-1 bg-white rounded-[12px] shadow-lg !overflow-hidden lg:-left-[190px]">
+            <div className={`avatar-dropdown-modal absolute z-50 ${isSingleSelection ? 'lg:w-[600px]' : 'lg:w-[900px]'} w-full mt-1 bg-white rounded-[12px] shadow-lg !overflow-hidden ${isSingleSelection ? 'lg:left-0' : 'lg:-left-[190px]'}`}>
               {/* Avatar Dropdown Header with Refresh Button */}
               <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800">Select Avatar</h3>
@@ -209,10 +211,10 @@ export default function FormDropdown({
                 </button> */}
               </div>
 
-              {/* Main Content - Two Column Layout */}
-              <div className="flex h-[500px]">
+              {/* Main Content - Single Column (for single selection) or Two Column Layout */}
+              <div className={`flex h-[500px] ${isSingleSelection ? '' : ''}`}>
                 {/* Left Side - Avatar Selection */}
-                <div className="flex-1 py-4 px-6 overflow-y-auto border-r border-gray-200">
+                <div className={`flex-1 py-4 px-6 overflow-y-auto ${isSingleSelection ? '' : 'border-r border-gray-200'}`}>
                   {avatarsLoading ? (
                     <div className="flex justify-center items-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5046E5]"></div>
@@ -240,7 +242,7 @@ export default function FormDropdown({
                             <div className="flex items-center gap-2">
                               <AlertCircle className="w-4 h-4 text-purple-600 md:block hidden" />
                               <span className="md:text-sm text-xs text-purple-700">
-                                Click to select up to 3 avatars for your video
+                                {isSingleSelection ? 'Click to select 1 avatar for your video' : 'Click to select up to 3 avatars for your video'}
                               </span>
                             </div>
                             {(() => {
@@ -360,7 +362,7 @@ export default function FormDropdown({
                             <div className="flex items-center gap-2">
                               <AlertCircle className="w-4 h-4 text-purple-600 md:block hidden" />
                               <span className="md:text-sm text-xs text-purple-700">
-                                Click to select up to 3 avatars for your video
+                                {isSingleSelection ? 'Click to select 1 avatar for your video' : 'Click to select up to 3 avatars for your video'}
                               </span>
                             </div>
                             {(() => {
@@ -573,7 +575,8 @@ export default function FormDropdown({
                   )}
                 </div>
 
-                {/* Right Side - Drop Zones */}
+                {/* Right Side - Drop Zones (Hidden in single selection mode) */}
+                {!isSingleSelection && (
                 <div className="lg:max-w-80 max-w-[50%] py-4 px-6 bg-white">
                   <h4 className="lg:text-[20px] text-[16px] font-semibold text-[#5F5F5F] mb-3">Sort Avatar</h4>
                   <p className="text-sm text-[#5F5F5F] mb-6">Drag and drop the selected Images</p>
@@ -718,6 +721,7 @@ export default function FormDropdown({
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             </div>
           ) : (
