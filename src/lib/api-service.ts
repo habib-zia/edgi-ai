@@ -710,16 +710,40 @@ class ApiService {
     }, true);
   }
 
-  async createListingVideo(formData: FormData): Promise<ApiResponse<any>> {
+  async generateListingScript(formData: FormData): Promise<ApiResponse<any>> {
+    try {
+      // First step: upload property images + metadata to get script + URLs
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.WEBHOOK.LISTING_PROPERTY_IMAGES), {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to generate listing script' }));
+        throw new Error(errorData.message || 'Failed to generate listing script');
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: 'Listing script generated successfully'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate listing script';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async createListingVideo(payload: any): Promise<ApiResponse<any>> {
     try {
       const headers = getAuthenticatedHeaders();
-      // Remove Content-Type header to let browser set it with boundary for FormData
-      delete headers['Content-Type'];
       
       const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.VIDEO.CREATE_LISTING), {
         method: 'POST',
         headers,
-        body: formData,
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

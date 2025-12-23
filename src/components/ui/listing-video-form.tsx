@@ -15,6 +15,8 @@ import MusicSelectorWrapper from './music-selector-wrapper'
 import { Voice, VoiceType } from './voice-selector/types'
 import { useVoicesAndMusic } from '@/hooks/useVoicesAndMusic'
 import { listingVideoSchema, ListingVideoFormData } from './form-validation-schema'
+import { useAppSelector } from '@/store/hooks'
+import SubmitButton from './submit-button'
 
 // Exterior parts options
 const exteriorParts = [
@@ -119,7 +121,6 @@ interface InteriorPartData {
 export default function ListingVideoForm() {
   const { showNotification } = useNotificationStore()
   const { latestAvatarUpdate } = useUnifiedSocketContext()
-  const [isSubmitting, setIsSubmitting] = useState(false)
   
   const {
     register,
@@ -132,7 +133,6 @@ export default function ListingVideoForm() {
     resolver: zodResolver(listingVideoSchema),
     mode: 'onSubmit',
     defaultValues: {
-      name: '',
       propertyType: '',
       avatar: '',
       gender: '',
@@ -146,9 +146,20 @@ export default function ListingVideoForm() {
     },
   })
 
+  const user = useAppSelector((state) => state.user.user)
+  const userName = user ? `${user.firstName} ${user.lastName}`.trim() : ''
+  const userEmail = user?.email || ''
+
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false)
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isPropertyTypeDropdownOpen, setIsPropertyTypeDropdownOpen] = useState(false)
+  const [isScriptModalOpen, setIsScriptModalOpen] = useState(false)
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false)
+  const [isFinalSubmitting, setIsFinalSubmitting] = useState(false)
+  const [mergedScript, setMergedScript] = useState<string>('')
+  const [pendingFormData, setPendingFormData] = useState<ListingVideoFormData | null>(null)
+  const [uploadedImages, setUploadedImages] = useState<Array<{ type: string; imageUrl: string; s3Key?: string }>>([])
+  const [webhookTexts, setWebhookTexts] = useState<string[]>([])
   
   // Avatar state
   const [isFromDefaultAvatar] = useState(false)
@@ -810,6 +821,11 @@ export default function ListingVideoForm() {
   }
 
   const onSubmit = async (data: ListingVideoFormData) => {
+    if (!userEmail) {
+      showNotification('User email not found. Please sign in again.', 'error')
+      return
+    }
+
     // Validate image limit before submission
     if (totalImages > 10) {
       showNotification(
@@ -836,30 +852,13 @@ export default function ListingVideoForm() {
       return
     }
 
-    setIsSubmitting(true)
+    setIsGeneratingScript(true)
     try {
-      // Create FormData for file upload
-      const formData = new FormData()
-
-      // Add text fields
-      formData.append('name', data.name)
-      formData.append('propertyType', data.propertyType)
-      formData.append('avatar', selectedAvatars.title.avatar_id)
-      formData.append('gender', data.gender)
-      formData.append('city', data.city)
-      formData.append('address', data.address)
-      formData.append('price', data.price || '')
-      formData.append('socialHandles', data.socialHandles || '')
-      formData.append('voice', selectedVoice?.id || data.voice || '')
-      // Send music URL instead of ID
-      formData.append('music_url', selectedMusic?.s3FullTrackUrl || '')
-
       // Prepare images array - exterior first, then interior
       const imagesArray: Array<{ image: File; type: string }> = []
 
-      // Add exterior images first
       Object.entries(exteriorPartsData).forEach(([part, partData]) => {
-        if (partData.checked && partData.images.length > 0) {
+        if (partData.images.length > 0) {
           partData.images.forEach((imageFile) => {
             imagesArray.push({
               image: imageFile.file,
@@ -869,9 +868,8 @@ export default function ListingVideoForm() {
         }
       })
 
-      // Add interior images after exterior
       Object.entries(interiorPartsData).forEach(([part, partData]) => {
-        if (partData.checked && partData.images.length > 0) {
+        if (partData.images.length > 0) {
           partData.images.forEach((imageFile) => {
             imagesArray.push({
               image: imageFile.file,
@@ -881,57 +879,204 @@ export default function ListingVideoForm() {
         }
       })
 
-      // Add images to FormData
-      // Send each image file with its type using array notation
-      imagesArray.forEach((item, index) => {
-        formData.append(`images[${index}][image]`, item.image)
-        formData.append(`images[${index}][type]`, item.type)
+      // Build payload for first API (property-images) as FormData with binaries
+      // Match required format:
+      // email, name, social_handles, propertyType, types: JSON array, images: repeated binary parts
+      const scriptFormData = new FormData()
+      const typesArray: string[] = []
+      imagesArray.forEach((item) => {
+        scriptFormData.append('images', item.image)
+        typesArray.push(item.type)
       })
+      scriptFormData.append('types', JSON.stringify(typesArray))
+      scriptFormData.append('email', userEmail)
+      scriptFormData.append('name', userName || userEmail)
+      scriptFormData.append('social_handles', data.socialHandles || '')
+      scriptFormData.append('propertyType', data.propertyType)
 
-      // Also send images count for validation
-      formData.append('imagesCount', imagesArray.length.toString())
-
-      // Call the API
-      const response = await apiService.createListingVideo(formData)
-
-      if (response.success) {
-        showNotification('Listing video created successfully!', 'success')
-        // Optionally reset form or redirect
-        // You can add form reset or navigation here
-      } else {
-        showNotification(response.message || 'Failed to create listing video', 'error')
+      const scriptResponse = await apiService.generateListingScript(scriptFormData)
+      if (!scriptResponse.success || !scriptResponse.data) {
+        showNotification(scriptResponse.message || 'Failed to generate listing script', 'error')
+        setIsGeneratingScript(false)
+        return
       }
+
+      // API returns { success: true, data: { webhookResponse: [...], images: [...] } }
+      // apiService wraps it, so scriptResponse.data is the full response
+      const responseData = scriptResponse.data?.data || scriptResponse.data || {}
+      const segments = Array.isArray(responseData.webhookResponse) ? responseData.webhookResponse : []
+      const extracted = segments
+        .map((item: any) => item?.text || (typeof item === 'string' ? item : ''))
+        .filter((text: string) => text && text.trim().length > 0)
+      if (extracted.length === 0) {
+        showNotification('No script returned from generator. Please try again.', 'error')
+        setIsGeneratingScript(false)
+        return
+      }
+      const merged = extracted.join(' ')
+
+      const returnedImages = Array.isArray(responseData.images) ? responseData.images : []
+      const normalizedImages = returnedImages
+        .map((img: { type?: string; imageUrl?: string; s3Key?: string }) => ({
+          type: img?.type || '',
+          imageUrl: img?.imageUrl || '',
+          s3Key: img?.s3Key || ''
+        }))
+        .filter((img: { type: string; imageUrl: string; s3Key?: string }) => img.type && img.imageUrl)
+
+      setWebhookTexts(extracted)
+      setMergedScript(merged)
+      setUploadedImages(normalizedImages)
+      setPendingFormData(data)
+      setIsScriptModalOpen(true)
     } catch (error: any) {
       console.error('Error submitting listing form:', error)
       showNotification(error.message || 'Failed to create listing video', 'error')
     } finally {
-      setIsSubmitting(false)
+      setIsGeneratingScript(false)
+    }
+  }
+
+  const handleConfirmScript = async () => {
+    if (!pendingFormData) {
+      showNotification('No pending form data found. Please try submitting again.', 'error')
+      return
+    }
+
+    if (!selectedAvatars.title) {
+      showNotification("Please select an avatar", "error")
+      return
+    }
+
+    if (!userEmail) {
+      showNotification('User email not found. Please sign in again.', 'error')
+      return
+    }
+
+    setIsFinalSubmitting(true)
+    try {
+      const payload = {
+        name: userName || userEmail,
+        email: userEmail,
+        propertyType: pendingFormData.propertyType,
+        avatar: selectedAvatars.title.avatar_id,
+        gender: pendingFormData.gender,
+        city: pendingFormData.city,
+        address: pendingFormData.address,
+        price: pendingFormData.price || '',
+        socialHandles: pendingFormData.socialHandles || '',
+        voice: selectedVoice?.id || pendingFormData.voice || '',
+        music_url: selectedMusic?.s3FullTrackUrl || '',
+        script: mergedScript,
+        webhookResponse: webhookTexts,
+        images: uploadedImages
+      }
+
+      const response = await apiService.createListingVideo(payload)
+
+      if (response.success) {
+        showNotification('Listing video created successfully!', 'success')
+        setIsScriptModalOpen(false)
+        setPendingFormData(null)
+      } else {
+        showNotification(response.message || 'Failed to create listing video', 'error')
+      }
+    } catch (error: any) {
+      console.error('Error confirming listing submission:', error)
+      showNotification(error.message || 'Failed to create listing video', 'error')
+    } finally {
+      setIsFinalSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <>
+      {isScriptModalOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-x-hidden">
+          <div className="bg-white rounded-[12px] max-w-[1260px] w-full max-h-[90vh] flex flex-col relative">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 pt-4 flex-shrink-0">
+              <h3 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">
+                {isFinalSubmitting ? 'Creating listing video' : 'Generated Script Preview'}
+              </h3>
+
+              {/* Hide close button when submitting */}
+              {!isFinalSubmitting && (
+                <button
+                  onClick={() => setIsScriptModalOpen(false)}
+                  className="cursor-pointer"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Modal Content */}
+            <div className="px-6 pt-2 pb-6 overflow-y-auto flex-1">
+              {isFinalSubmitting ? (
+                /* Loading State */
+                <div className="flex flex-col items-center justify-center py-12">
+                  <svg className="animate-spin h-12 w-12 text-[#5046E5] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p className="text-xl font-semibold text-gray-800 mb-2">Processing...</p>
+                  <p className="text-sm text-[#5F5F5F]">This may take 30-50 seconds</p>
+                </div>
+              ) : (
+                /* Script Preview */
+                <>
+                  <p className="text-base text-[#5F5F5F] mb-4">
+                    Review the script generated from your images. Click confirm to create your listing video.
+                  </p>
+                  <div className="mb-6">
+                    <label className="block text-base font-normal text-[#5F5F5F] mb-2">
+                      Generated Script <span className="text-red-500">*</span>
+                    </label>
+                    <div className="w-full min-h-[400px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 whitespace-pre-line overflow-y-auto">
+                      {mergedScript || 'No script generated.'}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsScriptModalOpen(false)}
+                      className="px-6 py-3 rounded-lg border border-gray-300 text-[#282828] hover:bg-gray-50 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmScript}
+                      className="px-6 py-3 rounded-lg bg-[#5046E5] text-white hover:bg-[#4037c0] font-medium disabled:opacity-60"
+                      disabled={isFinalSubmitting}
+                    >
+                      Confirm & Create Video
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       {/* Property Details Section */}
       <div className="bg-white p-6 md:p-8">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#282828] mb-6">
           Fill the Property Details
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {/* Name - 1st Field */}
-          <div>
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("name", { required: true })}
-              placeholder="Please Specify"
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
-            />
-          </div>
+        <div className="mb-4 text-sm text-[#5F5F5F]">
+          Using account {userName || 'your account'} ({userEmail || 'email unavailable'}) for this submission.
+        </div>
 
-          {/* Property Type - 2nd Field (Dropdown) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {/* Property Type - 1st Field (Dropdown) */}
           <div className="relative" data-dropdown="propertyType">
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
               Property Type <span className="text-red-500">*</span>
@@ -1057,36 +1202,47 @@ export default function ListingVideoForm() {
             )}
           </div>
 
-          {/* Voice - Shows after gender is selected */}
+          {/* City - Shows after gender is selected */}
           {watch("gender") && (
-            <div>
+            <div className="relative" data-dropdown="city">
               <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-                Voice <span className="text-red-500">*</span>
+                City <span className="text-red-500">*</span>
               </label>
-              <VoiceSelectorWrapper
-                field={"voice" as any}
-                placeholder="Select Voice"
-                watch={watch as any}
-                register={register as any}
-                errors={errors as any}
-                trigger={trigger as any}
-                openDropdown={openDropdown}
-                selectedVoice={selectedVoice}
-                voices={allVoices.length > 0 ? allVoices : voices}
-                voicesLoading={voicesLoading}
-                voicesError={voicesError}
-                preset={preset}
-                initialVoiceType={currentVoiceType}
-                onToggle={handleDropdownToggle}
-                onSelect={handleDropdownSelect}
-                onVoiceClick={handleVoiceClick}
-                onVoiceTypeChange={handleVoiceTypeChange}
-                onDragStart={handleVoiceDragStart}
-                onDragEnd={handleVoiceDragEnd}
-                onDragOver={handleVoiceDragOver}
-                onDragLeave={handleVoiceDragLeave}
-                onDrop={handleVoiceDrop}
-              />
+              <button
+                type="button"
+                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+                className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800"
+              >
+                <span>
+                  {watch("city")
+                    ? cityOptions.find((opt) => opt.value === watch("city"))?.label || "Select"
+                    : "Select"}
+                </span>
+                <IoMdArrowDropdown
+                  className={`w-4 h-4 transition-transform duration-300 ${
+                    isCityDropdownOpen ? "rotate-180" : ""
+                  }`}
+                  style={{ color: 'inherit' }}
+                />
+              </button>
+              {isCityDropdownOpen && (
+                <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
+                  {cityOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setValue("city", option.value)
+                        setIsCityDropdownOpen(false)
+                        trigger("city")
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1123,49 +1279,38 @@ export default function ListingVideoForm() {
             </div>
           )}
 
-          {/* City */}
-
-          {/* City */}
-          <div className="relative" data-dropdown="city">
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              City <span className="text-red-500">*</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800"
-            >
-              <span>
-                {watch("city")
-                  ? cityOptions.find((opt) => opt.value === watch("city"))?.label || "Select"
-                  : "Select"}
-              </span>
-              <IoMdArrowDropdown
-                className={`w-4 h-4 transition-transform duration-300 ${
-                  isCityDropdownOpen ? "rotate-180" : ""
-                }`}
-                style={{ color: 'inherit' }}
+          {/* Voice - Shows after gender is selected */}
+          {watch("gender") && (
+            <div>
+              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+                Voice <span className="text-red-500">*</span>
+              </label>
+              <VoiceSelectorWrapper
+                field={"voice" as any}
+                placeholder="Select Voice"
+                watch={watch as any}
+                register={register as any}
+                errors={errors as any}
+                trigger={trigger as any}
+                openDropdown={openDropdown}
+                selectedVoice={selectedVoice}
+                voices={allVoices.length > 0 ? allVoices : voices}
+                voicesLoading={voicesLoading}
+                voicesError={voicesError}
+                preset={preset}
+                initialVoiceType={currentVoiceType}
+                onToggle={handleDropdownToggle}
+                onSelect={handleDropdownSelect}
+                onVoiceClick={handleVoiceClick}
+                onVoiceTypeChange={handleVoiceTypeChange}
+                onDragStart={handleVoiceDragStart}
+                onDragEnd={handleVoiceDragEnd}
+                onDragOver={handleVoiceDragOver}
+                onDragLeave={handleVoiceDragLeave}
+                onDrop={handleVoiceDrop}
               />
-            </button>
-            {isCityDropdownOpen && (
-              <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
-                {cityOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setValue("city", option.value)
-                      setIsCityDropdownOpen(false)
-                      trigger("city")
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Address */}
           <div>
@@ -1495,25 +1640,14 @@ export default function ListingVideoForm() {
             </p>
           </div>
         )}
-        <button
-          type="submit"
-          disabled={totalImages > 10 || isSubmitting}
-          className={`w-full py-4 text-white text-lg font-semibold rounded-full transition-colors duration-300 flex items-center justify-center gap-2 ${
-            totalImages > 10 || isSubmitting
-              ? 'bg-gray-400 cursor-not-allowed opacity-60'
-              : 'bg-[#5046E5] hover:bg-[#4338CA]'
-          }`}
-        >
-          {isSubmitting ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Submitting...</span>
-            </>
-          ) : (
-            'Submit'
-          )}
-        </button>
+        <SubmitButton
+          isLoading={isGeneratingScript}
+          disabled={totalImages > 10}
+          loadingText="Processing... This may take 30-50 seconds"
+          buttonText="Submit"
+        />
       </div>
     </form>
+    </>
   )
 }
