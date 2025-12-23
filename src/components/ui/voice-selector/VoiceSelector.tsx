@@ -265,8 +265,8 @@ export default function VoiceSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full lg:w-[685px] mt-2 bg-white rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden xl:-left-16 lg:-left-[150px]">
-          <div className="flex divide-x divide-[#E0E0E0] py-7 lg:flex-row flex-col lg:h-[500px] h-[700px] overflow-hidden">
+        <div className="absolute z-[9999] w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-[685px] mt-2 bg-white rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden right-0 lg:right-auto lg:left-0 xl:-left-16">
+          <div className="flex divide-x divide-[#E0E0E0] py-7 lg:flex-row flex-col lg:h-[500px] h-[700px] overflow-hidden max-h-[calc(100vh-200px)]">
             <VoiceTypeSelector
               currentType={voiceType}
               onTypeChange={handleVoiceTypeChange}

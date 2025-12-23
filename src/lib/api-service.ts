@@ -710,6 +710,60 @@ class ApiService {
     }, true);
   }
 
+  async generateListingScript(formData: FormData): Promise<ApiResponse<any>> {
+    try {
+      // First step: upload property images + metadata to get script + URLs
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.WEBHOOK.LISTING_PROPERTY_IMAGES), {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to generate listing script' }));
+        throw new Error(errorData.message || 'Failed to generate listing script');
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: 'Listing script generated successfully'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate listing script';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
+  async createListingVideo(payload: any): Promise<ApiResponse<any>> {
+    try {
+      const headers = getAuthenticatedHeaders();
+      
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.VIDEO.CREATE_LISTING), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create listing video' }));
+        throw new Error(errorData.message || 'Failed to create listing video');
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: data.message || 'Listing video created successfully'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create listing video';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
   async checkEmail(email: string): Promise<ApiResponse<{ exists: boolean }>> {
     return this.request<{ exists: boolean }>(`${API_CONFIG.ENDPOINTS.AUTH.CHECK_EMAIL}?email=${encodeURIComponent(email)}`, {
       method: 'GET',

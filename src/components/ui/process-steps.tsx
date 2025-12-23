@@ -148,7 +148,7 @@ export function ProcessSteps({ className }: ProcessStepsProps) {
         }
         
         // Payment is active, proceed with video creation
-        router.push('/create-video/new');
+        router.push('/create-video/talking-head');
       } catch (error) {
         console.error('Failed to check subscription status:', error);
         showNotification('Unable to verify subscription status. Please try again.', 'error');

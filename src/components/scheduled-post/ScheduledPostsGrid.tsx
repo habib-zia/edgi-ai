@@ -245,7 +245,7 @@ export default function ScheduledPostsGrid() {
           </div>
           <p className="text-[#171717] mb-2 md:text-[42px] text-[30px] font-semibold tracking-[0%]">No Active Schedule Yet</p>
           <p className="text-[#5F5F5F] text-xl font-normal tracking-[0%] leading-[24px] max-w-[500px] mx-auto mb-7">Create and schedule your social media posts to be published automatically at your preferred times.</p>
-          <Link href="/create-video/new" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
+          <Link href="/create-video/talking-head" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
         </div>
       ) : scheduledPosts.length === 0 && scheduleType === 'auto' ? (
           <div className="text-center py-20">
@@ -256,7 +256,7 @@ export default function ScheduledPostsGrid() {
           </div>
             <p className="text-[#171717] mb-2 md:text-[42px] text-[30px] font-semibold tracking-[0%]">No Active Schedule Yet</p>
             <p className="text-[#5F5F5F] text-xl font-normal tracking-[0%] leading-[24px] max-w-[500px] mx-auto mb-7">Create and schedule your social media posts to be published automatically at your preferred times.</p>
-            <Link href="/create-video/new" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
+            <Link href="/create-video/talking-head" className="bg-[#5046E5] text-white px-4 py-[14.4px] rounded-full text-xl font-semibold leading-[24px] mx-auto w-full max-w-[210px] inline-flex items-center justify-center hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300">Make a Video</Link>
           </div>
       ) : scheduleType === 'auto' && status == 'ready' ? (
         <>          

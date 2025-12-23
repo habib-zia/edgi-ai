@@ -187,36 +187,33 @@ function HomePageContent() {
               Custom AI videos for agents & loan officers<br className="hidden md:block" /> just fill one form,
               hit submit, and we handle the rest.
             </p>
-            <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
-
+            <div className="flex flex-col gap-4">
           {isAuthenticated ? (
             <>
-            <button 
-            onClick={handleCustomAvatarClick}
-            disabled={isAnyAvatarProcessing}
-            className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
-              isAnyAvatarProcessing 
-                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
-                : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
-            }`}>
-                    {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
-                  </button>
-                  <Link href="/create-video/new" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Create Video
-                  </Link>
-                  <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Gallery
-                  </Link>
-                  <Link href="/scheduled-post" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Schedule Post
-                  </Link>
+              {/* Three video creation buttons with red background - Centered top row */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+                <Link 
+                  href="/create-video/talking-head"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
+                >
+                  Talking Head Video
+                </Link>
+                <Link 
+                  href="/create-video/listing"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
+                >
+                  Video Listing
+                </Link>
+                {/* <Link 
+                  href="/create-video/narrated"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
+                >
+                  Narrated Video
+                </Link> */}
+              </div>
 
-                    <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                      Report Analytics
-                    </Link>                  
-                </>
-              ) : (
-                <>
+              {/* Four action buttons with purple background - Centered bottom row */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
                 <button 
                   onClick={handleCustomAvatarClick}
                   disabled={isAnyAvatarProcessing}
@@ -224,17 +221,42 @@ function HomePageContent() {
                     isAnyAvatarProcessing 
                       ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
                       : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
-                  }`}>
-                    {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
-                  </button> 
-                  <button
-                    onClick={handleGetStartedClick}
-                    className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
-                  >
-                    Get Started
-                  </button>
-                </>
-              )}
+                  }`}
+                >
+                  {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
+                </button>
+                <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                  Gallery
+                </Link>
+                <Link href="/scheduled-post" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                  Schedule Post
+                </Link>
+                <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                  Report Analytics
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+              <button 
+                onClick={handleCustomAvatarClick}
+                disabled={isAnyAvatarProcessing}
+                className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
+                  isAnyAvatarProcessing 
+                    ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                    : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
+                }`}
+              >
+                {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
+              </button> 
+              <button
+                onClick={handleGetStartedClick}
+                className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
+              >
+                Get Started
+              </button>
+            </div>
+          )}
             </div>  
           </div>
         </div>
