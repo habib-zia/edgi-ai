@@ -1,10 +1,10 @@
 "use client";
 
+import CreateVideoForm from "@/components/ui/create-video-form";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import Link from "next/link";
-import ListingVideoForm from "@/components/ui/listing-video-form";
 
-export default function VideoListingPage() {
+export default function NarratedVideoPage() {
   return (
     <ProtectedRoute>
       <div className="bg-white">
@@ -28,8 +28,8 @@ export default function VideoListingPage() {
           </div>
 
           <div className="pt-4">
-            <ListingVideoForm />
-            </div>
+            <CreateVideoForm isSingleSelection={true} hideSchedulePost={true} />
+          </div>
         </div>
       </div>
     </ProtectedRoute>

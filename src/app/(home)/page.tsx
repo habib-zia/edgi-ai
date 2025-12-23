@@ -30,7 +30,6 @@ import ForgotPasswordModal from "@/components/ui/forgot-password-modal";
 import PendingPaymentToast from "@/components/ui/pending-payment-toast";
 import SubscriptionRequiredToast from "@/components/ui/subscription-required-toast";
 import { useUnifiedSocketContext } from "@/components/providers/UnifiedSocketProvider";
-import { IoMdArrowDropdown } from "react-icons/io";
 
 function HomePageContent() {
   const [isSigninModalOpen, setIsSigninModalOpen] = useState(false);
@@ -39,7 +38,6 @@ function HomePageContent() {
   const { isAuthenticated } = useAppSelector((state) => state.user);
   const searchParams = useSearchParams();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
-  const [isCreateVideoDropdownOpen, setIsCreateVideoDropdownOpen] = useState(false);
   // Modal states
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
@@ -125,24 +123,6 @@ function HomePageContent() {
     checkForPosts();
   }, [checkForPosts]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (isCreateVideoDropdownOpen && !target.closest('.relative.inline-block')) {
-        setIsCreateVideoDropdownOpen(false);
-      }
-    };
-
-    if (isCreateVideoDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isCreateVideoDropdownOpen]);
-
   const handleGetStartedClick = (e: React.MouseEvent) => {
     if (isAuthenticated)
     {
@@ -207,69 +187,33 @@ function HomePageContent() {
               Custom AI videos for agents & loan officers<br className="hidden md:block" /> just fill one form,
               hit submit, and we handle the rest.
             </p>
-            <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
-
+            <div className="flex flex-col gap-4">
           {isAuthenticated ? (
             <>
-            <button 
-            onClick={handleCustomAvatarClick}
-            disabled={isAnyAvatarProcessing}
-            className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
-              isAnyAvatarProcessing 
-                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
-                : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
-            }`}>
-                    {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
-                  </button>
-                  <div className="relative inline-block">
-                    <button
-                      onClick={() => setIsCreateVideoDropdownOpen(!isCreateVideoDropdownOpen)}
-                      className="inline-flex cursor-pointer items-center justify-center gap-2 px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
-                    >
-                      Create Video
-                      <IoMdArrowDropdown 
-                        className={`w-4 h-4 transition-transform duration-300 ${isCreateVideoDropdownOpen ? 'rotate-180' : ''}`} 
-                      />
-                    </button>
-                    {isCreateVideoDropdownOpen && (
-                      <div className="absolute z-[9999] bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-                        <Link
-                          href="/create-video/new"
-                          onClick={() => setIsCreateVideoDropdownOpen(false)}
-                          className="block px-4 py-3 text-left text-gray-800 hover:bg-[#F5F5F5] transition-colors duration-200"
-                        >
-                          Simple Video
-                        </Link>
-                        <Link
-                          href="/create-video/listing"
-                          onClick={() => setIsCreateVideoDropdownOpen(false)}
-                          className="block px-4 py-3 text-left text-gray-800 hover:bg-[#F5F5F5] transition-colors duration-200 border-t border-gray-200"
-                        >
-                          Video Listing
-                        </Link>
-                        <Link
-                          href="/create-video/ai-listing"
-                          onClick={() => setIsCreateVideoDropdownOpen(false)}
-                          className="block px-4 py-3 text-left text-gray-800 hover:bg-[#F5F5F5] transition-colors duration-200 border-t border-gray-200"
-                        >
-                          AI Listing
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                  <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Gallery
-                  </Link>
-                  <Link href="/scheduled-post" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                    Schedule Post
-                  </Link>
+              {/* Three video creation buttons with red background - Centered top row */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+                <Link 
+                  href="/create-video/talking-head"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
+                >
+                  Talking Head Video
+                </Link>
+                <Link 
+                  href="/create-video/listing"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
+                >
+                  Video Listing
+                </Link>
+                <Link 
+                  href="/create-video/narrated"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
+                >
+                  Narrated Video
+                </Link>
+              </div>
 
-                    <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
-                      Report Analytics
-                    </Link>                  
-                </>
-              ) : (
-                <>
+              {/* Four action buttons with purple background - Centered bottom row */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
                 <button 
                   onClick={handleCustomAvatarClick}
                   disabled={isAnyAvatarProcessing}
@@ -277,17 +221,42 @@ function HomePageContent() {
                     isAnyAvatarProcessing 
                       ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
                       : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
-                  }`}>
-                    {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
-                  </button> 
-                  <button
-                    onClick={handleGetStartedClick}
-                    className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
-                  >
-                    Get Started
-                  </button>
-                </>
-              )}
+                  }`}
+                >
+                  {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
+                </button>
+                <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                  Gallery
+                </Link>
+                <Link href="/scheduled-post" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                  Schedule Post
+                </Link>
+                <Link href="/report-analytics" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
+                  Report Analytics
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+              <button 
+                onClick={handleCustomAvatarClick}
+                disabled={isAnyAvatarProcessing}
+                className={`inline-flex items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold rounded-full transition-all !duration-300 border-2 ${
+                  isAnyAvatarProcessing 
+                    ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                    : 'bg-[#5046E5] text-white cursor-pointer hover:bg-transparent hover:text-[#5046E5] border-[#5046E5]'
+                }`}
+              >
+                {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
+              </button> 
+              <button
+                onClick={handleGetStartedClick}
+                className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]"
+              >
+                Get Started
+              </button>
+            </div>
+          )}
             </div>  
           </div>
         </div>

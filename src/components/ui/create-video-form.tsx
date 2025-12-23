@@ -95,9 +95,11 @@ const videoCaptionOptions = [
 
 interface CreateVideoFormProps {
   className?: string
+  isSingleSelection?: boolean
+  hideSchedulePost?: boolean
 }
 
-export default function CreateVideoForm({ className }: CreateVideoFormProps) {
+export default function CreateVideoForm({ className, isSingleSelection = false, hideSchedulePost = false }: CreateVideoFormProps) {
   const dispatch = useDispatch<AppDispatch>()
   const { isLoading, error } = useSelector((state: RootState) => state.video)
   const { user } = useSelector((state: RootState) => state.user)
@@ -498,6 +500,33 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       return // Don't allow selection of pending avatars
     }
     
+    // Handle single selection mode (like listing and narrated forms)
+    if (isSingleSelection) {
+      // Check if this avatar is already selected (only check title slot for single selection)
+      const isSelected = selectedAvatars.title?.avatar_id === avatar.avatar_id;
+
+      if (isSelected) {
+        // Deselect the avatar
+        setSelectedAvatars({
+          title: null,
+          body: null,
+          conclusion: null,
+        });
+        setValue('avatar', '');
+      } else {
+        // Select this avatar (replace any existing selection)
+        setSelectedAvatars({
+          title: avatar,
+          body: null,
+          conclusion: null,
+        });
+        setValue('avatar', avatar.avatar_id);
+      }
+      trigger('avatar');
+      return;
+    }
+    
+    // Handle multi-selection mode (original behavior for talking-head form)
     const isSelected = isAvatarSelected(avatar)
     
     if (isSelected) {
@@ -554,6 +583,9 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   // Helper function to get selection number for an avatar (based on drag & drop slots)
   const getAvatarSelectionNumber = (avatar: Avatar) => {
+    // For single selection mode, don't show numbers
+    if (isSingleSelection) return null
+    
     if (selectedAvatars.title?.avatar_id === avatar.avatar_id) return 1
     if (selectedAvatars.body?.avatar_id === avatar.avatar_id) return 2
     if (selectedAvatars.conclusion?.avatar_id === avatar.avatar_id) return 3
@@ -1074,6 +1106,16 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
             }
           }
           
+          // For single selection mode, clear body and conclusion avatars loaded from user settings
+          if (isSingleSelection) {
+            setSelectedAvatars(prev => ({
+              title: prev.title,
+              body: null,
+              conclusion: null
+            }))
+            console.log('🎯 Single selection mode: cleared body and conclusion avatars from user settings')
+          }
+          
           setUserSettingsLoaded(true)
         }
       }).finally(() => {
@@ -1084,8 +1126,20 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       // If avatars are loaded but no user email, form is ready
       setIsFormReady(true)
     }
-  }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings, userSettingsLoaded, watch])
+  }, [avatarsLoading, avatars.custom.length, avatars.default.length, user?.email, fetchUserSettings, userSettingsLoaded, watch, isSingleSelection])
 
+  // Clear body and conclusion avatars in single selection mode (after user settings load)
+  useEffect(() => {
+    if (isSingleSelection && (selectedAvatars.body || selectedAvatars.conclusion)) {
+      console.log('🎯 Single selection mode: clearing body and conclusion avatars')
+      setSelectedAvatars(prev => ({
+        title: prev.title,
+        body: null,
+        conclusion: null
+      }))
+    }
+  }, [isSingleSelection, selectedAvatars.body, selectedAvatars.conclusion])
+  
   // Check if all data is loaded (used for other components)
   // const isDataLoading = avatarsLoading || scheduleLoading || autoFilling || !isFormReady
 
@@ -1168,9 +1222,19 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
 
   const onSubmit = async (data: CreateVideoFormData) => {
     console.log('selectedAvatars', selectedAvatars)
-    if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
-      dispatch(setVideoError('Please select 3 avatars before submitting'))
-      return
+    
+    // Validation for single selection mode
+    if (isSingleSelection) {
+      if (!selectedAvatars.title) {
+        dispatch(setVideoError('Please select an avatar before submitting'))
+        return
+      }
+    } else {
+      // Validation for multi-selection mode
+      if (!selectedAvatars.title || !selectedAvatars.body || !selectedAvatars.conclusion) {
+        dispatch(setVideoError('Please select 3 avatars before submitting'))
+        return
+      }
     }
 
      // Validate that either videoTopic or custom topic is provided
@@ -1229,24 +1293,24 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
     // Save selected avatars using custom hook
     try {
       const avatarsToSave: SelectedAvatars = {
-        title: {
+        title: selectedAvatars.title ? {
           avatar_id: selectedAvatars.title.avatar_id,
           avatar_name: selectedAvatars.title.avatar_name || selectedAvatars.title.name || '',
           preview_image_url: selectedAvatars.title.preview_image_url || selectedAvatars.title.imageUrl || '',
           avatarType: selectedAvatars.title.avatarType || (selectedAvatars.title.preview_video_url ? 'video_avatar' : 'photo_avatar')
-        },
-        body: {
+        } : { avatar_id: '', avatar_name: '', preview_image_url: '', avatarType: 'photo_avatar' },
+        body: selectedAvatars.body ? {
           avatar_id: selectedAvatars.body.avatar_id,
           avatar_name: selectedAvatars.body.avatar_name || selectedAvatars.body.name || '',
           preview_image_url: selectedAvatars.body.preview_image_url || selectedAvatars.body.imageUrl || '',
           avatarType: selectedAvatars.body.avatarType || (selectedAvatars.body.preview_video_url ? 'video_avatar' : 'photo_avatar')
-        },
-        conclusion: {
+        } : { avatar_id: '', avatar_name: '', preview_image_url: '', avatarType: 'photo_avatar' },
+        conclusion: selectedAvatars.conclusion ? {
           avatar_id: selectedAvatars.conclusion.avatar_id,
           avatar_name: selectedAvatars.conclusion.avatar_name || selectedAvatars.conclusion.name || '',
           preview_image_url: selectedAvatars.conclusion.preview_image_url || selectedAvatars.conclusion.imageUrl || '',
           avatarType: selectedAvatars.conclusion.avatarType || (selectedAvatars.conclusion.preview_video_url ? 'video_avatar' : 'photo_avatar')
-        }
+        } : { avatar_id: '', avatar_name: '', preview_image_url: '', avatarType: 'photo_avatar' }
       }
       
       saveSelectedAvatars(avatarsToSave)
@@ -1531,6 +1595,7 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         isAvatarPending={isAvatarPending}
         getAvatarSelectionNumber={getAvatarSelectionNumber}
         getAvatarType={getAvatarType}
+        isSingleSelection={isSingleSelection}
       />
     )
   }
@@ -1703,10 +1768,10 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
       />
       <FormHeader
         title="Fill the details to create video"
-        onSchedulePost={() => setShowScheduleModal(true)}
+        onSchedulePost={hideSchedulePost ? undefined : () => setShowScheduleModal(true)}
         userEmail={user?.email}
         isScheduleMode={isScheduleMode}
-        onToggleScheduleMode={handleToggleScheduleMode}
+        onToggleScheduleMode={hideSchedulePost ? undefined : handleToggleScheduleMode}
       />
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg max-w-sm">
@@ -1948,19 +2013,30 @@ export default function CreateVideoForm({ className }: CreateVideoFormProps) {
         
 
         
-        <AvatarSelectionStatus selectedAvatars={selectedAvatars} />
+        <AvatarSelectionStatus selectedAvatars={selectedAvatars} isSingleSelection={isSingleSelection} />
         
          <SubmitButton
            isLoading={isLoading}
            disabled={
-             !selectedAvatars.title || 
-             !selectedAvatars.body || 
-             !selectedAvatars.conclusion ||
-             (!watch('videoTopic')?.trim() && !customTopicValue.trim()) ||
-             !watch('preset') ||
-             !watch('voice') ||
-             !watch('music') ||
-             !watch('language')
+             isSingleSelection 
+               ? (
+                 !selectedAvatars.title ||
+                 (!watch('videoTopic')?.trim() && !customTopicValue.trim()) ||
+                 !watch('preset') ||
+                 !watch('voice') ||
+                 !watch('music') ||
+                 !watch('language')
+               )
+               : (
+                 !selectedAvatars.title || 
+                 !selectedAvatars.body || 
+                 !selectedAvatars.conclusion ||
+                 (!watch('videoTopic')?.trim() && !customTopicValue.trim()) ||
+                 !watch('preset') ||
+                 !watch('voice') ||
+                 !watch('music') ||
+                 !watch('language')
+               )
            }
            loadingText="This Proccess will take up to 30-50 seconds"
            buttonText="Submit"

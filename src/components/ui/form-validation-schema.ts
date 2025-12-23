@@ -50,3 +50,47 @@ export const createVideoSchema = z.object({
 
 // Type inference from schema
 export type CreateVideoFormData = z.infer<typeof createVideoSchema>
+
+// Form validation schema for ListingVideoForm
+export const listingVideoSchema = z.object({
+  name: z.string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be less than 100 characters')
+    .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces'),
+  propertyType: z.string().min(1, 'Please select a property type'),
+  avatar: z.string().min(1, 'Please select an avatar'),
+  gender: z.string().min(1, 'Please select a gender'),
+  voice: z.string().optional(),
+  music: z.string().optional(),
+  city: z.string()
+    .min(2, 'City must be at least 2 characters')
+    .max(50, 'City must be less than 50 characters')
+    .regex(/^[a-zA-Z\s]+$/, 'City can only contain letters and spaces'),
+  address: z.string()
+    .min(5, 'Address must be at least 5 characters')
+    .max(200, 'Address must be less than 200 characters'),
+  price: z.string().optional(),
+  socialHandles: z.string().optional(),
+  preset: z.string().optional(),
+}).refine((data) => {
+  // If gender is selected, voice is required
+  if (data.gender && !data.voice) {
+    return false
+  }
+  return true
+}, {
+  message: 'Please select a voice',
+  path: ['voice']
+}).refine((data) => {
+  // If gender is selected, music is required
+  if (data.gender && !data.music) {
+    return false
+  }
+  return true
+}, {
+  message: 'Please select music',
+  path: ['music']
+})
+
+// Type inference from schema
+export type ListingVideoFormData = z.infer<typeof listingVideoSchema>

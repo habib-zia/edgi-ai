@@ -278,7 +278,7 @@ export default function FormDropdown({
                                   className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${isDisabled
                                       ? 'opacity-40 cursor-not-allowed'
                                       : isSelected
-                                        ? 'cursor-pointer'
+                                        ? 'cursor-pointer ring-2 ring-[#5046E5] ring-offset-2'
                                         : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
                                     }`}
                                 >
@@ -297,10 +297,17 @@ export default function FormDropdown({
                                       }}
                                     />
 
-                                    {/* Selection number indicator */}
+                                    {/* Selection number indicator (for multi-selection) */}
                                     {selectionNumber && (
                                       <div className="absolute -top-3 -right-2 w-5 h-5 bg-[#5046E5]/60 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg backdrop-blur-lg leading-0">
                                         {selectionNumber}
+                                      </div>
+                                    )}
+
+                                    {/* Checkmark indicator (for single selection or when selected without number) */}
+                                    {isSelected && !selectionNumber && (
+                                      <div className="absolute top-1 right-1 w-6 h-6 bg-[#5046E5] rounded-full flex items-center justify-center shadow-lg z-10">
+                                        <Check className="w-4 h-4 text-white" />
                                       </div>
                                     )}
 
@@ -401,7 +408,7 @@ export default function FormDropdown({
                                   className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${isDisabled
                                       ? 'opacity-40 cursor-not-allowed'
                                       : isSelected
-                                        ? 'cursor-pointer'
+                                        ? 'cursor-pointer ring-2 ring-[#5046E5] ring-offset-2'
                                         : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
                                     }`}
                                 >
@@ -420,10 +427,17 @@ export default function FormDropdown({
                                       }}
                                     />
 
-                                    {/* Selection number indicator */}
+                                    {/* Selection number indicator (for multi-selection) */}
                                     {selectionNumber && (
                                       <div className="absolute -top-3 -right-2 w-5 h-5 bg-[#5046E5]/60 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg backdrop-blur-lg leading-0">
                                         {selectionNumber}
+                                      </div>
+                                    )}
+
+                                    {/* Checkmark indicator (for single selection or when selected without number) */}
+                                    {isSelected && !selectionNumber && (
+                                      <div className="absolute top-1 right-1 w-6 h-6 bg-[#5046E5] rounded-full flex items-center justify-center shadow-lg z-10">
+                                        <Check className="w-4 h-4 text-white" />
                                       </div>
                                     )}
 
@@ -510,7 +524,7 @@ export default function FormDropdown({
                                   className={`flex flex-col items-center max-w-[80px] rounded-lg transition-all duration-200 relative ${isDisabled
                                       ? 'opacity-40 cursor-not-allowed'
                                       : isSelected
-                                        ? 'cursor-pointer'
+                                        ? 'cursor-pointer ring-2 ring-[#5046E5] ring-offset-2'
                                         : 'cursor-pointer hover:bg-gray-50 hover:ring-1 hover:ring-gray-300'
                                     }`}
                                 >
@@ -528,10 +542,17 @@ export default function FormDropdown({
                                       }}
                                     />
 
-                                    {/* Selection number indicator */}
+                                    {/* Selection number indicator (for multi-selection) */}
                                     {selectionNumber && (
                                       <div className="absolute -top-3 -right-2 w-5 h-5 bg-[#5046E5]/60 text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg backdrop-blur-lg leading-0">
                                         {selectionNumber}
+                                      </div>
+                                    )}
+
+                                    {/* Checkmark indicator (for single selection or when selected without number) */}
+                                    {isSelected && !selectionNumber && (
+                                      <div className="absolute top-1 right-1 w-6 h-6 bg-[#5046E5] rounded-full flex items-center justify-center shadow-lg z-10">
+                                        <Check className="w-4 h-4 text-white" />
                                       </div>
                                     )}
                                   </div>

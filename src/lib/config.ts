@@ -50,6 +50,7 @@ export const API_CONFIG = {
       PENDING_WORKFLOWS: '/api/video/pending-workflows',
       USER_SETTINGS: '/api/video/user-settings',
       NOTE: '/api/video',
+      CREATE_LISTING: '/api/video/create-listing',
       
       // CREATE_VIDEO: '/api/video/create',
     },

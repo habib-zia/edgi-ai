@@ -710,6 +710,36 @@ class ApiService {
     }, true);
   }
 
+  async createListingVideo(formData: FormData): Promise<ApiResponse<any>> {
+    try {
+      const headers = getAuthenticatedHeaders();
+      // Remove Content-Type header to let browser set it with boundary for FormData
+      delete headers['Content-Type'];
+      
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.VIDEO.CREATE_LISTING), {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create listing video' }));
+        throw new Error(errorData.message || 'Failed to create listing video');
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: data.message || 'Listing video created successfully'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create listing video';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
   async checkEmail(email: string): Promise<ApiResponse<{ exists: boolean }>> {
     return this.request<{ exists: boolean }>(`${API_CONFIG.ENDPOINTS.AUTH.CHECK_EMAIL}?email=${encodeURIComponent(email)}`, {
       method: 'GET',

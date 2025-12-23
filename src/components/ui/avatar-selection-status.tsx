@@ -10,10 +10,37 @@ interface AvatarSelectionStatusProps {
     body: Avatar | null
     conclusion: Avatar | null
   }
+  isSingleSelection?: boolean
 }
 
-export default function AvatarSelectionStatus({ selectedAvatars }: AvatarSelectionStatusProps) {
+export default function AvatarSelectionStatus({ selectedAvatars, isSingleSelection = false }: AvatarSelectionStatusProps) {
   const totalSelected = [selectedAvatars.title, selectedAvatars.body, selectedAvatars.conclusion].filter(Boolean).length
+  
+  // For single selection mode
+  if (isSingleSelection) {
+    const hasAvatar = !!selectedAvatars.title
+    
+    // Only show status when avatar is selected
+    if (!hasAvatar) {
+      return null
+    }
+    
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-blue-600" />
+          <div>
+            <h3 className="text-blue-800 font-semibold">Avatar Selected</h3>
+            <p className="text-blue-700 text-sm">
+              1 avatar selected for your video
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  
+  // For multi-selection mode (original behavior)
   const isComplete = selectedAvatars.title && selectedAvatars.body && selectedAvatars.conclusion
 
   return (
