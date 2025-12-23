@@ -133,6 +133,7 @@ export default function ListingVideoForm() {
     resolver: zodResolver(listingVideoSchema),
     mode: 'onSubmit',
     defaultValues: {
+      title: '',
       propertyType: '',
       avatar: '',
       gender: '',
@@ -891,6 +892,7 @@ export default function ListingVideoForm() {
       scriptFormData.append('types', JSON.stringify(typesArray))
       scriptFormData.append('email', userEmail)
       scriptFormData.append('name', userName || userEmail)
+      scriptFormData.append('title', data.title || '')
       scriptFormData.append('social_handles', data.socialHandles || '')
       scriptFormData.append('propertyType', data.propertyType)
 
@@ -955,21 +957,30 @@ export default function ListingVideoForm() {
 
     setIsFinalSubmitting(true)
     try {
+      // Transform images to match required format: { type, imageurl }
+      const formattedImages = uploadedImages.map((img) => ({
+        type: img.type,
+        imageurl: img.imageUrl
+      }))
+
+      // Transform webhookResponse to match required format: [{ text: "..." }]
+      const formattedWebhookResponse = webhookTexts.map((text) => ({
+        text: text
+      }))
+
       const payload = {
-        name: userName || userEmail,
+        images: formattedImages,
+        webhookResponse: formattedWebhookResponse,
         email: userEmail,
+        timestamp: new Date().toISOString(),
+        name: userName || userEmail,
+        social_handles: pendingFormData.socialHandles || '',
         propertyType: pendingFormData.propertyType,
         avatar: selectedAvatars.title.avatar_id,
-        gender: pendingFormData.gender,
-        city: pendingFormData.city,
-        address: pendingFormData.address,
-        price: pendingFormData.price || '',
-        socialHandles: pendingFormData.socialHandles || '',
-        voice: selectedVoice?.id || pendingFormData.voice || '',
-        music_url: selectedMusic?.s3FullTrackUrl || '',
-        script: mergedScript,
-        webhookResponse: webhookTexts,
-        images: uploadedImages
+        music: selectedMusic?.s3FullTrackUrl || '',
+        videoCaption: true,
+        voiceId: selectedVoice?.id || pendingFormData.voice || '',
+        title: pendingFormData.title || ''
       }
 
       const response = await apiService.createListingVideo(payload)
@@ -993,7 +1004,7 @@ export default function ListingVideoForm() {
     <>
       {isScriptModalOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-x-hidden">
-          <div className="bg-white rounded-[12px] max-w-[1260px] w-full max-h-[90vh] flex flex-col relative">
+          <div className="bg-white rounded-[12px] max-w-[800px] w-full max-h-[70vh] flex flex-col relative">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 pt-4 flex-shrink-0">
               <h3 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">
@@ -1035,19 +1046,12 @@ export default function ListingVideoForm() {
                     <label className="block text-base font-normal text-[#5F5F5F] mb-2">
                       Generated Script <span className="text-red-500">*</span>
                     </label>
-                    <div className="w-full min-h-[400px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 whitespace-pre-line overflow-y-auto">
+                    <div className="w-full min-h-[300px] max-h-[400px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 whitespace-pre-line overflow-y-auto">
                       {mergedScript || 'No script generated.'}
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsScriptModalOpen(false)}
-                      className="px-6 py-3 rounded-lg border border-gray-300 text-[#282828] hover:bg-gray-50 font-medium"
-                    >
-                      Cancel
-                    </button>
+                  <div className="flex justify-center">
                     <button
                       type="button"
                       onClick={handleConfirmScript}
@@ -1071,12 +1075,24 @@ export default function ListingVideoForm() {
           Fill the Property Details
         </h2>
 
-        <div className="mb-4 text-sm text-[#5F5F5F]">
-          Using account {userName || 'your account'} ({userEmail || 'email unavailable'}) for this submission.
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {/* Property Type - 1st Field (Dropdown) */}
+          {/* Title - 1st Field */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("title", { required: true })}
+              placeholder="Please Specify"
+              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+            />
+            {errors.title && (
+              <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+            )}
+          </div>
+
+          {/* Property Type - 2nd Field (Dropdown) */}
           <div className="relative" data-dropdown="propertyType">
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
               Property Type <span className="text-red-500">*</span>
