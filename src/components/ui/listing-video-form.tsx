@@ -143,6 +143,7 @@ export default function ListingVideoForm() {
       address: '',
       price: '',
       socialHandles: '',
+      mainSellingPoints: '',
       preset: '',
     },
   })
@@ -656,7 +657,7 @@ export default function ListingVideoForm() {
       .filter((item): item is ImageFile => item !== null)
     
     if (imageFiles.length === 0) {
-      showNotification('No valid image files selected. Please select JPG, PNG, or AVG files.', 'error')
+      showNotification('No valid image files selected. Please select JPG, PNG, AVG, AVIF, or WebP files.', 'error')
       return
     }
 
@@ -884,8 +885,9 @@ export default function ListingVideoForm() {
       // Prepare images array - exterior first, then interior
       const imagesArray: Array<{ image: File; type: string }> = []
 
+      // Only include images from checked exterior parts
       Object.entries(exteriorPartsData).forEach(([part, partData]) => {
-        if (partData.images.length > 0) {
+        if (partData.checked && partData.images.length > 0) {
           partData.images.forEach((imageFile) => {
             imagesArray.push({
               image: imageFile.file,
@@ -895,8 +897,9 @@ export default function ListingVideoForm() {
         }
       })
 
+      // Only include images from checked interior parts
       Object.entries(interiorPartsData).forEach(([part, partData]) => {
-        if (partData.images.length > 0) {
+        if (partData.checked && partData.images.length > 0) {
           partData.images.forEach((imageFile) => {
             imagesArray.push({
               image: imageFile.file,
@@ -919,6 +922,18 @@ export default function ListingVideoForm() {
       scriptFormData.append('email', userEmail)
       scriptFormData.append('name', userName || userEmail)
       scriptFormData.append('title', data.title || '')
+      scriptFormData.append('city', data.city || '')
+      scriptFormData.append('address', data.address || '')
+      scriptFormData.append('price', data.price || '')
+      // Parse comma-separated mainSellingPoints into array and append each item separately
+      const sellingPointsArray = data.mainSellingPoints
+        ? data.mainSellingPoints.split(',').map(point => point.trim()).filter(point => point.length > 0)
+        : []
+      // Append each selling point separately so backend receives it as an array
+      // Try with array notation first, if backend doesn't support it, try without brackets
+      sellingPointsArray.forEach((point) => {
+        scriptFormData.append('mainSellingPoints[]', point)
+      })
       scriptFormData.append('social_handles', data.socialHandles || '')
       scriptFormData.append('propertyType', data.propertyType)
 
@@ -1094,7 +1109,15 @@ export default function ListingVideoForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form 
+        onSubmit={handleSubmit(onSubmit)} 
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+            e.preventDefault()
+          }
+        }}
+        className="space-y-8"
+      >
       {/* Property Details Section */}
       <div className="bg-white p-6 md:p-8">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#282828] mb-6">
@@ -1111,6 +1134,11 @@ export default function ListingVideoForm() {
               type="text"
               {...register("title", { required: true })}
               placeholder="Please Specify"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.title ? 'ring-2 ring-red-500' : ''
               }`}
@@ -1209,7 +1237,30 @@ export default function ListingVideoForm() {
             />
           </div>
 
-          {/* Gender - 4th Field */}
+          {/* City - 4th Field */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("city", { required: true })}
+              placeholder="Please Specify"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.city ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.city && (
+              <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
+            )}
+          </div>
+
+          {/* Gender - Always visible */}
           <div className="relative" data-dropdown="gender">
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
               Gender <span className="text-red-500">*</span>
@@ -1253,24 +1304,6 @@ export default function ListingVideoForm() {
                   </button>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* City - Always visible */}
-          <div>
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              City <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("city", { required: true })}
-              placeholder="Please Specify"
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.city ? 'ring-2 ring-red-500' : ''
-              }`}
-            />
-            {errors.city && (
-              <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
             )}
           </div>
 
@@ -1355,6 +1388,11 @@ export default function ListingVideoForm() {
               type="text"
               {...register("address", { required: true })}
               placeholder="Please Specify"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.address ? 'ring-2 ring-red-500' : ''
               }`}
@@ -1372,7 +1410,12 @@ export default function ListingVideoForm() {
             <input
               type="text"
               {...register("price", { required: true })}
-              placeholder="Please Specify"
+              placeholder="e.g., $2000, €2000, £2000"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.price ? 'ring-2 ring-red-500' : ''
               }`}
@@ -1391,6 +1434,11 @@ export default function ListingVideoForm() {
               type="text"
               {...register("socialHandles", { required: true })}
               placeholder="Please Specify"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.socialHandles ? 'ring-2 ring-red-500' : ''
               }`}
@@ -1398,6 +1446,24 @@ export default function ListingVideoForm() {
             {errors.socialHandles && (
               <p className="text-red-500 text-sm mt-1">{errors.socialHandles.message}</p>
             )}
+          </div>
+
+          {/* Main Selling Points */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Main Selling Points
+            </label>
+            <input
+              type="text"
+              {...register("mainSellingPoints")}
+              placeholder="e.g., Spacious rooms, Modern kitchen, Great location, Parking available"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+            />
           </div>
         </div>
       </div>
@@ -1413,9 +1479,9 @@ export default function ListingVideoForm() {
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-semibold">Image Upload Status:</span>
+              <span className="font-semibold">Your Images:</span>
               <span className={`font-bold ${totalImages >= 10 ? 'text-red-600' : totalImages >= 7 ? 'text-yellow-600' : 'text-blue-600'}`}>
-                {totalImages} / 10 images
+                {totalImages} of 10 uploaded
               </span>
             </div>
             <div className="text-sm">
@@ -1424,18 +1490,26 @@ export default function ListingVideoForm() {
               ) : totalImages >= 7 ? (
                 <span className="text-yellow-600 font-medium">Approaching limit</span>
               ) : (
-                <span className="text-blue-600">{10 - totalImages} images remaining</span>
+                <span className="text-blue-600">{10 - totalImages} more images allowed</span>
               )}
             </div>
           </div>
-          <div className="mt-2 text-sm">
-            <p className="text-xs opacity-80">
-              • Exterior parts: 1 image per part maximum
-              <br />
-              • Interior parts: Based on number input (e.g., if you enter "3", you can upload 3 images for that part)
-              <br />
-              • Overall limit: 10 images total across all parts
-            </p>
+          <div className="mt-3 text-sm">
+            <p className="text-sm font-medium mb-2">How it works:</p>
+            <ul className="space-y-1.5 text-xs opacity-90">
+              <li className="flex items-start gap-2">
+                <span className="text-[#5046E5] mt-1">•</span>
+                <span><strong>Exterior parts:</strong> Upload 1 image per part (e.g., Front View, Back View)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#5046E5] mt-1">•</span>
+                <span><strong>Interior parts:</strong> Enter a number first, then upload that many images (e.g., enter "3" to upload 3 bedroom photos)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#5046E5] mt-1">•</span>
+                <span><strong>Total limit:</strong> You can upload up to 10 images across all parts combined</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -1463,9 +1537,9 @@ export default function ListingVideoForm() {
 
               {exteriorPartsData[part].checked && (
                 <div
-                  className={`border-2 border-dashed rounded-lg p-4 min-h-[140px] flex flex-col items-center justify-center cursor-pointer transition-colors bg-white ${
+                  className={`border-2 border-dashed rounded-lg p-4 min-h-[140px] flex flex-col items-center justify-center cursor-pointer transition-all duration-200 bg-white ${
                     dragActive[`exterior-${part}`]
-                      ? "border-[#5046E5] bg-[#F5F7FC]"
+                      ? "border-[#5046E5] bg-[#F5F7FC] ring-2 ring-[#5046E5] ring-offset-2"
                       : "border-gray-300"
                   }`}
                   onDragEnter={(e) => handleDragEnter(e, `exterior-${part}`)}
@@ -1476,7 +1550,7 @@ export default function ListingVideoForm() {
                   <input
                     type="file"
                     multiple
-                    accept="image/jpeg,image/jpg,image/png,image/avg"
+                    accept="image/jpeg,image/jpg,image/png,image/avg,image/avif,image/webp"
                     onChange={(e) => {
                       handleImageUpload(part, e.target.files, true)
                       // Reset input value to allow selecting the same file again
@@ -1497,21 +1571,21 @@ export default function ListingVideoForm() {
                         fileInputRefs.current[`exterior-${part}`]?.click()
                       }}
                     >
-                      <p className="text-base font-semibold text-[#5F5F5F] mb-1">
-                        Drag and drop Images
+                      <p className="text-base font-semibold text-[#5F5F5F] mb-2">
+                        Upload {part} Image
                       </p>
-                      <p className="text-xs text-gray-400 mb-3">
-                        JPG, PNG or AVG
-                      </p>
+                        <p className="text-xs text-gray-500 mb-3">
+                          Supported formats: JPG, PNG, AVG, AVIF, or WebP
+                        </p>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           fileInputRefs.current[`exterior-${part}`]?.click()
                         }}
-                        className="text-sm text-[#5046E5] px-3 py-1 rounded-full bg-[#5046E51A]"
+                        className="text-sm text-[#5046E5] px-4 py-2 rounded-full bg-[#5046E51A] hover:bg-[#5046E525] transition-colors font-medium"
                       >
-                        Browse local files
+                        Choose File
                       </button>
                     </div>
                   ) : (
@@ -1572,16 +1646,21 @@ export default function ListingVideoForm() {
                     onChange={(e) =>
                       handleInteriorNumberChange(part, e.target.value)
                     }
-                    placeholder="Please Specify Numbers"
+                    placeholder="Specify number of images"
                     className="w-full px-4 py-3 bg-white border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                      }
+                    }}
                   />
 
                   <div
-                    className={`border-2 border-dashed rounded-lg p-4 min-h-[140px] flex flex-col items-center justify-center transition-colors ${
+                    className={`border-2 border-dashed rounded-lg p-4 min-h-[140px] flex flex-col items-center justify-center transition-all duration-200 ${
                       !interiorPartsData[part].number || parseInt(interiorPartsData[part].number) <= 0
                         ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
                         : dragActive[`interior-${part}`]
-                        ? "border-[#5046E5] bg-[#F5F7FC] cursor-pointer bg-white"
+                        ? "border-[#5046E5] bg-[#F5F7FC] cursor-pointer bg-white ring-2 ring-[#5046E5] ring-offset-2"
                         : "border-gray-300 cursor-pointer bg-white"
                     }`}
                     onDragEnter={(e) => {
@@ -1608,7 +1687,7 @@ export default function ListingVideoForm() {
                     <input
                       type="file"
                       multiple
-                      accept="image/jpeg,image/jpg,image/png,image/avg"
+                      accept="image/jpeg,image/jpg,image/png,image/avg,image/avif,image/webp"
                       onChange={(e) => {
                         handleImageUpload(part, e.target.files, false)
                         // Reset input value to allow selecting the same file again
@@ -1637,22 +1716,17 @@ export default function ListingVideoForm() {
                         }}
                       >
                         {!interiorPartsData[part].number || parseInt(interiorPartsData[part].number) <= 0 ? (
-                          <>
-                            <p className="text-base font-semibold text-gray-400 mb-1">
-                              Enter number first
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              Please specify the number of images above
-                            </p>
-                          </>
+                          <p className="text-base text-gray-400">
+                            Specify how many images you want to upload for {part}
+                          </p>
                         ) : (
                           <>
                             <p className="text-base font-semibold text-[#5F5F5F] mb-1">
                               Drag and drop Images
                             </p>
-                            <p className="text-xs text-gray-400 mb-3">
-                              JPG, PNG or AVG
-                            </p>
+                        <p className="text-xs text-gray-400 mb-3">
+                          JPG, PNG, AVG, AVIF or WebP
+                        </p>
                             <button
                               type="button"
                               onClick={(e) => {
