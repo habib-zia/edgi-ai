@@ -71,6 +71,7 @@ export const listingVideoSchema = z.object({
     .min(1, 'Price is required'),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
+  mainSellingPoints: z.string().optional(),
   preset: z.string().optional(),
 })
 
