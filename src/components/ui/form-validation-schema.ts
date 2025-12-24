@@ -59,36 +59,19 @@ export const listingVideoSchema = z.object({
   propertyType: z.string().min(1, 'Please select a property type'),
   avatar: z.string().min(1, 'Please select an avatar'),
   gender: z.string().min(1, 'Please select a gender'),
-  voice: z.string().optional(),
-  music: z.string().optional(),
+  voice: z.string().min(1, 'Please select a voice'),
+  music: z.string().min(1, 'Please select music'),
   city: z.string()
     .min(2, 'City must be at least 2 characters')
-    .max(50, 'City must be less than 50 characters')
-    .regex(/^[a-zA-Z\s]+$/, 'City can only contain letters and spaces'),
+    .max(50, 'City must be less than 50 characters'),
   address: z.string()
     .min(5, 'Address must be at least 5 characters')
     .max(200, 'Address must be less than 200 characters'),
-  price: z.string().optional(),
-  socialHandles: z.string().optional(),
+  price: z.string()
+    .min(1, 'Price is required'),
+  socialHandles: z.string()
+    .min(1, 'Social handles is required'),
   preset: z.string().optional(),
-}).refine((data) => {
-  // If gender is selected, voice is required
-  if (data.gender && !data.voice) {
-    return false
-  }
-  return true
-}, {
-  message: 'Please select a voice',
-  path: ['voice']
-}).refine((data) => {
-  // If gender is selected, music is required
-  if (data.gender && !data.music) {
-    return false
-  }
-  return true
-}, {
-  message: 'Please select music',
-  path: ['music']
 })
 
 // Type inference from schema

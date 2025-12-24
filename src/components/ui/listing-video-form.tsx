@@ -151,7 +151,6 @@ export default function ListingVideoForm() {
   const userName = user ? `${user.firstName} ${user.lastName}`.trim() : ''
   const userEmail = user?.email || ''
 
-  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false)
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isPropertyTypeDropdownOpen, setIsPropertyTypeDropdownOpen] = useState(false)
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false)
@@ -561,9 +560,6 @@ export default function ListingVideoForm() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       
-      if (isCityDropdownOpen && !target.closest('[data-dropdown="city"]')) {
-        setIsCityDropdownOpen(false)
-      }
       if (isGenderDropdownOpen && !target.closest('[data-dropdown="gender"]')) {
         setIsGenderDropdownOpen(false)
       }
@@ -585,7 +581,7 @@ export default function ListingVideoForm() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [isCityDropdownOpen, isGenderDropdownOpen, isPropertyTypeDropdownOpen, openDropdown])
+  }, [isGenderDropdownOpen, isPropertyTypeDropdownOpen, openDropdown])
 
   const handleExteriorPartToggle = (part: string) => {
     setExteriorPartsData((prev) => ({
@@ -632,14 +628,37 @@ export default function ListingVideoForm() {
     files: FileList | null,
     isExterior: boolean
   ) => {
-    if (!files || files.length === 0) return
+    if (!files || files.length === 0) {
+      console.warn('No files selected or files array is empty')
+      return
+    }
 
     const imageFiles: ImageFile[] = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-      }))
+      .filter((file) => {
+        const isValid = file.type.startsWith("image/")
+        if (!isValid) {
+          console.warn(`File ${file.name} is not a valid image type: ${file.type}`)
+        }
+        return isValid
+      })
+      .map((file) => {
+        try {
+          const preview = URL.createObjectURL(file)
+          return {
+            file,
+            preview,
+          }
+        } catch (error) {
+          console.error('Error creating object URL for file:', file.name, error)
+          return null
+        }
+      })
+      .filter((item): item is ImageFile => item !== null)
+    
+    if (imageFiles.length === 0) {
+      showNotification('No valid image files selected. Please select JPG, PNG, or AVG files.', 'error')
+      return
+    }
 
     const exteriorTotal = Object.values(exteriorPartsData).reduce(
       (sum, partData) => sum + partData.images.length,
@@ -824,6 +843,13 @@ export default function ListingVideoForm() {
   const onSubmit = async (data: ListingVideoFormData) => {
     if (!userEmail) {
       showNotification('User email not found. Please sign in again.', 'error')
+      return
+    }
+
+    // Check for validation errors
+    const hasErrors = Object.keys(errors).length > 0
+    if (hasErrors) {
+      showNotification('Please fill all required fields below', 'error')
       return
     }
 
@@ -1085,7 +1111,9 @@ export default function ListingVideoForm() {
               type="text"
               {...register("title", { required: true })}
               placeholder="Please Specify"
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.title ? 'ring-2 ring-red-500' : ''
+              }`}
             />
             {errors.title && (
               <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
@@ -1100,7 +1128,9 @@ export default function ListingVideoForm() {
             <button
               type="button"
               onClick={() => setIsPropertyTypeDropdownOpen(!isPropertyTypeDropdownOpen)}
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800 ${
+                errors.propertyType ? 'ring-2 ring-red-500' : ''
+              }`}
             >
               <span>
                 {watch("propertyType")
@@ -1114,6 +1144,9 @@ export default function ListingVideoForm() {
                 style={{ color: 'inherit' }}
               />
             </button>
+            {errors.propertyType && (
+              <p className="text-red-500 text-sm mt-1">{errors.propertyType.message}</p>
+            )}
             {isPropertyTypeDropdownOpen && (
               <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
                 {propertyTypeOptions.map((option) => (
@@ -1184,7 +1217,9 @@ export default function ListingVideoForm() {
             <button
               type="button"
               onClick={() => setIsGenderDropdownOpen(!isGenderDropdownOpen)}
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800 ${
+                errors.gender ? 'ring-2 ring-red-500' : ''
+              }`}
             >
               <span>
                 {watch("gender")
@@ -1198,6 +1233,9 @@ export default function ListingVideoForm() {
                 style={{ color: 'inherit' }}
               />
             </button>
+            {errors.gender && (
+              <p className="text-red-500 text-sm mt-1">{errors.gender.message}</p>
+            )}
             {isGenderDropdownOpen && (
               <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
                 {genderOptions.map((option) => (
@@ -1218,46 +1256,56 @@ export default function ListingVideoForm() {
             )}
           </div>
 
-          {/* City - Shows after gender is selected */}
+          {/* City - Always visible */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("city", { required: true })}
+              placeholder="Please Specify"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.city ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.city && (
+              <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
+            )}
+          </div>
+
+          {/* Voice - Shows after gender is selected */}
           {watch("gender") && (
-            <div className="relative" data-dropdown="city">
+            <div>
               <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-                City <span className="text-red-500">*</span>
+                Voice <span className="text-red-500">*</span>
               </label>
-              <button
-                type="button"
-                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800"
-              >
-                <span>
-                  {watch("city")
-                    ? cityOptions.find((opt) => opt.value === watch("city"))?.label || "Select"
-                    : "Select"}
-                </span>
-                <IoMdArrowDropdown
-                  className={`w-4 h-4 transition-transform duration-300 ${
-                    isCityDropdownOpen ? "rotate-180" : ""
-                  }`}
-                  style={{ color: 'inherit' }}
-                />
-              </button>
-              {isCityDropdownOpen && (
-                <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
-                  {cityOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        setValue("city", option.value)
-                        setIsCityDropdownOpen(false)
-                        trigger("city")
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+              <VoiceSelectorWrapper
+                field={"voice" as any}
+                placeholder="Select Voice"
+                watch={watch as any}
+                register={register as any}
+                errors={errors as any}
+                trigger={trigger as any}
+                openDropdown={openDropdown}
+                selectedVoice={selectedVoice}
+                voices={allVoices.length > 0 ? allVoices : voices}
+                voicesLoading={voicesLoading}
+                voicesError={voicesError}
+                preset={preset}
+                initialVoiceType={currentVoiceType}
+                onToggle={handleDropdownToggle}
+                onSelect={handleDropdownSelect}
+                onVoiceClick={handleVoiceClick}
+                onVoiceTypeChange={handleVoiceTypeChange}
+                onDragStart={handleVoiceDragStart}
+                onDragEnd={handleVoiceDragEnd}
+                onDragOver={handleVoiceDragOver}
+                onDragLeave={handleVoiceDragLeave}
+                onDrop={handleVoiceDrop}
+              />
+              {errors.voice && (
+                <p className="text-red-500 text-sm mt-1">{errors.voice.message}</p>
               )}
             </div>
           )}
@@ -1292,39 +1340,9 @@ export default function ListingVideoForm() {
                 onDragLeave={handleMusicDragLeave}
                 onDrop={handleMusicDrop}
               />
-            </div>
-          )}
-
-          {/* Voice - Shows after gender is selected */}
-          {watch("gender") && (
-            <div>
-              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-                Voice <span className="text-red-500">*</span>
-              </label>
-              <VoiceSelectorWrapper
-                field={"voice" as any}
-                placeholder="Select Voice"
-                watch={watch as any}
-                register={register as any}
-                errors={errors as any}
-                trigger={trigger as any}
-                openDropdown={openDropdown}
-                selectedVoice={selectedVoice}
-                voices={allVoices.length > 0 ? allVoices : voices}
-                voicesLoading={voicesLoading}
-                voicesError={voicesError}
-                preset={preset}
-                initialVoiceType={currentVoiceType}
-                onToggle={handleDropdownToggle}
-                onSelect={handleDropdownSelect}
-                onVoiceClick={handleVoiceClick}
-                onVoiceTypeChange={handleVoiceTypeChange}
-                onDragStart={handleVoiceDragStart}
-                onDragEnd={handleVoiceDragEnd}
-                onDragOver={handleVoiceDragOver}
-                onDragLeave={handleVoiceDragLeave}
-                onDrop={handleVoiceDrop}
-              />
+              {errors.music && (
+                <p className="text-red-500 text-sm mt-1">{errors.music.message}</p>
+              )}
             </div>
           )}
 
@@ -1337,34 +1355,49 @@ export default function ListingVideoForm() {
               type="text"
               {...register("address", { required: true })}
               placeholder="Please Specify"
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.address ? 'ring-2 ring-red-500' : ''
+              }`}
             />
+            {errors.address && (
+              <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
+            )}
           </div>
 
           {/* Price */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Price
+              Price <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              {...register("price")}
+              {...register("price", { required: true })}
               placeholder="Please Specify"
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.price ? 'ring-2 ring-red-500' : ''
+              }`}
             />
+            {errors.price && (
+              <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>
+            )}
           </div>
 
           {/* Social Handles */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Social Handles
+              Social Handles <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              {...register("socialHandles")}
+              {...register("socialHandles", { required: true })}
               placeholder="Please Specify"
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.socialHandles ? 'ring-2 ring-red-500' : ''
+              }`}
             />
+            {errors.socialHandles && (
+              <p className="text-red-500 text-sm mt-1">{errors.socialHandles.message}</p>
+            )}
           </div>
         </div>
       </div>
@@ -1444,9 +1477,13 @@ export default function ListingVideoForm() {
                     type="file"
                     multiple
                     accept="image/jpeg,image/jpg,image/png,image/avg"
-                    onChange={(e) =>
+                    onChange={(e) => {
                       handleImageUpload(part, e.target.files, true)
-                    }
+                      // Reset input value to allow selecting the same file again
+                      if (e.target) {
+                        e.target.value = ''
+                      }
+                    }}
                     className="hidden"
                     id={`exterior-${part}`}
                     ref={(el) => {
@@ -1540,52 +1577,96 @@ export default function ListingVideoForm() {
                   />
 
                   <div
-                    className={`border-2 border-dashed rounded-lg p-4 min-h-[140px] flex flex-col items-center justify-center cursor-pointer transition-colors bg-white ${
-                      dragActive[`interior-${part}`]
-                        ? "border-[#5046E5] bg-[#F5F7FC]"
-                        : "border-gray-300"
+                    className={`border-2 border-dashed rounded-lg p-4 min-h-[140px] flex flex-col items-center justify-center transition-colors ${
+                      !interiorPartsData[part].number || parseInt(interiorPartsData[part].number) <= 0
+                        ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
+                        : dragActive[`interior-${part}`]
+                        ? "border-[#5046E5] bg-[#F5F7FC] cursor-pointer bg-white"
+                        : "border-gray-300 cursor-pointer bg-white"
                     }`}
-                    onDragEnter={(e) => handleDragEnter(e, `interior-${part}`)}
-                    onDragLeave={(e) => handleDragLeave(e, `interior-${part}`)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, part, false)}
+                    onDragEnter={(e) => {
+                      if (interiorPartsData[part].number && parseInt(interiorPartsData[part].number) > 0) {
+                        handleDragEnter(e, `interior-${part}`)
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      if (interiorPartsData[part].number && parseInt(interiorPartsData[part].number) > 0) {
+                        handleDragLeave(e, `interior-${part}`)
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      if (interiorPartsData[part].number && parseInt(interiorPartsData[part].number) > 0) {
+                        handleDragOver(e)
+                      }
+                    }}
+                    onDrop={(e) => {
+                      if (interiorPartsData[part].number && parseInt(interiorPartsData[part].number) > 0) {
+                        handleDrop(e, part, false)
+                      }
+                    }}
                   >
                     <input
                       type="file"
                       multiple
                       accept="image/jpeg,image/jpg,image/png,image/avg"
-                      onChange={(e) =>
+                      onChange={(e) => {
                         handleImageUpload(part, e.target.files, false)
-                      }
+                        // Reset input value to allow selecting the same file again
+                        if (e.target) {
+                          e.target.value = ''
+                        }
+                      }}
                       className="hidden"
                       id={`interior-${part}`}
+                      disabled={!interiorPartsData[part].number || parseInt(interiorPartsData[part].number) <= 0}
                       ref={(el) => {
                         fileInputRefs.current[`interior-${part}`] = el
                       }}
                     />
                     {interiorPartsData[part].images.length === 0 ? (
                       <div 
-                        className="cursor-pointer text-center w-full"
+                        className={`text-center w-full ${
+                          !interiorPartsData[part].number || parseInt(interiorPartsData[part].number) <= 0
+                            ? "cursor-not-allowed"
+                            : "cursor-pointer"
+                        }`}
                         onClick={() => {
-                          fileInputRefs.current[`interior-${part}`]?.click()
+                          if (interiorPartsData[part].number && parseInt(interiorPartsData[part].number) > 0) {
+                            fileInputRefs.current[`interior-${part}`]?.click()
+                          }
                         }}
                       >
-                        <p className="text-base font-semibold text-[#5F5F5F] mb-1">
-                          Drag and drop Images
-                        </p>
-                        <p className="text-xs text-gray-400 mb-3">
-                          JPG, PNG or AVG
-                        </p>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            fileInputRefs.current[`interior-${part}`]?.click()
-                          }}
-                          className="text-sm text-[#5046E5] px-3 py-1 rounded-full bg-[#5046E51A]"
-                        >
-                          Browse local files
-                        </button>
+                        {!interiorPartsData[part].number || parseInt(interiorPartsData[part].number) <= 0 ? (
+                          <>
+                            <p className="text-base font-semibold text-gray-400 mb-1">
+                              Enter number first
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              Please specify the number of images above
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-base font-semibold text-[#5F5F5F] mb-1">
+                              Drag and drop Images
+                            </p>
+                            <p className="text-xs text-gray-400 mb-3">
+                              JPG, PNG or AVG
+                            </p>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (interiorPartsData[part].number && parseInt(interiorPartsData[part].number) > 0) {
+                                  fileInputRefs.current[`interior-${part}`]?.click()
+                                }
+                              }}
+                              className="text-sm text-[#5046E5] px-3 py-1 rounded-full bg-[#5046E51A]"
+                            >
+                              Browse local files
+                            </button>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="w-full">
