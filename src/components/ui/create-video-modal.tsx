@@ -19,6 +19,7 @@ interface CreateVideoModalProps {
   onClose: () => void
   videoTitle: string
   startAtComplete?: boolean
+  startAtLoading?: boolean
   videoData?: { title: string; youtubeUrl: string; thumbnail: string } | null
   webhookResponse?: {
     prompt?: string
@@ -32,6 +33,11 @@ interface CreateVideoModalProps {
     voice_id?: string
     music_url?: string
   } | null;
+  // Listing video mode props
+  mode?: 'talking-head' | 'listing' | 'music-video'
+  script?: string
+  onConfirmListing?: () => Promise<void>
+  onConfirmMusicVideo?: () => Promise<void>
 }
 
 type ModalStep = 'form' | 'loading' | 'complete'
@@ -58,8 +64,8 @@ interface VideoGenerationData {
   text?: string
 }
 
-export default function CreateVideoModal({ isOpen, onClose, startAtComplete = false, videoData, webhookResponse }: CreateVideoModalProps) {
-  const [currentStep, setCurrentStep] = useState<ModalStep>(startAtComplete ? 'complete' : 'form')
+export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtComplete = false, startAtLoading = false, videoData, webhookResponse, mode = 'talking-head', script, onConfirmListing, onConfirmMusicVideo }: CreateVideoModalProps) {
+  const [currentStep, setCurrentStep] = useState<ModalStep>(startAtComplete ? 'complete' : startAtLoading ? 'loading' : 'form')
   const [formData, setFormData] = useState({
     prompt: webhookResponse?.prompt || '',
     description: webhookResponse?.description || '',
@@ -133,9 +139,13 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
       openModal()
       setIsDownloading(false)
       // Reset modal step to 'form' when modal opens for new submission
-      // Only reset if not viewing completed video and not starting at complete
-      if (!startAtComplete && !videoData) {
+      // Only reset if not viewing completed video and not starting at complete or loading
+      if (!startAtComplete && !startAtLoading && !videoData) {
         setCurrentStep('form')
+        // Mark as new submission to prevent socket updates from overriding
+        isNewSubmissionRef.current = true
+      } else if (startAtLoading) {
+        setCurrentStep('loading')
         // Mark as new submission to prevent socket updates from overriding
         isNewSubmissionRef.current = true
       }
@@ -149,7 +159,7 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     return () => {
       closeModal()
     }
-  }, [isOpen, openModal, closeModal, startAtComplete, videoData])
+  }, [isOpen, openModal, closeModal, startAtComplete, startAtLoading, videoData])
 
   // Update form data and AI-generated content when webhookResponse changes
   useEffect(() => {
@@ -255,16 +265,18 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           if (prev <= 1) {
             clearInterval(countdownTimer!)
             // Close modal and navigate to /create-video when countdown reaches 0
-            setTimeout(() => {
-              // Close the modal first
-              onClose()
               setTimeout(() => {
-                if (window.location.pathname !== '/create-video' && videoGenerationreDirected) {
-                  setVideoGenerationreDirected(false);
-                  window.location.href = '/create-video'
-                }
-              }, 100)
-            }, 1000)
+                // Close the modal first
+                onClose()
+                setTimeout(() => {
+                  // For listing and music videos, redirect to gallery (create-video page)
+                  const targetPath = (mode === 'listing' || mode === 'music-video') ? '/create-video' : '/create-video'
+                  if (window.location.pathname !== targetPath && videoGenerationreDirected) {
+                    setVideoGenerationreDirected(false);
+                    window.location.href = targetPath
+                  }
+                }, 100)
+              }, 1000)
             return 0
           }
           return prev - 1
@@ -401,6 +413,52 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
     // Clear previous avatar errors and video updates
     setAvatarError('')
     clearVideoUpdates()
+
+    // Handle listing video mode
+    if (mode === 'listing' && onConfirmListing) {
+      try {
+        isNewSubmissionRef.current = false
+        setCurrentStep('loading')
+        await onConfirmListing()
+        // Store a key in localStorage to indicate video generation has started
+        localStorage.setItem('videoGenerationStarted', JSON.stringify({
+          timestamp: Date.now(),
+          videoTitle: videoTitle || 'Listing Video'
+        }))
+        console.log('🎬 Listing video generation API called - localStorage key set')
+        setVideoGenerationreDirected(true)
+        return
+      } catch (error: any) {
+        console.error('Listing video creation failed:', error)
+        localStorage.removeItem('videoGenerationStarted')
+        setAvatarError(error.message || 'Failed to create listing video. Please try again.')
+        setCurrentStep('form')
+        return
+      }
+    }
+
+    // Handle music video mode (direct submission, no script preview)
+    if (mode === 'music-video' && onConfirmMusicVideo) {
+      try {
+        isNewSubmissionRef.current = false
+        setCurrentStep('loading')
+        await onConfirmMusicVideo()
+        // Store a key in localStorage to indicate video generation has started
+        localStorage.setItem('videoGenerationStarted', JSON.stringify({
+          timestamp: Date.now(),
+          videoTitle: videoTitle || 'Music Video'
+        }))
+        console.log('🎬 Music video generation API called - localStorage key set')
+        setVideoGenerationreDirected(true)
+        return
+      } catch (error: any) {
+        console.error('Music video creation failed:', error)
+        localStorage.removeItem('videoGenerationStarted')
+        setAvatarError(error.message || 'Failed to create music video. Please try again.')
+        setCurrentStep('form')
+        return
+      }
+    }
 
     if (!validateForm()) {
       return
@@ -573,14 +631,19 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
 
   if (!isOpen) return null
 
+  // Smaller modal for listing and music videos
+  const modalSizeClass = (mode === 'listing' || mode === 'music-video')
+    ? 'max-w-[800px] max-h-[70vh]' 
+    : 'max-w-[1260px] max-h-[90vh]'
+
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-[12px] max-w-[1260px] w-full max-h-[90vh] flex flex-col relative">
+      <div className={`bg-white rounded-[12px] ${modalSizeClass} w-full flex flex-col relative`}>
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 pt-4 flex-shrink-0">
           <h3 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">
-            {currentStep === 'form' && 'Create new video'}
-            {currentStep === 'loading' && 'Creating a new video'}
+            {currentStep === 'form' && (mode === 'listing' ? 'Generated Script Preview' : mode === 'music-video' ? 'Create Music Video' : 'Create new video')}
+            {currentStep === 'loading' && (mode === 'listing' ? 'Creating listing video' : mode === 'music-video' ? 'Creating music video' : 'Creating a new video')}
             {currentStep === 'complete' && `${videoData ? `${videoData.title}` : 'Your video is Rendered'}`}
           </h3>
 
@@ -607,6 +670,59 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
           {/* Step 1: Form */}
           {currentStep === 'form' && (
             <>
+              {/* Music Video Mode - Direct submission (no preview) */}
+              {mode === 'music-video' && onConfirmMusicVideo ? (
+                <div className="text-center py-8">
+                  <p className="text-base text-[#5F5F5F] mb-6">
+                    Click the button below to create your music video.
+                  </p>
+                  <button
+                    onClick={handleCreateVideo}
+                    className="px-6 py-3 rounded-lg bg-[#5046E5] text-white hover:bg-[#4037c0] font-medium disabled:opacity-60 transition-colors"
+                  >
+                    Create Music Video
+                  </button>
+                </div>
+              ) : mode === 'listing' && script ? (
+                /* Listing Video Mode - Show Script Only */
+                <>
+                  <p className="text-base text-[#5F5F5F] mb-4">
+                    Review the script generated from your images. Click confirm to create your listing video.
+                  </p>
+                  <div className="mb-6">
+                    <label className="block text-base font-normal text-[#5F5F5F] mb-2">
+                      Generated Script <span className="text-red-500">*</span>
+                    </label>
+                    <div className="w-full min-h-[300px] max-h-[400px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 whitespace-pre-line overflow-y-auto">
+                      {script || 'No script generated.'}
+                    </div>
+                  </div>
+
+                  {/* Avatar Error Display */}
+                  {avatarError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <div>
+                          <h3 className="text-red-800 font-semibold">Error</h3>
+                          <p className="text-red-700 text-sm">{avatarError}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-center">
+                    <button
+                      onClick={handleCreateVideo}
+                      className="px-6 py-3 rounded-lg bg-[#5046E5] text-white hover:bg-[#4037c0] font-medium disabled:opacity-60 transition-colors"
+                    >
+                      Confirm & Create Video
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* Talking Head Mode - Show Form Fields */
+                <>
               <div className="flex gap-2 mb-8 md:flex-row flex-col">
                 <div className='w-full'>
                   <div className="flex items-center justify-between mb-2">
@@ -723,6 +839,8 @@ export default function CreateVideoModal({ isOpen, onClose, startAtComplete = fa
               >
                 Create Video
               </button>
+                </>
+              )}
             </>
           )}
 

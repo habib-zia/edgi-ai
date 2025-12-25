@@ -2059,6 +2059,7 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
         }}
         videoTitle={formDataForModal?.prompt || 'Custom Video'}
         webhookResponse={webhookResponse}
+        mode="talking-head"
       />
       <UsageLimitToast
         isVisible={showUsageToast}

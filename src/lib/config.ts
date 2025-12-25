@@ -52,6 +52,7 @@ export const API_CONFIG = {
       USER_SETTINGS: '/api/video/user-settings',
       NOTE: '/api/video',
       CREATE_LISTING: '/api/property-webhook',
+      CREATE_MUSIC_VIDEO: '/api/music-video',
       
       // CREATE_VIDEO: '/api/video/create',
     },

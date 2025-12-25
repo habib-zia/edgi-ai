@@ -8,6 +8,7 @@ import { validatePassword } from '@/lib/password-validation'
 import { apiService } from '@/lib/api-service'
 import { toast } from 'sonner'
 import LoadingButton from '@/components/ui/loading-button'
+import { useAppSelector } from '@/store/hooks'
 
 
 interface FormData {
@@ -24,6 +25,7 @@ interface FormErrors {
 function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { isAuthenticated } = useAppSelector((state) => state.user)
   const [formData, setFormData] = useState<FormData>({
     password: '',
     confirmPassword: ''
@@ -38,6 +40,13 @@ function ResetPasswordContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [token, setToken] = useState<string>('')
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
+
+  // Redirect authenticated users away from reset password page
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/')
+    }
+  }, [isAuthenticated, router])
 
   useEffect(() => {
     const tokenParam = searchParams.get('token')
@@ -152,6 +161,9 @@ function ResetPasswordContent() {
         usedTokens.push(token)
         localStorage.setItem('usedResetTokens', JSON.stringify(usedTokens))
         
+        // Clear token from URL by replacing the route without query params
+        router.replace('/reset-password')
+        
         setShowSuccess(true)
       } else
       {
@@ -174,7 +186,8 @@ function ResetPasswordContent() {
   }
 
   const handleBackToSignin = () => {
-    router.push('/')
+    // Ensure we navigate to home without any query params
+    router.replace('/')
   }
 
   // Loading state

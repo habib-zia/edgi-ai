@@ -17,6 +17,7 @@ import { useVoicesAndMusic } from '@/hooks/useVoicesAndMusic'
 import { listingVideoSchema, ListingVideoFormData } from './form-validation-schema'
 import { useAppSelector } from '@/store/hooks'
 import SubmitButton from './submit-button'
+import CreateVideoModal from './create-video-modal'
 
 // Exterior parts options
 const exteriorParts = [
@@ -142,6 +143,10 @@ export default function ListingVideoForm() {
       city: '',
       address: '',
       price: '',
+      size: '',
+      bedroomCount: '',
+      livingRoomCount: '',
+      bathroomCount: '',
       socialHandles: '',
       mainSellingPoints: '',
       preset: '',
@@ -156,7 +161,6 @@ export default function ListingVideoForm() {
   const [isPropertyTypeDropdownOpen, setIsPropertyTypeDropdownOpen] = useState(false)
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false)
   const [isGeneratingScript, setIsGeneratingScript] = useState(false)
-  const [isFinalSubmitting, setIsFinalSubmitting] = useState(false)
   const [mergedScript, setMergedScript] = useState<string>('')
   const [pendingFormData, setPendingFormData] = useState<ListingVideoFormData | null>(null)
   const [uploadedImages, setUploadedImages] = useState<Array<{ type: string; imageUrl: string; s3Key?: string }>>([])
@@ -634,6 +638,18 @@ export default function ListingVideoForm() {
       return
     }
 
+    // Check for unsupported file types first
+    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/avg', 'image/avif', 'image/webp']
+    const invalidFiles = Array.from(files).filter(file => !validImageTypes.includes(file.type.toLowerCase()))
+    
+    if (invalidFiles.length > 0) {
+      showNotification(
+        "This file type isn't supported.\nTry uploading a JPG, PNG, AVIF, or WebP image.",
+        'error'
+      )
+      return
+    }
+
     const imageFiles: ImageFile[] = Array.from(files)
       .filter((file) => {
         const isValid = file.type.startsWith("image/")
@@ -657,16 +673,20 @@ export default function ListingVideoForm() {
       .filter((item): item is ImageFile => item !== null)
     
     if (imageFiles.length === 0) {
-      showNotification('No valid image files selected. Please select JPG, PNG, AVG, AVIF, or WebP files.', 'error')
+      showNotification(
+        "This file type isn't supported.\nTry uploading a JPG, PNG, AVIF, or WebP image.",
+        'error'
+      )
       return
     }
 
+    // Only count images from checked parts
     const exteriorTotal = Object.values(exteriorPartsData).reduce(
-      (sum, partData) => sum + partData.images.length,
+      (sum, partData) => sum + (partData.checked ? partData.images.length : 0),
       0
     )
     const interiorTotal = Object.values(interiorPartsData).reduce(
-      (sum, partData) => sum + partData.images.length,
+      (sum, partData) => sum + (partData.checked ? partData.images.length : 0),
       0
     )
     const currentTotal = exteriorTotal + interiorTotal
@@ -805,11 +825,12 @@ export default function ListingVideoForm() {
   const [dragActive, setDragActive] = useState<Record<string, boolean>>({})
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
+  // Only count images from checked parts
   const totalImages = Object.values(exteriorPartsData).reduce(
-    (sum, partData) => sum + partData.images.length,
+    (sum, partData) => sum + (partData.checked ? partData.images.length : 0),
     0
   ) + Object.values(interiorPartsData).reduce(
-    (sum, partData) => sum + partData.images.length,
+    (sum, partData) => sum + (partData.checked ? partData.images.length : 0),
     0
   )
 
@@ -925,6 +946,10 @@ export default function ListingVideoForm() {
       scriptFormData.append('city', data.city || '')
       scriptFormData.append('address', data.address || '')
       scriptFormData.append('price', data.price || '')
+      scriptFormData.append('size', data.size || '')
+      scriptFormData.append('bedroomCount', data.bedroomCount || '')
+      scriptFormData.append('livingRoomCount', data.livingRoomCount || '')
+      scriptFormData.append('bathroomCount', data.bathroomCount || '')
       // Parse comma-separated mainSellingPoints into array and append each item separately
       const sellingPointsArray = data.mainSellingPoints
         ? data.mainSellingPoints.split(',').map(point => point.trim()).filter(point => point.length > 0)
@@ -982,32 +1007,27 @@ export default function ListingVideoForm() {
 
   const handleConfirmScript = async () => {
     if (!pendingFormData) {
-      showNotification('No pending form data found. Please try submitting again.', 'error')
-      return
+      throw new Error('No pending form data found. Please try submitting again.')
     }
 
     if (!selectedAvatars.title) {
-      showNotification("Please select an avatar", "error")
-      return
+      throw new Error('Please select an avatar')
     }
 
     if (!userEmail) {
-      showNotification('User email not found. Please sign in again.', 'error')
-      return
+      throw new Error('User email not found. Please sign in again.')
     }
 
-    setIsFinalSubmitting(true)
-    try {
-      // Transform images to match required format: { type, imageurl }
-      const formattedImages = uploadedImages.map((img) => ({
-        type: img.type,
-        imageurl: img.imageUrl
-      }))
+    // Transform images to match required format: { type, imageurl }
+    const formattedImages = uploadedImages.map((img) => ({
+      type: img.type,
+      imageurl: img.imageUrl
+    }))
 
-      // Transform webhookResponse to match required format: [{ text: "..." }]
-      const formattedWebhookResponse = webhookTexts.map((text) => ({
-        text: text
-      }))
+    // Transform webhookResponse to match required format: [{ text: "..." }]
+    const formattedWebhookResponse = webhookTexts.map((text) => ({
+      text: text
+    }))
 
       const payload = {
         images: formattedImages,
@@ -1021,93 +1041,33 @@ export default function ListingVideoForm() {
         music: selectedMusic?.s3FullTrackUrl || '',
         videoCaption: true,
         voiceId: selectedVoice?.id || pendingFormData.voice || '',
-        title: pendingFormData.title || ''
+        title: pendingFormData.title || '',
+        size: pendingFormData.size || ''
       }
 
-      const response = await apiService.createListingVideo(payload)
+    const response = await apiService.createListingVideo(payload)
 
-      if (response.success) {
-        showNotification('Listing video created successfully!', 'success')
-        setIsScriptModalOpen(false)
-        setPendingFormData(null)
-      } else {
-        showNotification(response.message || 'Failed to create listing video', 'error')
-      }
-    } catch (error: any) {
-      console.error('Error confirming listing submission:', error)
-      showNotification(error.message || 'Failed to create listing video', 'error')
-    } finally {
-      setIsFinalSubmitting(false)
+    if (response.success) {
+      showNotification('Listing video created successfully!', 'success')
+      // Modal will handle closing and redirect
+    } else {
+      throw new Error(response.message || 'Failed to create listing video')
     }
   }
 
   return (
     <>
-      {isScriptModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-x-hidden">
-          <div className="bg-white rounded-[12px] max-w-[800px] w-full max-h-[70vh] flex flex-col relative">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 pt-4 flex-shrink-0">
-              <h3 className="md:text-[32px] text-[24px] font-semibold text-[#282828]">
-                {isFinalSubmitting ? 'Creating listing video' : 'Generated Script Preview'}
-              </h3>
-
-              {/* Hide close button when submitting */}
-              {!isFinalSubmitting && (
-                <button
-                  onClick={() => setIsScriptModalOpen(false)}
-                  className="cursor-pointer"
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.5 1.5L1.5 22.5M1.5 1.5L22.5 22.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            {/* Modal Content */}
-            <div className="px-6 pt-2 pb-6 overflow-y-auto flex-1">
-              {isFinalSubmitting ? (
-                /* Loading State */
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg className="animate-spin h-12 w-12 text-[#5046E5] mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <p className="text-xl font-semibold text-gray-800 mb-2">Processing...</p>
-                  <p className="text-sm text-[#5F5F5F]">This may take 30-50 seconds</p>
-                </div>
-              ) : (
-                /* Script Preview */
-                <>
-                  <p className="text-base text-[#5F5F5F] mb-4">
-                    Review the script generated from your images. Click confirm to create your listing video.
-                  </p>
-                  <div className="mb-6">
-                    <label className="block text-base font-normal text-[#5F5F5F] mb-2">
-                      Generated Script <span className="text-red-500">*</span>
-                    </label>
-                    <div className="w-full min-h-[300px] max-h-[400px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 whitespace-pre-line overflow-y-auto">
-                      {mergedScript || 'No script generated.'}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={handleConfirmScript}
-                      className="px-6 py-3 rounded-lg bg-[#5046E5] text-white hover:bg-[#4037c0] font-medium disabled:opacity-60"
-                      disabled={isFinalSubmitting}
-                    >
-                      Confirm & Create Video
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <CreateVideoModal
+        isOpen={isScriptModalOpen}
+        onClose={() => {
+          setIsScriptModalOpen(false)
+          setPendingFormData(null)
+        }}
+        videoTitle={pendingFormData?.title || 'Listing Video'}
+        mode="listing"
+        script={mergedScript}
+        onConfirmListing={handleConfirmScript}
+      />
 
       <form 
         onSubmit={handleSubmit(onSubmit)} 
@@ -1237,29 +1197,6 @@ export default function ListingVideoForm() {
             />
           </div>
 
-          {/* City - 4th Field */}
-          <div>
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              City <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("city", { required: true })}
-              placeholder="Please Specify"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                }
-              }}
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.city ? 'ring-2 ring-red-500' : ''
-              }`}
-            />
-            {errors.city && (
-              <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
-            )}
-          </div>
-
           {/* Gender - Always visible */}
           <div className="relative" data-dropdown="gender">
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
@@ -1379,6 +1316,29 @@ export default function ListingVideoForm() {
             </div>
           )}
 
+          {/* City */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("city", { required: true })}
+              placeholder="Please Specify"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.city ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.city && (
+              <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
+            )}
+          </div>
+
           {/* Address */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
@@ -1422,6 +1382,98 @@ export default function ListingVideoForm() {
             />
             {errors.price && (
               <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>
+            )}
+          </div>
+
+          {/* Size */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Size (Square/Feet) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("size", { required: true })}
+              placeholder="e.g., 1500 sq ft, 2000 sq ft"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.size ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.size && (
+              <p className="text-red-500 text-sm mt-1">{errors.size.message}</p>
+            )}
+          </div>
+
+          {/* Bedroom Count */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Bedroom Count <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("bedroomCount", { required: true })}
+              placeholder="e.g., 2, 3, 4"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.bedroomCount ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.bedroomCount && (
+              <p className="text-red-500 text-sm mt-1">{errors.bedroomCount.message}</p>
+            )}
+          </div>
+
+          {/* Living Room Count */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Living Room Count <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("livingRoomCount", { required: true })}
+              placeholder="e.g., 1, 2"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.livingRoomCount ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.livingRoomCount && (
+              <p className="text-red-500 text-sm mt-1">{errors.livingRoomCount.message}</p>
+            )}
+          </div>
+
+          {/* Bathroom Count */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Bathroom Count <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("bathroomCount", { required: true })}
+              placeholder="e.g., 1, 2, 3"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.bathroomCount ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.bathroomCount && (
+              <p className="text-red-500 text-sm mt-1">{errors.bathroomCount.message}</p>
             )}
           </div>
 
@@ -1481,7 +1533,7 @@ export default function ListingVideoForm() {
             <div className="flex items-center gap-2">
               <span className="font-semibold">Your Images:</span>
               <span className={`font-bold ${totalImages >= 10 ? 'text-red-600' : totalImages >= 7 ? 'text-yellow-600' : 'text-blue-600'}`}>
-                {totalImages} of 10 uploaded
+                {totalImages} of 10 selected
               </span>
             </div>
             <div className="text-sm">
