@@ -69,6 +69,14 @@ export const listingVideoSchema = z.object({
     .max(200, 'Address must be less than 200 characters'),
   price: z.string()
     .min(1, 'Price is required'),
+  size: z.string()
+    .min(1, 'Size is required'),
+  bedroomCount: z.string()
+    .min(1, 'Bedroom count is required'),
+  livingRoomCount: z.string()
+    .min(1, 'Living room count is required'),
+  bathroomCount: z.string()
+    .min(1, 'Bathroom count is required'),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
   mainSellingPoints: z.string().optional(),
@@ -77,3 +85,33 @@ export const listingVideoSchema = z.object({
 
 // Type inference from schema
 export type ListingVideoFormData = z.infer<typeof listingVideoSchema>
+
+// Form validation schema for MusicVideoForm
+export const musicVideoSchema = z.object({
+  topic: z.string()
+    .min(2, 'Topic must be at least 2 characters')
+    .max(200, 'Topic must be less than 200 characters'),
+  price: z.string()
+    .min(1, 'Price is required'),
+  size: z.string()
+    .min(1, 'Size is required'),
+  bedroomCount: z.string()
+    .min(1, 'Bedroom count is required'),
+  washroomCount: z.string()
+    .min(1, 'Washroom count is required'),
+  livingRoomCount: z.string()
+    .min(1, 'Living room count is required'),
+  socialHandles: z.string()
+    .min(1, 'Social handles is required'),
+  city: z.string()
+    .min(2, 'City must be at least 2 characters')
+    .max(50, 'City must be less than 50 characters'),
+  address: z.string()
+    .min(5, 'Address must be at least 5 characters')
+    .max(200, 'Address must be less than 200 characters'),
+  music: z.string()
+    .min(1, 'Please select music'),
+})
+
+// Type inference from schema
+export type MusicVideoFormData = z.infer<typeof musicVideoSchema>
