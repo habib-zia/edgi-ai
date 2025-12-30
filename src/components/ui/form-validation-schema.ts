@@ -113,6 +113,7 @@ export const musicVideoSchema = z.object({
     .regex(/^\d+$/, 'Washroom count must be a number'),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
+  mainSellingPoints: z.string().optional(),
   city: z.string()
     .min(2, 'City must be at least 2 characters')
     .max(50, 'City must be less than 50 characters'),

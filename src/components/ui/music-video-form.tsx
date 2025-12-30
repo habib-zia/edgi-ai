@@ -61,6 +61,7 @@ export default function MusicVideoForm() {
       bedroomCount: '',
       washroomCount: '',
       socialHandles: '',
+      mainSellingPoints: '',
       city: '',
       address: '',
       music: '',
@@ -391,6 +392,7 @@ export default function MusicVideoForm() {
        * - bedRoomCount: string (required)
        * - bathRoomCount: string (required)
        * - social_handles: string (required)
+       * - mainSellingPoints[]: string[] (optional, array of selling points)
        * - city: string (required)
        * - address: string (required)
        * - email: string (user's email)
@@ -413,6 +415,16 @@ export default function MusicVideoForm() {
       formData.append('bedRoomCount', data.bedroomCount)
       formData.append('bathRoomCount', data.washroomCount)
       formData.append('social_handles', data.socialHandles)
+      
+      // Parse comma-separated mainSellingPoints into array and append each item separately
+      const sellingPointsArray = data.mainSellingPoints
+        ? data.mainSellingPoints.split(',').map(point => point.trim()).filter(point => point.length > 0)
+        : []
+      // Append each selling point separately so backend receives it as an array
+      sellingPointsArray.forEach((point) => {
+        formData.append('mainSellingPoints[]', point)
+      })
+      
       formData.append('city', data.city)
       formData.append('address', data.address)
       formData.append('email', userEmail)
@@ -608,7 +620,20 @@ export default function MusicVideoForm() {
             <input
               type="text"
               {...register("price", { required: true })}
-              placeholder="e.g., $2000, €2000, £2000"
+              placeholder="e.g., 2000, 2000.50"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                if (char === '.' && currentValue.includes('.')) {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9.]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -639,7 +664,7 @@ export default function MusicVideoForm() {
                   message: 'Size must be a number'
                 }
               })}
-              placeholder="e.g., 1500, 2000"
+              placeholder="e.g., 1500 sq ft, 2000 sq ft"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -674,7 +699,7 @@ export default function MusicVideoForm() {
                   message: 'Bedroom count must be a number'
                 }
               })}
-              placeholder="e.g., 2, 3, 4"
+              placeholder="e.g., 1, 2, 3"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -693,10 +718,10 @@ export default function MusicVideoForm() {
             )}
           </div>
 
-          {/* Washroom Count */}
+          {/* Restroom Count */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Washroom Count <span className="text-red-500">*</span>
+              Restroom Count <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -706,7 +731,7 @@ export default function MusicVideoForm() {
                 required: true,
                 pattern: {
                   value: /^\d+$/,
-                  message: 'Washroom count must be a number'
+                  message: 'Restroom count must be a number'
                 }
               })}
               placeholder="e.g., 1, 2, 3"
@@ -736,7 +761,7 @@ export default function MusicVideoForm() {
             <input
               type="text"
               {...register("socialHandles", { required: true })}
-              placeholder="Please Specify"
+              placeholder="e.g. @johnsmith, @facebook"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -751,6 +776,24 @@ export default function MusicVideoForm() {
             )}
           </div>
 
+          {/* Main Selling Points */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Main Selling Points
+            </label>
+            <input
+              type="text"
+              {...register("mainSellingPoints")}
+              placeholder="e.g., Spacious rooms, Modern kitchen, Great location, Parking available"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+            />
+          </div>
+
           {/* City */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
@@ -759,7 +802,7 @@ export default function MusicVideoForm() {
             <input
               type="text"
               {...register("city", { required: true })}
-              placeholder="Please Specify"
+              placeholder="e.g. Los Angeles"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -782,7 +825,7 @@ export default function MusicVideoForm() {
             <input
               type="text"
               {...register("address", { required: true })}
-              placeholder="Please Specify"
+              placeholder="e.g. 123 Main St, LA"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
