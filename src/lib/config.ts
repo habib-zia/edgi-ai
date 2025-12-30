@@ -51,13 +51,8 @@ export const API_CONFIG = {
       PENDING_WORKFLOWS: '/api/video/pending-workflows',
       USER_SETTINGS: '/api/video/user-settings',
       NOTE: '/api/video',
-<<<<<<< Updated upstream
       CREATE_LISTING: '/api/listing-create-video',
       CREATE_MUSIC_VIDEO: '/api/music-video',
-=======
-      CREATE_LISTING: '/api/property-webhook',
-      CREATE_MUSIC_VIDEO: '/api/tour-video',
->>>>>>> Stashed changes
       
       // CREATE_VIDEO: '/api/video/create',
     },
