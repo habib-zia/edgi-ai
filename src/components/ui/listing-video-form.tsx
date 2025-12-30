@@ -21,9 +21,9 @@ import CreateVideoModal from './create-video-modal'
 
 // Exterior parts options
 const exteriorParts = [
-  "Roof",
-  "Chimney",
-  "Walls",
+  "Street-side / Exterior view",
+  // "Chimney",
+  // "Walls",
   "Windows",
   "Doors",
   "Porch",
@@ -32,6 +32,9 @@ const exteriorParts = [
   "Driveway",
   "Fence",
   "Garden / Yard",
+  "Closets",
+  "Pool",
+  "ADUs / studios",
 ]
 
 // Interior parts options
@@ -40,7 +43,7 @@ const interiorParts = [
   "Bedroom",
   "Kitchen",
   "Dining room",
-  "Bathroom / Washroom",
+  "Restroom",
   "Study / Office",
   "Guest room",
   "Basement",
@@ -87,6 +90,7 @@ const propertyTypeOptions = [
   { value: 'Single-Family Home', label: 'Single-Family Home' },
   { value: 'Townhouse', label: 'Townhouse' },
   { value: 'Duplex / Multi-Family', label: 'Duplex / Multi-Family' },
+  { value: 'ADUs / Studios', label: 'ADUs / Studios' },
 ]
 
 // City options
@@ -144,12 +148,14 @@ export default function ListingVideoForm() {
       address: '',
       price: '',
       size: '',
+      lotSize: '',
       bedroomCount: '',
-      livingRoomCount: '',
+      // livingRoomCount: '',
       bathroomCount: '',
       socialHandles: '',
       mainSellingPoints: '',
       preset: '',
+      preferredTone: '',
     },
   })
 
@@ -159,6 +165,8 @@ export default function ListingVideoForm() {
 
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isPropertyTypeDropdownOpen, setIsPropertyTypeDropdownOpen] = useState(false)
+  const [isUseMusicDropdownOpen, setIsUseMusicDropdownOpen] = useState(false)
+  const [useMusic, setUseMusic] = useState<'yes' | 'no' | null>(null)
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false)
   const [isGeneratingScript, setIsGeneratingScript] = useState(false)
   const [mergedScript, setMergedScript] = useState<string>('')
@@ -207,6 +215,7 @@ export default function ListingVideoForm() {
   const [draggedMusic, setDraggedMusic] = useState<Voice | null>(null)
   const [currentVoiceType, setCurrentVoiceType] = useState<VoiceType | null>(null)
   const [currentMusicType, setCurrentMusicType] = useState<VoiceType | null>(null)
+  const [customMusic, setCustomMusic] = useState<Voice[]>([])
 
   const [exteriorPartsData, setExteriorPartsData] = useState<Record<string, ExteriorPartData>>(
     exteriorParts.reduce(
@@ -529,6 +538,15 @@ export default function ListingVideoForm() {
     setCurrentMusicType(type as 'low' | 'medium' | 'high' | null)
   }
 
+  const handleCustomMusicUpload = (music: Voice) => {
+    setCustomMusic((prev) => {
+      // Check if music already exists (by id)
+      const exists = prev.some(m => m.id === music.id || m._id === music.id || m._id === music._id)
+      if (exists) return prev
+      return [...prev, music]
+    })
+  }
+
   // Reset voice and music when gender changes
   const prevGenderRef = useRef<string | null>(null)
   
@@ -543,6 +561,7 @@ export default function ListingVideoForm() {
       setCurrentMusicType(null)
       setSelectedVoice(null)
       setSelectedMusic(null)
+      setUseMusic(null)
     }
     
     prevGenderRef.current = currentGender
@@ -571,6 +590,9 @@ export default function ListingVideoForm() {
       if (isPropertyTypeDropdownOpen && !target.closest('[data-dropdown="propertyType"]')) {
         setIsPropertyTypeDropdownOpen(false)
       }
+      if (isUseMusicDropdownOpen && !target.closest('[data-dropdown="useMusic"]')) {
+        setIsUseMusicDropdownOpen(false)
+      }
       
       if (openDropdown === 'avatar') {
         const isInsideButton = target.closest('.avatar-dropdown-button')
@@ -586,14 +608,14 @@ export default function ListingVideoForm() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [isGenderDropdownOpen, isPropertyTypeDropdownOpen, openDropdown])
+  }, [isGenderDropdownOpen, isPropertyTypeDropdownOpen, isUseMusicDropdownOpen, openDropdown])
 
   const handleExteriorPartToggle = (part: string) => {
     setExteriorPartsData((prev) => ({
       ...prev,
       [part]: {
-        ...prev[part],
-        checked: !prev[part].checked,
+        ...prev[part] || { checked: false, images: [] },
+        checked: !(prev[part]?.checked || false),
       },
     }))
   }
@@ -692,8 +714,8 @@ export default function ListingVideoForm() {
     const currentTotal = exteriorTotal + interiorTotal
     
     const currentPartImages = isExterior
-      ? exteriorPartsData[part].images.length
-      : interiorPartsData[part].images.length
+      ? exteriorPartsData[part]?.images.length || 0
+      : interiorPartsData[part]?.images.length || 0
 
     if (currentTotal + imageFiles.length > 10) {
       const allowed = 10 - currentTotal
@@ -712,21 +734,7 @@ export default function ListingVideoForm() {
     }
 
     if (isExterior) {
-      if (currentPartImages >= 1) {
-        showNotification(
-          `Exterior part "${part}" can only have 1 image. Please remove the existing image first.`,
-          "error"
-        )
-        return
-      }
-      if (imageFiles.length > 1) {
-        showNotification(
-          `Exterior part "${part}" can only have 1 image. Only the first image will be uploaded.`,
-          "warning"
-        )
-        imageFiles.splice(1)
-      }
-
+      // Allow multiple images for exterior parts, only limited by total 10-image limit
       setExteriorPartsData((prev) => ({
         ...prev,
         [part]: {
@@ -890,13 +898,20 @@ export default function ListingVideoForm() {
       return
     }
 
-    // Validate voice and music are selected if gender is selected
+    // Validate voice is selected if gender is selected
     if (data.gender && !selectedVoice) {
       showNotification("Please select a voice", "error")
       return
     }
     
-    if (data.gender && !selectedMusic) {
+    // Validate useMusic is selected if gender is selected
+    if (data.gender && !useMusic) {
+      showNotification("Please select whether to use music", "error")
+      return
+    }
+    
+    // Validate music is selected only if useMusic is "yes"
+    if (data.gender && useMusic === 'yes' && !selectedMusic) {
       showNotification("Please select music", "error")
       return
     }
@@ -909,10 +924,13 @@ export default function ListingVideoForm() {
       // Only include images from checked exterior parts
       Object.entries(exteriorPartsData).forEach(([part, partData]) => {
         if (partData.checked && partData.images.length > 0) {
-          partData.images.forEach((imageFile) => {
+          partData.images.forEach((imageFile, index) => {
+            const imageType = index === 0 
+              ? part 
+              : `${part} angle ${index}`
             imagesArray.push({
               image: imageFile.file,
-              type: part
+              type: imageType
             })
           })
         }
@@ -921,10 +939,13 @@ export default function ListingVideoForm() {
       // Only include images from checked interior parts
       Object.entries(interiorPartsData).forEach(([part, partData]) => {
         if (partData.checked && partData.images.length > 0) {
-          partData.images.forEach((imageFile) => {
+          partData.images.forEach((imageFile, index) => {
+            const imageType = index === 0 
+              ? part 
+              : `${part} angle ${index}`
             imagesArray.push({
               image: imageFile.file,
-              type: part
+              type: imageType
             })
           })
         }
@@ -947,8 +968,9 @@ export default function ListingVideoForm() {
       scriptFormData.append('address', data.address || '')
       scriptFormData.append('price', data.price || '')
       scriptFormData.append('size', data.size || '')
+      scriptFormData.append('lotSize', data.lotSize || '')
       scriptFormData.append('bedroomCount', data.bedroomCount || '')
-      scriptFormData.append('livingRoomCount', data.livingRoomCount || '')
+      // scriptFormData.append('livingRoomCount', data.livingRoomCount || '')
       scriptFormData.append('bathroomCount', data.bathroomCount || '')
       // Parse comma-separated mainSellingPoints into array and append each item separately
       const sellingPointsArray = data.mainSellingPoints
@@ -961,6 +983,7 @@ export default function ListingVideoForm() {
       })
       scriptFormData.append('social_handles', data.socialHandles || '')
       scriptFormData.append('propertyType', data.propertyType)
+      scriptFormData.append('preferredTone', data.preferredTone || '')
 
       const scriptResponse = await apiService.generateListingScript(scriptFormData)
       if (!scriptResponse.success || !scriptResponse.data) {
@@ -1038,11 +1061,14 @@ export default function ListingVideoForm() {
         social_handles: pendingFormData.socialHandles || '',
         propertyType: pendingFormData.propertyType,
         avatar: selectedAvatars.title.avatar_id,
-        music: selectedMusic?.s3FullTrackUrl || '',
+        useMusic: useMusic || null,
+        music: useMusic === 'yes' ? (selectedMusic?.s3FullTrackUrl || '') : null,
         videoCaption: true,
         voiceId: selectedVoice?.id || pendingFormData.voice || '',
         title: pendingFormData.title || '',
-        size: pendingFormData.size || ''
+        size: pendingFormData.size || '',
+        lotSize: pendingFormData.lotSize || '',
+        preferredTone: pendingFormData.preferredTone || ''
       }
 
     const response = await apiService.createListingVideo(payload)
@@ -1079,7 +1105,7 @@ export default function ListingVideoForm() {
         className="space-y-8"
       >
       {/* Property Details Section */}
-      <div className="bg-white p-6 md:p-8">
+      <div className="bg-white p-2 md:p-8">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#282828] mb-6">
           Fill the Property Details
         </h2>
@@ -1280,8 +1306,61 @@ export default function ListingVideoForm() {
             </div>
           )}
 
-          {/* Music - Shows after gender is selected */}
+          {/* Use Music? - Shows after gender is selected */}
           {watch("gender") && (
+            <div className="relative" data-dropdown="useMusic">
+              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+                Use Music? <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsUseMusicDropdownOpen(!isUseMusicDropdownOpen)}
+                className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800`}
+              >
+                <span>
+                  {useMusic === 'yes' ? 'Yes' : useMusic === 'no' ? 'No' : 'Select Option'}
+                </span>
+                <IoMdArrowDropdown
+                  className={`w-4 h-4 transition-transform duration-300 ${
+                    isUseMusicDropdownOpen ? "rotate-180" : ""
+                  }`}
+                  style={{ color: 'inherit' }}
+                />
+              </button>
+              {isUseMusicDropdownOpen && (
+                <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseMusic('yes')
+                      setIsUseMusicDropdownOpen(false)
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseMusic('no')
+                      setIsUseMusicDropdownOpen(false)
+                      // Clear music when "No" is selected
+                      setSelectedMusic(null)
+                      setCurrentMusicType(null)
+                      setValue('music', '', { shouldValidate: false, shouldDirty: false })
+                      trigger('music')
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
+                  >
+                    No
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Music - Shows after gender is selected and useMusic is "yes" */}
+          {watch("gender") && useMusic === 'yes' && (
             <div>
               <label className="block text-base font-normal text-[#5F5F5F] mb-1">
                 Music <span className="text-red-500">*</span>
@@ -1295,7 +1374,7 @@ export default function ListingVideoForm() {
                 trigger={trigger as any}
                 openDropdown={openDropdown}
                 selectedMusic={selectedMusic}
-                musicList={allMusic.length > 0 ? allMusic : musicList}
+                musicList={[...(allMusic.length > 0 ? allMusic : musicList), ...customMusic]}
                 musicLoading={musicLoading}
                 musicError={musicError}
                 preset={preset}
@@ -1309,12 +1388,36 @@ export default function ListingVideoForm() {
                 onDragOver={handleMusicDragOver}
                 onDragLeave={handleMusicDragLeave}
                 onDrop={handleMusicDrop}
+                onCustomMusicUpload={handleCustomMusicUpload}
               />
               {errors.music && (
                 <p className="text-red-500 text-sm mt-1">{errors.music.message}</p>
               )}
             </div>
           )}
+
+          {/* Preferred Tone */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Preferred Tone <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("preferredTone", { required: true })}
+              placeholder="e.g. Professional, friendly, etc."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.preferredTone ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.preferredTone && (
+              <p className="text-red-500 text-sm mt-1">{errors.preferredTone.message}</p>
+            )}
+          </div>
 
           {/* City */}
           <div>
@@ -1324,7 +1427,7 @@ export default function ListingVideoForm() {
             <input
               type="text"
               {...register("city", { required: true })}
-              placeholder="Please Specify"
+              placeholder="e.g. Los Angeles"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1347,7 +1450,7 @@ export default function ListingVideoForm() {
             <input
               type="text"
               {...register("address", { required: true })}
-              placeholder="Please Specify"
+              placeholder="e.g. 123 Main St, LA"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1365,14 +1468,27 @@ export default function ListingVideoForm() {
           {/* Price */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Price <span className="text-red-500">*</span>
+              Price <span className="text-[10px]">(USD)</span> <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               {...register("price", { required: true })}
-              placeholder="e.g., $2000, €2000, £2000"
+              placeholder="e.g., 2000, 2000.50"
+              inputMode="numeric"
+              pattern="[0-9]*"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                if (char === '.' && currentValue.includes('.')) {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9.]/.test(char)) {
                   e.preventDefault()
                 }
               }}
@@ -1388,12 +1504,25 @@ export default function ListingVideoForm() {
           {/* Size */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Size (Square/Feet) <span className="text-red-500">*</span>
+              Size (Sq. Ft) <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               {...register("size", { required: true })}
               placeholder="e.g., 1500 sq ft, 2000 sq ft"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                if (char === '.' && currentValue.includes('.')) {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9.]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1408,6 +1537,42 @@ export default function ListingVideoForm() {
             )}
           </div>
 
+          {/* Lot Size (Sq. Ft) */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+            Lot Size (Sq. Ft)
+            </label>
+            <input
+              type="text"
+              {...register("lotSize")}
+              placeholder="e.g., 1500 sq ft, 2000 sq ft"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                if (char === '.' && currentValue.includes('.')) {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9.]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.lotSize ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.lotSize && (
+              <p className="text-red-500 text-sm mt-1">{errors.lotSize.message}</p>
+            )}
+          </div>
+
           {/* Bedroom Count */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
@@ -1416,7 +1581,15 @@ export default function ListingVideoForm() {
             <input
               type="text"
               {...register("bedroomCount", { required: true })}
-              placeholder="e.g., 2, 3, 4"
+              placeholder="e.g., 1, 2, 3"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyPress={(e) => {
+                const char = e.key
+                if (!/[0-9]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1432,7 +1605,7 @@ export default function ListingVideoForm() {
           </div>
 
           {/* Living Room Count */}
-          <div>
+          {/* <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
               Living Room Count <span className="text-red-500">*</span>
             </label>
@@ -1452,17 +1625,25 @@ export default function ListingVideoForm() {
             {errors.livingRoomCount && (
               <p className="text-red-500 text-sm mt-1">{errors.livingRoomCount.message}</p>
             )}
-          </div>
+          </div> */}
 
-          {/* Bathroom Count */}
+          {/* Restroom Count */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Bathroom Count <span className="text-red-500">*</span>
+              Restroom Count <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               {...register("bathroomCount", { required: true })}
               placeholder="e.g., 1, 2, 3"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyPress={(e) => {
+                const char = e.key
+                if (!/[0-9]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1485,7 +1666,7 @@ export default function ListingVideoForm() {
             <input
               type="text"
               {...register("socialHandles", { required: true })}
-              placeholder="Please Specify"
+              placeholder="e.g. @johnsmith, @facebook"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1521,7 +1702,7 @@ export default function ListingVideoForm() {
       </div>
 
       {/* Image Count Notification */}
-      <div className="bg-white p-6 md:p-8">
+      <div className="bg-white p-2 md:p-8">
         <div className={`p-4 rounded-lg border-2 ${
           totalImages >= 10 
             ? 'bg-red-50 border-red-200 text-red-800' 
@@ -1529,7 +1710,7 @@ export default function ListingVideoForm() {
             ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
             : 'bg-blue-50 border-blue-200 text-blue-800'
         }`}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="font-semibold">Your Images:</span>
               <span className={`font-bold ${totalImages >= 10 ? 'text-red-600' : totalImages >= 7 ? 'text-yellow-600' : 'text-blue-600'}`}>
@@ -1549,15 +1730,15 @@ export default function ListingVideoForm() {
           <div className="mt-3 text-sm">
             <p className="text-sm font-medium mb-2">How it works:</p>
             <ul className="space-y-1.5 text-xs opacity-90">
-              <li className="flex items-start gap-2">
+              <li className="flex items-end gap-2">
                 <span className="text-[#5046E5] mt-1">•</span>
-                <span><strong>Exterior parts:</strong> Upload 1 image per part (e.g., Front View, Back View)</span>
+                <span><strong>Exterior parts:</strong> Upload multiple images per part (e.g., multiple views of the front, back, etc.)</span>
               </li>
-              <li className="flex items-start gap-2">
+              <li className="flex items-end gap-2">
                 <span className="text-[#5046E5] mt-1">•</span>
                 <span><strong>Interior parts:</strong> Enter a number first, then upload that many images (e.g., enter "3" to upload 3 bedroom photos)</span>
               </li>
-              <li className="flex items-start gap-2">
+              <li className="flex items-end gap-2">
                 <span className="text-[#5046E5] mt-1">•</span>
                 <span><strong>Total limit:</strong> You can upload up to 10 images across all parts combined</span>
               </li>
@@ -1567,18 +1748,18 @@ export default function ListingVideoForm() {
       </div>
 
       {/* Exterior Parts Section */}
-      <div className="bg-white p-6 md:p-8">
+      <div className="bg-white p-2 md:p-8">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#171717] mb-6">
           Fill the Exterior Parts Details
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {exteriorParts.map((part) => (
-            <div key={part} className={`space-y-3 ${exteriorPartsData[part].checked ? 'bg-[#F4F4F4] p-4 rounded-lg' : ''}`}>
-              <label className={`flex items-center gap-2 cursor-pointer ${exteriorPartsData[part].checked ? '' : 'bg-[#F4F4F4] px-3 py-2 rounded-lg inline-block'}`}>
+            <div key={part} className={`space-y-3 ${exteriorPartsData[part]?.checked ? 'bg-[#F4F4F4] p-4 rounded-lg' : ''}`}>
+              <label className={`flex items-center gap-2 cursor-pointer ${exteriorPartsData[part]?.checked ? '' : 'bg-[#F4F4F4] px-3 py-2 rounded-lg inline-block'}`}>
                 <input
                   type="checkbox"
-                  checked={exteriorPartsData[part].checked}
+                  checked={exteriorPartsData[part]?.checked}
                   onChange={() => handleExteriorPartToggle(part)}
                   className="w-4 h-4 text-[#5046E5] bg-white border-gray-300 rounded focus:ring-[#5046E5] checked:bg-[#5046E5]"
                 />
@@ -1587,7 +1768,7 @@ export default function ListingVideoForm() {
                 </span>
               </label>
 
-              {exteriorPartsData[part].checked && (
+              {exteriorPartsData[part]?.checked && (
                 <div
                   className={`border-2 border-dashed rounded-lg p-4 min-h-[140px] flex flex-col items-center justify-center cursor-pointer transition-all duration-200 bg-white ${
                     dragActive[`exterior-${part}`]
@@ -1616,7 +1797,7 @@ export default function ListingVideoForm() {
                       fileInputRefs.current[`exterior-${part}`] = el
                     }}
                   />
-                  {exteriorPartsData[part].images.length === 0 ? (
+                  {exteriorPartsData[part]?.images.length === 0 ? (
                     <div 
                       className="cursor-pointer text-center w-full"
                       onClick={() => {
@@ -1642,24 +1823,52 @@ export default function ListingVideoForm() {
                     </div>
                   ) : (
                     <div className="w-full">
-                      <div className="relative group rounded overflow-hidden">
-                        <Image
-                          src={exteriorPartsData[part].images[0].preview}
-                          alt={part}
-                          width={100}
-                          height={100}
-                          className="w-full h-24 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleRemoveImage(part, 0, true)
-                          }
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
+                      {(() => {
+                        const canAddMore = totalImages < 10
+                        
+                        return (
+                          <>
+                            {canAddMore && (
+                              <div className="text-center w-full block mb-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    fileInputRefs.current[`exterior-${part}`]?.click()
+                                  }}
+                                  className="text-sm text-[#5046E5] hover:underline cursor-pointer"
+                                >
+                                  Add more images
+                                </button>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-2 w-full">
+                              {(exteriorPartsData[part]?.images || []).map((img, idx) => (
+                                <div
+                                  key={idx}
+                                  className="relative group rounded overflow-hidden"
+                                >
+                                  <Image
+                                    src={img.preview}
+                                    alt={`${part} ${idx + 1}`}
+                                    width={100}
+                                    height={100}
+                                    className="w-full h-24 object-cover"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleRemoveImage(part, idx, true)
+                                    }
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )
+                      })()}
                     </div>
                   )}
                 </div>
@@ -1670,7 +1879,7 @@ export default function ListingVideoForm() {
       </div>
 
       {/* Interior Parts Section */}
-      <div className="bg-white p-6 md:p-8">
+      <div className="bg-white p-2 md:p-8">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#171717] mb-6">
           Fill the Interior Parts Details
         </h2>

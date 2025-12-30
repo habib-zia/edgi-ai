@@ -789,6 +789,36 @@ class ApiService {
     }
   }
 
+  async uploadCustomMusic(formData: FormData): Promise<ApiResponse<any>> {
+    try {
+      const headers = getAuthenticatedHeaders();
+      // Remove Content-Type header to let browser set it with boundary for FormData
+      delete (headers as any)['Content-Type'];
+      
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.MUSIC.UPLOAD_CUSTOM), {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to upload custom music' }));
+        throw new Error(errorData.message || 'Failed to upload custom music');
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: data.message || 'Custom music uploaded successfully'
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload custom music';
+      this.showNotification(errorMessage, 'error');
+      return { success: false, message: errorMessage, error: errorMessage };
+    }
+  }
+
   async checkEmail(email: string): Promise<ApiResponse<{ exists: boolean }>> {
     return this.request<{ exists: boolean }>(`${API_CONFIG.ENDPOINTS.AUTH.CHECK_EMAIL}?email=${encodeURIComponent(email)}`, {
       method: 'GET',

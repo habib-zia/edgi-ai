@@ -200,6 +200,7 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
   // Music selection state
   const [selectedMusic, setSelectedMusic] = useState<Voice | null>(null)
   const [draggedMusic, setDraggedMusic] = useState<Voice | null>(null)
+  const [customMusic, setCustomMusic] = useState<Voice[]>([])
 
 
   // Check if user came from Default Avatar button
@@ -654,7 +655,7 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
   
   // Track current filter type for voice/music dropdowns
   const [currentVoiceType, setCurrentVoiceType] = useState<VoiceType | null>(null)
-  const [currentMusicType, setCurrentMusicType] = useState<'low' | 'medium' | 'high' | null>(null)
+  const [currentMusicType, setCurrentMusicType] = useState<'low' | 'medium' | 'high' | 'custom' | null>(null)
 
   // Mark form as manually touched when any form field changes
   const handleFormFieldChange = () => {
@@ -1036,12 +1037,13 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
   
   // Handle music type change from MusicSelector (when user clicks low/medium/high buttons)
   const handleMusicTypeChange = useCallback((type: VoiceType) => {
-    // Music only supports low/medium/high, not custom
+    // Update music type filter
+    setCurrentMusicType(type as 'low' | 'medium' | 'high' | 'custom')
+    
+    // For custom type, don't auto-select (user will upload their own)
     if (type === 'custom') {
-      return // Ignore custom type for music
+      return
     }
-    // Update music type filter only (don't sync voice)
-    setCurrentMusicType(type as 'low' | 'medium' | 'high')
     
     // Filter music
     const filteredMusic = allMusic.filter(m => m.type === type)
@@ -1058,6 +1060,15 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
       trigger('music')
     }
   }, [allMusic, setValue, trigger])
+
+  const handleCustomMusicUpload = useCallback((music: Voice) => {
+    setCustomMusic((prev) => {
+      // Check if music already exists (by id)
+      const exists = prev.some(m => m.id === music.id || m._id === music.id || m._id === music._id)
+      if (exists) return prev
+      return [...prev, music]
+    })
+  }, [])
 
   // Auto-fill form when avatars are loaded and user has settings
   useEffect(() => {
@@ -1658,7 +1669,7 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
         trigger={trigger}
         openDropdown={openDropdown}
         selectedMusic={selectedMusic}
-        musicList={allMusic.length > 0 ? allMusic : musicList}  // Pass all music, let VoiceSelector filter
+        musicList={[...(allMusic.length > 0 ? allMusic : musicList), ...customMusic]}  // Pass all music including custom, let VoiceSelector filter
         musicLoading={musicLoading}
         musicError={musicError}
         preset={preset}
@@ -1672,6 +1683,7 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
         onDragOver={handleMusicDragOver}
         onDragLeave={handleMusicDragLeave}
         onDrop={handleMusicDrop}
+        onCustomMusicUpload={handleCustomMusicUpload}
       />
     )
   }

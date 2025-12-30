@@ -115,6 +115,7 @@ export default function MusicVideoForm() {
   const [selectedMusic, setSelectedMusic] = useState<Voice | null>(null)
   const [draggedMusic, setDraggedMusic] = useState<Voice | null>(null)
   const [currentMusicType, setCurrentMusicType] = useState<VoiceType | null>(null)
+  const [customMusic, setCustomMusic] = useState<Voice[]>([])
 
   // Music handlers
   const handleMusicClick = (music: Voice) => {
@@ -165,7 +166,16 @@ export default function MusicVideoForm() {
   }
 
   const handleMusicTypeChange = (type: VoiceType) => {
-    setCurrentMusicType(type as 'low' | 'medium' | 'high' | null)
+    setCurrentMusicType(type as 'low' | 'medium' | 'high' | 'custom' | null)
+  }
+
+  const handleCustomMusicUpload = (music: Voice) => {
+    setCustomMusic((prev) => {
+      // Check if music already exists (by id)
+      const exists = prev.some(m => m.id === music.id || m._id === music.id || m._id === music._id)
+      if (exists) return prev
+      return [...prev, music]
+    })
   }
 
   const handleDropdownToggle = (field: string) => {
@@ -442,7 +452,7 @@ export default function MusicVideoForm() {
               trigger={trigger as any}
               openDropdown={openDropdown}
               selectedMusic={selectedMusic}
-              musicList={allMusic.length > 0 ? allMusic : musicList}
+              musicList={[...(allMusic.length > 0 ? allMusic : musicList), ...customMusic]}
               musicLoading={musicLoading}
               musicError={musicError}
               preset={null}
@@ -456,6 +466,7 @@ export default function MusicVideoForm() {
               onDragOver={handleMusicDragOver}
               onDragLeave={handleMusicDragLeave}
               onDrop={handleMusicDrop}
+              onCustomMusicUpload={handleCustomMusicUpload}
             />
             {errors.music && (
               <p className="text-red-500 text-sm mt-1">{errors.music.message}</p>
