@@ -95,19 +95,22 @@ export type ListingVideoFormData = z.infer<typeof listingVideoSchema>
 
 // Form validation schema for MusicVideoForm
 export const musicVideoSchema = z.object({
-  topic: z.string()
-    .min(2, 'Topic must be at least 2 characters')
-    .max(200, 'Topic must be less than 200 characters'),
+  title: z.string()
+    .min(2, 'Title must be at least 2 characters')
+    .max(200, 'Title must be less than 200 characters'),
+  propertyType: z.string()
+    .min(1, 'Property type is required'),
   price: z.string()
     .min(1, 'Price is required'),
   size: z.string()
-    .min(1, 'Size is required'),
+    .min(1, 'Size is required')
+    .regex(/^\d+$/, 'Size must be a number'),
   bedroomCount: z.string()
-    .min(1, 'Bedroom count is required'),
+    .min(1, 'Bedroom count is required')
+    .regex(/^\d+$/, 'Bedroom count must be a number'),
   washroomCount: z.string()
-    .min(1, 'Washroom count is required'),
-  livingRoomCount: z.string()
-    .min(1, 'Living room count is required'),
+    .min(1, 'Washroom count is required')
+    .regex(/^\d+$/, 'Washroom count must be a number'),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
   city: z.string()

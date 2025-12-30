@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
+import { IoMdArrowDropdown } from 'react-icons/io'
 import Image from 'next/image'
 import { useNotificationStore } from '@/components/ui/global-notification'
 import { apiService } from '@/lib/api-service'
@@ -19,6 +20,14 @@ interface ImageFile {
   preview: string
 }
 
+// Property Type options
+const propertyTypeOptions = [
+  { value: 'Apartment / Condo', label: 'Apartment / Condo' },
+  { value: 'Single-Family Home', label: 'Single-Family Home' },
+  { value: 'Townhouse', label: 'Townhouse' },
+  { value: 'Duplex / Multi-Family', label: 'Duplex / Multi-Family' },
+]
+
 export default function MusicVideoForm() {
   const { showNotification } = useNotificationStore()
   const [startImage, setStartImage] = useState<ImageFile | null>(null)
@@ -32,6 +41,7 @@ export default function MusicVideoForm() {
 
   const user = useAppSelector((state) => state.user.user)
   const userEmail = user?.email || ''
+  const userName = user ? `${user.firstName} ${user.lastName}`.trim() : ''
 
   const {
     register,
@@ -44,12 +54,12 @@ export default function MusicVideoForm() {
     resolver: zodResolver(musicVideoSchema),
     mode: 'onSubmit',
     defaultValues: {
-      topic: '',
+      title: '',
+      propertyType: '',
       price: '',
       size: '',
       bedroomCount: '',
       washroomCount: '',
-      livingRoomCount: '',
       socialHandles: '',
       city: '',
       address: '',
@@ -59,6 +69,7 @@ export default function MusicVideoForm() {
 
   // Music state and hooks
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [isPropertyTypeDropdownOpen, setIsPropertyTypeDropdownOpen] = useState(false)
   const [musicList, setMusicList] = useState<Voice[]>([])
   const [musicLoading, setMusicLoading] = useState(false)
   const [musicError, setMusicError] = useState<string | null>(null)
@@ -111,6 +122,22 @@ export default function MusicVideoForm() {
 
     fetchMusic()
   }, [])
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      
+      if (isPropertyTypeDropdownOpen && !target.closest('[data-dropdown="propertyType"]')) {
+        setIsPropertyTypeDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isPropertyTypeDropdownOpen])
 
   const [selectedMusic, setSelectedMusic] = useState<Voice | null>(null)
   const [draggedMusic, setDraggedMusic] = useState<Voice | null>(null)
@@ -245,6 +272,27 @@ export default function MusicVideoForm() {
       })
       .filter((item): item is ImageFile => item !== null)
 
+    // Check current count and enforce 11 image limit for rest images (1 start + 11 rest = 12 total)
+    const currentCount = restImages.length
+    const maxRestImages = 11
+    const totalAfterUpload = currentCount + imageFiles.length
+
+    if (totalAfterUpload > maxRestImages) {
+      const allowed = maxRestImages - currentCount
+      if (allowed <= 0) {
+        showNotification(
+          `Maximum limit reached! You can only upload 11 rest images (12 total including start image).`,
+          "error"
+        )
+        return
+      }
+      showNotification(
+        `You can only upload ${allowed} more image(s). Maximum limit is 11 rest images (12 total including start image).`,
+        "warning"
+      )
+      imageFiles.splice(allowed)
+    }
+
     setRestImages((prev) => [...prev, ...imageFiles])
   }
 
@@ -317,6 +365,11 @@ export default function MusicVideoForm() {
       return
     }
 
+    if (restImages.length > 11) {
+      showNotification('Maximum limit is 11 rest images (12 total including start image). Please remove some images.', 'error')
+      return
+    }
+
     if (!selectedMusic) {
       showNotification('Please select music', 'error')
       return
@@ -327,24 +380,51 @@ export default function MusicVideoForm() {
     try {
       const formData = new FormData()
 
+      /**
+       * Request Body Structure (FormData):
+       * 
+       * Form Fields:
+       * - title: string (required)
+       * - propertyType: string (required)
+       * - price: string (required)
+       * - size: string (required)
+       * - bedRoomCount: string (required)
+       * - bathRoomCount: string (required)
+       * - social_handles: string (required)
+       * - city: string (required)
+       * - address: string (required)
+       * - email: string (user's email)
+       * - name: string (user's full name or email as fallback)
+       * - timestamp: string (ISO timestamp)
+       * 
+       * Images:
+       * - startImage: File (required, single image)
+       * - restImages: File[] (required, 1-11 images max, 12 total including start image)
+       * 
+       * Music:
+       * - music: string (required, S3 URL of selected music track)
+       */
+
       // Append all form fields
-      formData.append('topic', data.topic)
+      formData.append('title', data.title)
+      formData.append('propertyType', data.propertyType)
       formData.append('price', data.price)
       formData.append('size', data.size)
-      formData.append('bedroomCount', data.bedroomCount)
-      formData.append('washroomCount', data.washroomCount)
-      formData.append('livingRoomCount', data.livingRoomCount)
-      formData.append('socialHandles', data.socialHandles)
+      formData.append('bedRoomCount', data.bedroomCount)
+      formData.append('bathRoomCount', data.washroomCount)
+      formData.append('social_handles', data.socialHandles)
       formData.append('city', data.city)
       formData.append('address', data.address)
       formData.append('email', userEmail)
+      formData.append('name', userName || userEmail)
+      formData.append('timestamp', new Date().toISOString())
 
       // Append start image
       if (startImage) {
         formData.append('startImage', startImage.file)
       }
 
-      // Append rest images
+      // Append rest images (max 11 images, 12 total including start image)
       restImages.forEach((imageFile) => {
         formData.append('restImages', imageFile.file)
       })
@@ -360,7 +440,7 @@ export default function MusicVideoForm() {
         // Store a key in localStorage to indicate video generation has started
         localStorage.setItem('videoGenerationStarted', JSON.stringify({
           timestamp: Date.now(),
-          videoTitle: data.topic || 'Music Video'
+          videoTitle: data.title || 'Music Video'
         }))
         console.log('🎬 Music video generation API called - localStorage key set')
 
@@ -394,7 +474,7 @@ export default function MusicVideoForm() {
           setIsModalOpen(false)
           setShouldStartLoading(false)
         }}
-        videoTitle={watch('topic') || 'Music Video'}
+        videoTitle={watch('title') || 'Music Video'}
         mode="music-video"
         startAtLoading={shouldStartLoading}
       />
@@ -415,14 +495,14 @@ export default function MusicVideoForm() {
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {/* Topic */}
+          {/* Title */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Topic <span className="text-red-500">*</span>
+              Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              {...register("topic", { required: true })}
+              {...register("title", { required: true })}
               placeholder="Please Specify"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -430,11 +510,58 @@ export default function MusicVideoForm() {
                 }
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.topic ? 'ring-2 ring-red-500' : ''
+                errors.title ? 'ring-2 ring-red-500' : ''
               }`}
             />
-            {errors.topic && (
-              <p className="text-red-500 text-sm mt-1">{errors.topic.message}</p>
+            {errors.title && (
+              <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+            )}
+          </div>
+
+          {/* Property Type */}
+          <div className="relative" data-dropdown="propertyType">
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Property Type <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsPropertyTypeDropdownOpen(!isPropertyTypeDropdownOpen)}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800 ${
+                errors.propertyType ? 'ring-2 ring-red-500' : ''
+              }`}
+            >
+              <span>
+                {watch("propertyType")
+                  ? propertyTypeOptions.find((opt) => opt.value === watch("propertyType"))?.label || "Select Property Type"
+                  : "Select Property Type"}
+              </span>
+              <IoMdArrowDropdown
+                className={`w-4 h-4 transition-transform duration-300 ${
+                  isPropertyTypeDropdownOpen ? "rotate-180" : ""
+                }`}
+                style={{ color: 'inherit' }}
+              />
+            </button>
+            {errors.propertyType && (
+              <p className="text-red-500 text-sm mt-1">{errors.propertyType.message}</p>
+            )}
+            {isPropertyTypeDropdownOpen && (
+              <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
+                {propertyTypeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setValue("propertyType", option.value)
+                      setIsPropertyTypeDropdownOpen(false)
+                      trigger("propertyType")
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -503,10 +630,22 @@ export default function MusicVideoForm() {
             </label>
             <input
               type="text"
-              {...register("size", { required: true })}
-              placeholder="e.g., 1500 sq ft, 2000 sq ft"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              {...register("size", { 
+                required: true,
+                pattern: {
+                  value: /^\d+$/,
+                  message: 'Size must be a number'
+                }
+              })}
+              placeholder="e.g., 1500, 2000"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+                // Allow: backspace, delete, tab, escape, enter, decimal point, and numbers
+                if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
                   e.preventDefault()
                 }
               }}
@@ -526,10 +665,22 @@ export default function MusicVideoForm() {
             </label>
             <input
               type="text"
-              {...register("bedroomCount", { required: true })}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              {...register("bedroomCount", { 
+                required: true,
+                pattern: {
+                  value: /^\d+$/,
+                  message: 'Bedroom count must be a number'
+                }
+              })}
               placeholder="e.g., 2, 3, 4"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+                // Allow: backspace, delete, tab, escape, enter, and numbers
+                if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
                   e.preventDefault()
                 }
               }}
@@ -549,10 +700,22 @@ export default function MusicVideoForm() {
             </label>
             <input
               type="text"
-              {...register("washroomCount", { required: true })}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              {...register("washroomCount", { 
+                required: true,
+                pattern: {
+                  value: /^\d+$/,
+                  message: 'Washroom count must be a number'
+                }
+              })}
               placeholder="e.g., 1, 2, 3"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+                // Allow: backspace, delete, tab, escape, enter, and numbers
+                if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
                   e.preventDefault()
                 }
               }}
@@ -562,29 +725,6 @@ export default function MusicVideoForm() {
             />
             {errors.washroomCount && (
               <p className="text-red-500 text-sm mt-1">{errors.washroomCount.message}</p>
-            )}
-          </div>
-
-          {/* Living Room Count */}
-          <div>
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Living Room Count <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("livingRoomCount", { required: true })}
-              placeholder="e.g., 1, 2"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                }
-              }}
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.livingRoomCount ? 'ring-2 ring-red-500' : ''
-              }`}
-            />
-            {errors.livingRoomCount && (
-              <p className="text-red-500 text-sm mt-1">{errors.livingRoomCount.message}</p>
             )}
           </div>
 
@@ -782,13 +922,15 @@ export default function MusicVideoForm() {
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => restImagesInputRef.current?.click()}
-                    className="mt-4 text-sm text-[#5046E5] px-4 py-2 rounded-full bg-[#5046E51A] hover:bg-[#5046E525] transition-colors font-medium"
-                  >
-                    Add More Images
-                  </button>
+                  {restImages.length < 11 && (
+                    <button
+                      type="button"
+                      onClick={() => restImagesInputRef.current?.click()}
+                      className="mt-4 text-sm text-[#5046E5] px-4 py-2 rounded-full bg-[#5046E51A] hover:bg-[#5046E525] transition-colors font-medium"
+                    >
+                      Add More Images ({11 - restImages.length} remaining)
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div
