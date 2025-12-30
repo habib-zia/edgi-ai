@@ -1,12 +1,15 @@
 'use client'
 
-import React, { useState, useMemo, useTransition, useEffect } from 'react'
+import React, { useState, useMemo, useTransition, useEffect, useRef } from 'react'
 import { IoMdArrowDropdown } from "react-icons/io"
 import { UseFormRegister, FieldErrors } from 'react-hook-form'
 import { Voice, VoiceType } from './types'
 import { useAudioPlayer } from './useAudioPlayer'
 import VoiceTypeSelector from './VoiceTypeSelector'
 import VoiceList from './VoiceList'
+import { apiService } from '@/lib/api-service'
+import { useNotificationStore } from '@/components/ui/global-notification'
+import { Upload } from 'lucide-react'
 
 interface VoiceSelectorProps {
   field: string
@@ -42,6 +45,7 @@ interface VoiceSelectorProps {
   listLoadingText?: string
   listEmptyText?: string
   onVoiceTypeChange?: (type: VoiceType) => void
+  onCustomMusicUpload?: (music: Voice) => void
 }
 
 export default function VoiceSelector({
@@ -77,7 +81,8 @@ export default function VoiceSelector({
   listTitle,
   listLoadingText,
   listEmptyText,
-  onVoiceTypeChange
+  onVoiceTypeChange,
+  onCustomMusicUpload
 }: VoiceSelectorProps) {
   // Initialize voiceType based on initialVoiceType (from user-settings) or preset, default to 'low'
   const getInitialVoiceType = (): VoiceType => {
@@ -97,6 +102,16 @@ export default function VoiceSelector({
   const [voiceType, setVoiceType] = useState<VoiceType>(getInitialVoiceType())
   const [draggedVoice, setDraggedVoice] = useState<Voice | null>(null)
   const [, startTransition] = useTransition()
+  const [isUploadingMusic, setIsUploadingMusic] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { showNotification } = useNotificationStore()
+  
+  // Check if this is for music (field === 'music')
+  const isMusicSelector = field === 'music'
+  
+  // Check if custom music exists
+  const hasCustomMusic = voices.filter(v => v.type === 'custom').length > 0
   
   const { playingVoiceId, voiceProgress, handlePlayPreview, stopAllAudio } = useAudioPlayer()
 
@@ -213,6 +228,170 @@ export default function VoiceSelector({
     }
   }
 
+  const getAudioDuration = (file: File): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const audio = document.createElement('audio')
+      audio.preload = 'metadata'
+      
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(audio.src)
+        const duration = audio.duration
+        
+        if (isNaN(duration) || !isFinite(duration) || duration === 0) {
+          reject(new Error('Unable to read audio duration. The file may be corrupted.'))
+          return
+        }
+        
+        resolve(duration)
+      }
+      
+      audio.onerror = () => {
+        URL.revokeObjectURL(audio.src)
+        reject(new Error('Unable to load audio file.'))
+      }
+      
+      audio.src = URL.createObjectURL(file)
+    })
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.includes('mp3') && !file.name.toLowerCase().endsWith('.mp3')) {
+      showNotification('Please upload an MP3 file only', 'error')
+      return
+    }
+
+    const fileName = file.name.replace(/\.[^/.]+$/, '')
+
+    setIsUploadingMusic(true)
+    
+    try {
+      let duration: number
+      try {
+        duration = await getAudioDuration(file)
+        duration = Math.round(duration)
+      } catch (error) {
+        console.error('Error extracting audio duration:', error)
+        const errorMessage = error instanceof Error ? error.message : undefined
+        if (errorMessage) {
+          showNotification(errorMessage, 'error')
+        }
+        setIsUploadingMusic(false)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('audioFile', file)
+      formData.append('name', fileName)
+      formData.append('duration', duration.toString())
+
+      const response = await apiService.uploadCustomMusic(formData)
+      
+      if (response.success && response.data) {
+        if (response.message) {
+          showNotification(response.message, 'success')
+        }
+
+        const apiData = response.data.data || response.data
+        
+        const previewUrlValue = apiData.s3PreviewUrl || apiData.previewUrl || apiData.preview_url || ''
+      
+        const customMusic: Voice = {
+          id: apiData.id || apiData._id || '',
+          _id: apiData._id || apiData.id || '',
+          name: apiData.name || fileName,
+          type: 'custom',
+          isCustom: true,
+          s3FullTrackUrl: apiData.s3FullTrackUrl || apiData.url || '',
+          previewUrl: previewUrlValue,
+          preview_url: previewUrlValue,
+        }
+
+        if (onCustomMusicUpload) {
+          onCustomMusicUpload(customMusic)
+        }
+      } else {
+        if (response.message) {
+          showNotification(response.message, 'error')
+        }
+        throw new Error(response.message || 'Upload failed')
+      }
+    } catch (error) {
+      console.error('Error uploading custom music:', error)
+      const errorMessage = error instanceof Error ? error.message : undefined
+      if (errorMessage) {
+        showNotification(errorMessage, 'error')
+      }
+    } finally {
+      setIsUploadingMusic(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set dragging to false if we're leaving the drop zone entirely
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  const handleFileDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      // Validate file type
+      if (!file.type.includes('mp3') && !file.name.toLowerCase().endsWith('.mp3')) {
+        showNotification('Please upload an MP3 file only', 'error')
+        return
+      }
+      
+      // Create a synthetic change event to reuse handleFileSelect
+      const syntheticEvent = {
+        target: {
+          files: files
+        }
+      } as unknown as React.ChangeEvent<HTMLInputElement>
+      
+      await handleFileSelect(syntheticEvent)
+    }
+  }
+
   const selectedVoiceId = useMemo(() => {
     console.log('🎤 VoiceSelector - Calculating selectedVoiceId:', {
       selectedVoiceId: selectedVoice?.id,
@@ -265,7 +444,7 @@ export default function VoiceSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute z-[9999] w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-[685px] mt-2 bg-white rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden right-0 lg:right-auto lg:left-0 xl:-left-16">
+        <div className="absolute z-[9999] w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-[685px] mt-2 bg-white rounded-[12px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden md:right-auto -right-[28] lg:right-auto lg:left-0 xl:-left-16">
           <div className="flex divide-x divide-[#E0E0E0] py-7 lg:flex-row flex-col lg:h-[500px] h-[700px] overflow-hidden max-h-[calc(100vh-200px)]">
             <VoiceTypeSelector
               currentType={voiceType}
@@ -280,25 +459,130 @@ export default function VoiceSelector({
               hasCustomVoices={hasCustomVoices}
             />
 
-            <VoiceList
-              voices={voices}  // Already filtered by parent component
-              voiceType={voiceType}  // Used for filtering in VoiceList
-              voicesLoading={voicesLoading}
-              voicesError={voicesError}
-              selectedVoiceId={selectedVoiceId}
-              playingVoiceId={playingVoiceId}
-              voiceProgress={voiceProgress}
-              onVoiceSelect={handleVoiceSelection}
-              onVoicePlay={handlePlayPreview}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={handleDrop}
-              title={listTitle}
-              loadingText={listLoadingText}
-              emptyText={listEmptyText}
-            />
+            {isMusicSelector && voiceType === 'custom' ? (
+              <div className="flex-1 bg-white px-0 overflow-y-auto">
+                <h4 className="text-[20px] font-semibold text-[#5F5F5F] mb-5 lg:mt-0 mt-6 px-3">{listTitle}</h4>
+                
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".mp3,audio/mpeg"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                {/* Professional Upload Area */}
+                {isUploadingMusic ? (
+                  <div className={`flex flex-col items-center justify-center ${hasCustomMusic ? 'py-4' : 'py-12'}`}>
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-10 w-10 border-[3px] border-[#5046E5] border-t-transparent mb-4"></div>
+                      <span className="text-base text-[#5F5F5F]">Uploading music...</span>
+                    </div>
+                  </div>
+                ) : hasCustomMusic ? (
+                  // Compact design when music exists
+                  <div
+                    className={`border mx-3 border-dashed rounded-[8px] transition-all duration-300 mb-4 ${
+                      isDragging
+                        ? 'border-[#5046E5] bg-[#5046E51A]'
+                        : 'border-[#D1D5DB] hover:border-[#5046E5] bg-[#F9FAFB]'
+                    }`}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleFileDrop}
+                    onClick={handleUploadClick}
+                  >
+                    <div className="flex items-center justify-center gap-2 px-4 py-3 cursor-pointer">
+                      <Upload className="w-4 h-4 text-[#5046E5]" />
+                      <span className="text-sm font-medium text-[#5046E5]">Upload MP3 File</span>
+                    </div>
+                  </div>
+                ) : (
+                  // Full size design when no music
+                  <div
+                    className={`border-2 border-dashed rounded-[12px] transition-all mx-3 duration-300 ${
+                      isDragging
+                        ? 'border-[#5046E5] bg-[#5046E51A]'
+                        : 'border-[#D1D5DB] hover:border-[#5046E5] bg-[#F9FAFB]'
+                    }`}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleFileDrop}
+                    onClick={handleUploadClick}
+                  >
+                    <div className="flex flex-col items-center justify-center py-12 px-6 cursor-pointer">
+                      <Upload className="w-10 h-10 text-[#5046E5] mb-4" />
+                      <h5 className="text-[16px] font-semibold text-[#101010] mb-2 text-center">
+                        Drag and drop MP3 file, or click to upload
+                      </h5>
+                      <p className="text-[14px] text-[#5F5F5F] mb-4 text-center">
+                        MP3 format only
+                      </p>
+                      <button
+                        type="button"
+                        className="px-5 py-2 bg-[#5046E5] text-white rounded-[8px] font-medium hover:bg-[#4338CA] transition-colors duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleUploadClick()
+                        }}
+                      >
+                        Browse files
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show custom music list if available */}
+                {hasCustomMusic && (
+                  <div className="mt-6 px-3">
+                    <h5 className="text-base font-semibold text-[#5F5F5F] mb-4">Your Uploaded Music</h5>
+                    <VoiceList
+                      key={`custom-music-${voices.filter(v => v.type === 'custom').length}-${voices.filter(v => v.type === 'custom').map(v => v.id).join('-')}`}
+                      voices={voices}
+                      voiceType="custom"
+                      voicesLoading={false}
+                      voicesError={null}
+                      selectedVoiceId={selectedVoiceId}
+                      playingVoiceId={playingVoiceId}
+                      voiceProgress={voiceProgress}
+                      onVoiceSelect={handleVoiceSelection}
+                      onVoicePlay={handlePlayPreview}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={onDragOver}
+                      onDragLeave={onDragLeave}
+                      onDrop={handleDrop}
+                      title=""
+                      loadingText={listLoadingText}
+                      emptyText={listEmptyText}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <VoiceList
+                voices={voices}  // Already filtered by parent component
+                voiceType={voiceType}  // Used for filtering in VoiceList
+                voicesLoading={voicesLoading}
+                voicesError={voicesError}
+                selectedVoiceId={selectedVoiceId}
+                playingVoiceId={playingVoiceId}
+                voiceProgress={voiceProgress}
+                onVoiceSelect={handleVoiceSelection}
+                onVoicePlay={handlePlayPreview}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={handleDrop}
+                title={listTitle}
+                loadingText={listLoadingText}
+                emptyText={listEmptyText}
+              />
+            )}
           </div>
         </div>
       )}

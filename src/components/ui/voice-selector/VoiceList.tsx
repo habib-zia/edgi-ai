@@ -97,7 +97,7 @@ export default function VoiceList({
 
   return (
     <div 
-      className="flex-1 bg-white px-6 overflow-y-auto"
+      className="flex-1 bg-white px-3 overflow-y-auto"
       style={{ 
         maxHeight: '100%',
         overflowY: 'auto',

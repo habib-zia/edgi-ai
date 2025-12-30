@@ -601,17 +601,42 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
 
   const downloadUrl = getDownloadUrl()
 
-  const handleDownloadClick = () => {
+  const handleDownloadClick = async () => {
     if (!downloadUrl) {
       toast.error('Authentication required. Please log in again.')
       return
     }
 
+    if (!videoData?.title) {
+      toast.error('Video title not available.')
+      return
+    }
+
     setIsDownloading(true)
     
-    setTimeout(() => {
+    try {
+      const response = await fetch(downloadUrl)
+      if (!response.ok) {
+        throw new Error('Failed to fetch video')
+      }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${videoData.title}.mp4`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      toast.success('Video downloaded successfully')
+    } catch (error) {
+      console.error('Download error:', error)
+      toast.error('Failed to download video. Please try again.')
+    } finally {
       setIsDownloading(false)
-    }, 5000)
+    }
   }
 
   const isFormValid = () => {
@@ -899,15 +924,14 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
                 </>
               )}
 
-            <a
-              href={downloadUrl || '#'}
-              download={downloadUrl ? `${videoData?.title || 'video'}.mp4` : undefined}
-              className={`w-full bg-[#5046E5] text-white py-[11.4px] px-6 rounded-full font-semibold text-[20px] border-2 border-[#5046E5] transition-colors duration-300 flex items-center justify-center gap-2 no-underline ${isDownloading
+            <button
+              type="button"
+              onClick={handleDownloadClick}
+              disabled={!downloadUrl || isDownloading}
+              className={`w-full bg-[#5046E5] text-white py-[11.4px] px-6 rounded-full font-semibold text-[20px] border-2 border-[#5046E5] transition-colors duration-300 flex items-center justify-center gap-2 ${isDownloading || !downloadUrl
                 ? 'opacity-50 cursor-not-allowed'
                 : 'hover:bg-transparent hover:text-[#5046E5] cursor-pointer'
                 }`}
-              onClick={handleDownloadClick}
-              style={{ pointerEvents: downloadUrl ? 'auto' : 'none' }}
             >
               {isDownloading ? (
                 <>
@@ -917,7 +941,7 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
               ) : (
                 'Download'
               )}
-            </a>
+            </button>
             </div>
           )}
         </div>

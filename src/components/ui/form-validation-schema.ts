@@ -60,7 +60,7 @@ export const listingVideoSchema = z.object({
   avatar: z.string().min(1, 'Please select an avatar'),
   gender: z.string().min(1, 'Please select a gender'),
   voice: z.string().min(1, 'Please select a voice'),
-  music: z.string().min(1, 'Please select music'),
+  music: z.string().optional(),
   city: z.string()
     .min(2, 'City must be at least 2 characters')
     .max(50, 'City must be less than 50 characters'),
@@ -70,17 +70,24 @@ export const listingVideoSchema = z.object({
   price: z.string()
     .min(1, 'Price is required'),
   size: z.string()
-    .min(1, 'Size is required'),
+    .min(1, 'Size is required')
+    .regex(/^\d+(\.\d+)?$/, 'Size must be a number'),
+  lotSize: z.string().optional().refine((val) => !val || /^\d+(\.\d+)?$/.test(val), { message: 'Lot size must be a number' }),
   bedroomCount: z.string()
-    .min(1, 'Bedroom count is required'),
-  livingRoomCount: z.string()
-    .min(1, 'Living room count is required'),
+    .min(1, 'Bedroom count is required')
+    .regex(/^\d+$/, 'Bedroom count must be a number'),
+  // livingRoomCount: z.string()
+  //   .min(1, 'Living room count is required'),
   bathroomCount: z.string()
-    .min(1, 'Bathroom count is required'),
+    .min(1, 'Restroom count is required')
+    .regex(/^\d+$/, 'Restroom count must be a number'),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
   mainSellingPoints: z.string().optional(),
   preset: z.string().optional(),
+  preferredTone: z.string()
+    .min(2, 'Preferred tone must be at least 2 characters')
+    .max(100, 'Preferred tone must be less than 100 characters'),
 })
 
 // Type inference from schema

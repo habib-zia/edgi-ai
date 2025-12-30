@@ -18,7 +18,7 @@ interface MusicSelectorWrapperProps {
   musicLoading: boolean
   musicError: string | null
   preset?: string | null
-  initialMusicType?: 'low' | 'medium' | 'high' | null // Override preset-based initialization
+  initialMusicType?: 'low' | 'medium' | 'high' | 'custom' | null // Override preset-based initialization
   onToggle: (field: any) => void
   onSelect: (field: any, value: string) => void
   onMusicClick: (music: Voice) => void
@@ -28,6 +28,7 @@ interface MusicSelectorWrapperProps {
   onDragOver: (e: React.DragEvent) => void
   onDragLeave: (e: React.DragEvent) => void
   onDrop: (e: React.DragEvent) => void
+  onCustomMusicUpload?: (music: Voice) => void
 }
 
 export default function MusicSelectorWrapper({
@@ -52,7 +53,8 @@ export default function MusicSelectorWrapper({
   onDragEnd,
   onDragOver,
   onDragLeave,
-  onDrop
+  onDrop,
+  onCustomMusicUpload
 }: MusicSelectorWrapperProps) {
   const currentValue = watch(field) || ''
   const isOpen = openDropdown === field
@@ -95,9 +97,12 @@ export default function MusicSelectorWrapper({
       typeSelectorLowLabel="Low Music"
       typeSelectorMediumLabel="Medium Music"
       typeSelectorHighLabel="High Music"
+      typeSelectorCustomLabel="Custom Music"
+      hasCustomVoices={true}
       listTitle="Recommended Music"
       listLoadingText="Loading music..."
       listEmptyText="No music available"
+      onCustomMusicUpload={onCustomMusicUpload}
     />
   )
 }
