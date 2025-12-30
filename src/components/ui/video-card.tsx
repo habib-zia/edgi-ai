@@ -44,7 +44,7 @@ export default function VideoCard() {
     }
 
     return (
-        <div className="w-full h-full flex justify-center items-center relative z-10">
+        <div className="w-full h-full flex justify-center items-center relative z-0">
             <div className="w-full h-full">
                 {!youtubeError ? (
                     <iframe 
