@@ -271,8 +271,16 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
                 setTimeout(() => {
                   // For listing and music videos, redirect to gallery (create-video page)
                   const targetPath = (mode === 'listing' || mode === 'music-video') ? '/create-video' : '/create-video'
-                  if (window.location.pathname !== targetPath && videoGenerationreDirected) {
-                    setVideoGenerationreDirected(false);
+                  // For music-video mode, always redirect when countdown finishes (don't check videoGenerationreDirected)
+                  // For other modes, check the flag
+                  const shouldRedirect = mode === 'music-video' 
+                    ? window.location.pathname !== targetPath
+                    : window.location.pathname !== targetPath && videoGenerationreDirected
+                  
+                  if (shouldRedirect) {
+                    if (mode !== 'music-video') {
+                      setVideoGenerationreDirected(false)
+                    }
                     window.location.href = targetPath
                   }
                 }, 100)
