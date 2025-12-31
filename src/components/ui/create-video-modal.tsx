@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Info } from 'lucide-react'
 import Image from 'next/image'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
@@ -38,6 +38,8 @@ interface CreateVideoModalProps {
   script?: string
   onConfirmListing?: () => Promise<void>
   onConfirmMusicVideo?: () => Promise<void>
+  // Flag to indicate this is a fresh submission (for music-video direct submission)
+  isFreshSubmission?: boolean
 }
 
 type ModalStep = 'form' | 'loading' | 'complete'
@@ -64,7 +66,7 @@ interface VideoGenerationData {
   text?: string
 }
 
-export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtComplete = false, startAtLoading = false, videoData, webhookResponse, mode = 'talking-head', script, onConfirmListing, onConfirmMusicVideo }: CreateVideoModalProps) {
+export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtComplete = false, startAtLoading = false, videoData, webhookResponse, mode = 'talking-head', script, onConfirmListing, onConfirmMusicVideo, isFreshSubmission = false }: CreateVideoModalProps) {
   const [currentStep, setCurrentStep] = useState<ModalStep>(startAtComplete ? 'complete' : startAtLoading ? 'loading' : 'form')
   const [formData, setFormData] = useState({
     prompt: webhookResponse?.prompt || '',
@@ -148,6 +150,11 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
         setCurrentStep('loading')
         // Mark as new submission to prevent socket updates from overriding
         isNewSubmissionRef.current = true
+        // For music-video mode with fresh submission, set the redirect flag
+        // This allows the countdown to run only after explicit form submission
+        if (mode === 'music-video' && isFreshSubmission) {
+          setVideoGenerationreDirected(true)
+        }
       }
     } else {
       closeModal()
@@ -159,7 +166,7 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
     return () => {
       closeModal()
     }
-  }, [isOpen, openModal, closeModal, startAtComplete, startAtLoading, videoData])
+  }, [isOpen, openModal, closeModal, startAtComplete, startAtLoading, videoData, mode, isFreshSubmission])
 
   // Update form data and AI-generated content when webhookResponse changes
   useEffect(() => {
@@ -195,12 +202,37 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
       return
     }
 
+    // For music-video mode: only respond to socket updates if we have a legitimate submission
+    // This prevents socket updates from triggering loading state when modal is just reopened
+    if (mode === 'music-video') {
+      // Check if we have a recent submission in localStorage
+      const hasRecentSubmission = (() => {
+        try {
+          const stored = localStorage.getItem('videoGenerationStarted')
+          if (!stored) return false
+          const data = JSON.parse(stored)
+          const timestamp = data.timestamp || 0
+          // Consider submission "recent" if within last 5 minutes
+          return Date.now() - timestamp < 5 * 60 * 1000
+        } catch {
+          return false
+        }
+      })()
+      
+      // Only respond to socket updates if we have a recent submission OR videoGenerationreDirected is set
+      // This ensures we don't trigger loading state from stale socket updates when modal is reopened
+      if (!hasRecentSubmission && !videoGenerationreDirected) {
+        return
+      }
+    }
+
     const { status, message } = latestVideoUpdate
 
     console.log('🎥 Create Video Modal received update:', { status, message })
 
     if (status === 'processing' || status === 'pending') {
       // Video is being processed - ensure we're in loading state
+      // Note: countdown will only run if videoGenerationreDirected is set (checked in countdown useEffect)
       if (currentStep !== 'loading') {
         setCurrentStep('loading')
       }
@@ -216,7 +248,7 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
       // Don't clear all updates - let notification handle its own lifecycle
       // clearVideoUpdates() // Removed to prevent notification flickering
     }
-  }, [latestVideoUpdate, currentStep, clearVideoUpdates, startAtComplete, videoData])
+  }, [latestVideoUpdate, currentStep, clearVideoUpdates, startAtComplete, videoData, mode, videoGenerationreDirected])
 
   const handleClose = useCallback(() => {
     const wasLoading = currentStep === 'loading'
@@ -259,37 +291,57 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
     let countdownTimer: NodeJS.Timeout
 
     if (currentStep === 'loading') {
-      // Start countdown
-      countdownTimer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(countdownTimer!)
-            // Close modal and navigate to /create-video when countdown reaches 0
+      // Only start countdown if this is a legitimate fresh submission
+      // Check: 1) videoGenerationreDirected flag is set, 2) modal was opened with startAtLoading (fresh submission), 
+      // 3) localStorage has recent videoGenerationStarted entry
+      const hasRecentSubmission = (() => {
+        try {
+          const stored = localStorage.getItem('videoGenerationStarted')
+          if (!stored) return false
+          const data = JSON.parse(stored)
+          const timestamp = data.timestamp || 0
+          // Consider submission "recent" if within last 5 minutes
+          return Date.now() - timestamp < 5 * 60 * 1000
+        } catch {
+          return false
+        }
+      })()
+
+      const shouldStartCountdown = videoGenerationreDirected && 
+                                   (startAtLoading || !isNewSubmissionRef.current) && 
+                                   hasRecentSubmission
+
+      if (shouldStartCountdown) {
+        // Start countdown
+        countdownTimer = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(countdownTimer!)
+              // Close modal and navigate to /create-video when countdown reaches 0
               setTimeout(() => {
                 // Close the modal first
                 onClose()
                 setTimeout(() => {
                   // For listing and music videos, redirect to gallery (create-video page)
                   const targetPath = (mode === 'listing' || mode === 'music-video') ? '/create-video' : '/create-video'
-                  // For music-video mode, always redirect when countdown finishes (don't check videoGenerationreDirected)
-                  // For other modes, check the flag
-                  const shouldRedirect = mode === 'music-video' 
-                    ? window.location.pathname !== targetPath
-                    : window.location.pathname !== targetPath && videoGenerationreDirected
+                  // Require videoGenerationreDirected flag for ALL modes (including music-video)
+                  const shouldRedirect = window.location.pathname !== targetPath && videoGenerationreDirected
                   
                   if (shouldRedirect) {
-                    if (mode !== 'music-video') {
-                      setVideoGenerationreDirected(false)
-                    }
+                    setVideoGenerationreDirected(false)
                     window.location.href = targetPath
                   }
                 }, 100)
               }, 1000)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+      } else {
+        // Reset countdown if conditions not met (modal reopened, not fresh submission, etc.)
+        setCountdown(20)
+      }
     } else {
       // Reset countdown when not in loading state
       setCountdown(20)
@@ -300,7 +352,7 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
         clearInterval(countdownTimer)
       }
     }
-  }, [currentStep, onClose])
+  }, [currentStep, onClose, videoGenerationreDirected, startAtLoading, mode])
 
   const getUserAddedContent = (field: keyof typeof formData, currentValue: string): string => {
     const aiContent = aiGeneratedContent[field]
@@ -723,8 +775,17 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
                     Review the script generated from your images. Click confirm to create your listing video.
                   </p>
                   <div className="mb-6">
-                    <label className="block text-base font-normal text-[#5F5F5F] mb-2">
-                      Generated Script <span className="text-red-500">*</span>
+                    <label className="flex items-center gap-2 text-base font-normal text-[#5F5F5F] mb-2">
+                      <span>Generated Script <span className="text-red-500">*</span></span>
+                      <div className="relative group">
+                        <Info className="w-4 h-4 text-[#5F5F5F] cursor-help" />
+                        <div className="absolute left-1/2 md:-translate-x-1/3 -translate-x-1/2 bottom-full -mb-1.5 hidden group-hover:block z-10">
+                          <div className="bg-gray-900 text-white text-sm rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                            Want a different script? Close this box <br /> and edit the <span className="font-bold">Preferred Tone</span> field!
+                            <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                        </div>
+                      </div>
                     </label>
                     <div className="w-full min-h-[300px] max-h-[400px] px-4 py-3 bg-[#EEEEEE] border-0 rounded-[8px] text-gray-800 whitespace-pre-line overflow-y-auto">
                       {script || 'No script generated.'}
