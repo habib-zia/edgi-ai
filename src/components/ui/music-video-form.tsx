@@ -14,6 +14,10 @@ import SubmitButton from './submit-button'
 import MusicSelectorWrapper from './music-selector-wrapper'
 import { Voice, VoiceType } from './voice-selector/types'
 import CreateVideoModal from './create-video-modal'
+import { useSubscription } from '@/hooks/useSubscription'
+import UsageLimitToast from './usage-limit-toast'
+import PendingPaymentToast from './pending-payment-toast'
+import SubscriptionRequiredToast from './subscription-required-toast'
 
 interface ImageFile {
   file: File
@@ -35,6 +39,7 @@ export default function MusicVideoForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [shouldStartLoading, setShouldStartLoading] = useState(false)
+  const [isFreshSubmission, setIsFreshSubmission] = useState(false)
   const [dragActive, setDragActive] = useState<{ start: boolean; rest: boolean }>({ start: false, rest: false })
   const startImageInputRef = useRef<HTMLInputElement>(null)
   const restImagesInputRef = useRef<HTMLInputElement>(null)
@@ -42,6 +47,21 @@ export default function MusicVideoForm() {
   const user = useAppSelector((state) => state.user.user)
   const userEmail = user?.email || ''
   const userName = user ? `${user.firstName} ${user.lastName}`.trim() : ''
+
+  // Subscription hook
+  const { checkVideoUsageLimit } = useSubscription()
+
+  // Usage limit toast state
+  const [showUsageToast, setShowUsageToast] = useState(false)
+  const [usageToastMessage, setUsageToastMessage] = useState('')
+  
+  // Pending payment toast state
+  const [showPendingPaymentToast, setShowPendingPaymentToast] = useState(false)
+  const [pendingPaymentMessage, setPendingPaymentMessage] = useState('')
+  
+  // Subscription required toast state
+  const [showSubscriptionRequiredToast, setShowSubscriptionRequiredToast] = useState(false)
+  const [subscriptionRequiredMessage, setSubscriptionRequiredMessage] = useState('')
 
   const {
     register,
@@ -356,6 +376,30 @@ export default function MusicVideoForm() {
       return
     }
 
+    // Check video usage limit and payment status before proceeding
+    try {
+      const usageCheck = await checkVideoUsageLimit()
+      
+      if (!usageCheck.canCreateVideo) {
+        // Check if it's a pending payment issue
+        if (usageCheck.message?.includes('payment is still being processed')) {
+          setPendingPaymentMessage(usageCheck.message)
+          setShowPendingPaymentToast(true)
+        } else if (usageCheck.message?.includes('No active subscription found') || usageCheck.message?.includes('Please subscribe')) {
+          setSubscriptionRequiredMessage(usageCheck.message)
+          setShowSubscriptionRequiredToast(true)
+        } else {
+          setUsageToastMessage(usageCheck.message || 'Video limit reached')
+          setShowUsageToast(true)
+        }
+        return
+      }
+    } catch (error) {
+      console.error('Failed to check video usage:', error)
+      showNotification('Unable to verify subscription status. Please try again.', 'error')
+      return
+    }
+
     if (!startImage) {
       showNotification('Please upload a start image', 'error')
       return
@@ -463,7 +507,8 @@ export default function MusicVideoForm() {
         if (startImageInputRef.current) startImageInputRef.current.value = ''
         if (restImagesInputRef.current) restImagesInputRef.current.value = ''
 
-        // Open modal in loading state
+        // Mark as fresh submission and open modal in loading state
+        setIsFreshSubmission(true)
         setShouldStartLoading(true)
         setIsModalOpen(true)
       } else {
@@ -485,10 +530,12 @@ export default function MusicVideoForm() {
         onClose={() => {
           setIsModalOpen(false)
           setShouldStartLoading(false)
+          setIsFreshSubmission(false)
         }}
         videoTitle={watch('title') || 'Music Video'}
         mode="music-video"
         startAtLoading={shouldStartLoading}
+        isFreshSubmission={isFreshSubmission}
       />
 
       <form
@@ -1009,6 +1056,49 @@ export default function MusicVideoForm() {
         buttonText={isSubmitting ? 'Creating Music Video...' : 'Create Music Video'}
       />
     </form>
+      <UsageLimitToast
+        isVisible={showUsageToast}
+        message={usageToastMessage}
+        onClose={() => setShowUsageToast(false)}
+        onUpgrade={() => {
+          // Handle upgrade action
+          console.log('User wants to upgrade subscription')
+        }}
+      />
+      <PendingPaymentToast
+        isVisible={showPendingPaymentToast}
+        message={pendingPaymentMessage}
+        context="video"
+        onClose={() => setShowPendingPaymentToast(false)}
+        onRefresh={async () => {
+          // Refresh subscription status
+          try {
+            const usageCheck = await checkVideoUsageLimit()
+            if (usageCheck.canCreateVideo) {
+              setShowPendingPaymentToast(false)
+              // Optionally show success message
+            } else if (usageCheck.message?.includes('payment is still being processed')) {
+              setPendingPaymentMessage(usageCheck.message)
+            } else {
+              setShowPendingPaymentToast(false)
+              setUsageToastMessage(usageCheck.message || 'Video limit reached')
+              setShowUsageToast(true)
+            }
+          } catch (error) {
+            console.error('Failed to refresh subscription status:', error)
+          }
+        }}
+      />
+      <SubscriptionRequiredToast
+        isVisible={showSubscriptionRequiredToast}
+        message={subscriptionRequiredMessage}
+        context="video"
+        onClose={() => setShowSubscriptionRequiredToast(false)}
+        onSubscribe={() => {
+          // Redirect to pricing page or scroll to pricing section
+          window.location.href = '/#pricing'
+        }}
+      />
     </>
   )
 }

@@ -14,6 +14,7 @@ import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketPro
 import { useNotificationStore } from './global-notification';
 
 type SortOrder = 'newest' | 'oldest'
+type VideoTypeFilter = 'talkingHead' | 'listingVideo' | 'tourVideo' | 'all'
 
 type VideoCard = {
   id: string
@@ -68,6 +69,8 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false)
+  const [videoTypeFilter, setVideoTypeFilter] = useState<VideoTypeFilter>('all')
+  const [isVideoTypeDropdownOpen, setIsVideoTypeDropdownOpen] = useState(false)
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [limit] = useState(10) // Fixed limit, can be made configurable later
@@ -117,7 +120,8 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         page: currentPage,
         limit: limit,
         sort: sortOrder,
-        search: debouncedSearchQuery || undefined
+        search: debouncedSearchQuery || undefined,
+        videoType: videoTypeFilter !== 'all' ? videoTypeFilter : undefined
       })
 
       if (result.success && result.data) {
@@ -180,7 +184,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     } finally {
       setLoading(false)
     }
-  }, [accessToken, currentPage, limit, sortOrder, debouncedSearchQuery])
+  }, [accessToken, currentPage, limit, sortOrder, debouncedSearchQuery, videoTypeFilter])
 
   // Debounce search query to avoid excessive API calls
   useEffect(() => {
@@ -198,6 +202,11 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     setCurrentPage(1)
   }, [sortOrder])
 
+  // Reset to page 1 when video type filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [videoTypeFilter])
+
   // Update ref when fetchVideos changes
   useEffect(() => {
     fetchVideosRef.current = fetchVideos
@@ -206,7 +215,7 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
   // Fetch videos on component mount and when dependencies change
   useEffect(() => {
     fetchVideosRef.current?.()
-  }, [accessToken, currentPage, sortOrder, debouncedSearchQuery]) // Trigger on pagination, sort, and search changes
+  }, [accessToken, currentPage, sortOrder, debouncedSearchQuery, videoTypeFilter]) // Trigger on pagination, sort, search, and filter changes
 
   // No need for cleanup effects since we're using derived state from socket updates
 
@@ -463,6 +472,26 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
     setIsSortDropdownOpen(false)
   }
 
+  const handleVideoTypeFilterChange = (newFilter: VideoTypeFilter) => {
+    setVideoTypeFilter(newFilter)
+    setIsVideoTypeDropdownOpen(false)
+  }
+
+  const getVideoTypeDisplayName = (filter: VideoTypeFilter): string => {
+    switch (filter) {
+      case 'talkingHead':
+        return 'Talking Head'
+      case 'listingVideo':
+        return 'Listing Video'
+      case 'tourVideo':
+        return 'Tour Video'
+      case 'all':
+        return 'All Videos'
+      default:
+        return 'All Videos'
+    }
+  }
+
   if (error) {
     return (
       <div className={`w-full ${className}`}>
@@ -521,12 +550,12 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         </div>
 
         {/* Right side: Sort Dropdown, Refresh Button and Create Button */}
-        <div className="flex gap-4 justify-end">
+        <div className="flex gap-4 justify-end md:flex-row flex-col">
           {/* Refresh Button */}
           <button
             onClick={fetchVideos}
             disabled={loading}
-            className="px-4 py-[7.4px] bg-[#5046E5] text-white rounded-[39px] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] flex items-center gap-2 min-w-[120px] justify-center text-[20px] font-semibold hover:bg-[#4338CA] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 md:w-fit w-full py-[7.4px] bg-[#5046E5] text-white rounded-[39px] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] flex items-center gap-2 min-w-[120px] justify-center text-[20px] font-semibold hover:bg-[#4338CA] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4 4V10H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H10M20 20V14H19.4185M19.4185 14C18.2317 16.9318 15.3574 19 12 19C7.92038 19 4.55399 15.9463 4.06189 12M19.4185 14H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -534,12 +563,68 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
             Refresh
           </button>
 
+          {/* Video Type Filter Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsVideoTypeDropdownOpen(!isVideoTypeDropdownOpen)}
+              className="px-4 md:w-fit w-full py-[7.4px] bg-transparent cursor-pointer border-2 border-[#5F5F5F] rounded-[39px] text-[#5F5F5F] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center gap-2 min-w-[180px] justify-center text-[20px] font-semibold"
+              style={{
+                boxShadow: "0px -1.5px 0px 0px #FFFFFF52 inset, 0px 0.5px 0px 0px #FFFFFF52 inset"
+              }}
+            >
+              <span>
+                {getVideoTypeDisplayName(videoTypeFilter)}
+              </span>
+              <IoMdArrowDropdown
+                className={`w-7 h-7 transition-transform text-[#5F5F5F] duration-300 ${isVideoTypeDropdownOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {isVideoTypeDropdownOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => handleVideoTypeFilterChange('all')}
+                  className={`w-full px-4 py-3 text-left cursor-pointer hover:bg-[#F5F5F5] transition-colors duration-200 rounded-t-[8px] text-[18px] font-semibold ${videoTypeFilter === 'all' ? 'bg-[#F5F5F5] text-[#5046E5]' : 'text-[#282828]'
+                    }`}
+                >
+                  All Videos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVideoTypeFilterChange('talkingHead')}
+                  className={`w-full px-4 py-3 text-left cursor-pointer hover:bg-[#F5F5F5] transition-colors duration-200 text-[18px] font-semibold ${videoTypeFilter === 'talkingHead' ? 'bg-[#F5F5F5] text-[#5046E5]' : 'text-[#282828]'
+                    }`}
+                >
+                  Talking Head
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVideoTypeFilterChange('listingVideo')}
+                  className={`w-full px-4 py-3 text-left cursor-pointer hover:bg-[#F5F5F5] transition-colors duration-200 text-[18px] font-semibold ${videoTypeFilter === 'listingVideo' ? 'bg-[#F5F5F5] text-[#5046E5]' : 'text-[#282828]'
+                    }`}
+                >
+                  Video Listing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVideoTypeFilterChange('tourVideo')}
+                  className={`w-full px-4 py-3 text-left cursor-pointer hover:bg-[#F5F5F5] transition-colors duration-200 rounded-b-[8px] text-[18px] font-semibold ${videoTypeFilter === 'tourVideo' ? 'bg-[#F5F5F5] text-[#5046E5]' : 'text-[#282828]'
+                    }`}
+                >
+                  Music Video
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Sort Dropdown */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-              className="px-4 py-[7.4px] bg-transparent cursor-pointer border-2 border-[#5F5F5F] rounded-[39px] text-[#5F5F5F] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center gap-2 min-w-[154px] justify-center text-[20px] font-semibold"
+              className="px-4 md:w-fit w-full py-[7.4px] bg-transparent cursor-pointer border-2 border-[#5F5F5F] rounded-[39px] text-[#5F5F5F] transition-all duration-300 focus:outline-none focus:ring focus:ring-[#5046E5] focus:bg-white flex items-center gap-2 min-w-[154px] justify-center text-[20px] font-semibold"
               style={{
                 boxShadow: "0px -1.5px 0px 0px #FFFFFF52 inset, 0px 0.5px 0px 0px #FFFFFF52 inset"
               }}
@@ -851,11 +936,14 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
         </div>
       )}
 
-      {/* Click outside to close dropdown */}
-      {isSortDropdownOpen && (
+      {/* Click outside to close dropdowns */}
+      {(isSortDropdownOpen || isVideoTypeDropdownOpen) && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => setIsSortDropdownOpen(false)}
+          onClick={() => {
+            setIsSortDropdownOpen(false)
+            setIsVideoTypeDropdownOpen(false)
+          }}
         />
       )}
 

@@ -579,6 +579,7 @@ class ApiService {
     limit?: number;
     sort?: 'newest' | 'oldest';
     search?: string;
+    videoType?: 'talkingHead' | 'listingVideo' | 'tourVideo';
   }): Promise<ApiResponse<{
     videos: any[];
     pagination?: {
@@ -619,6 +620,10 @@ class ApiService {
     
     if (params?.search && params.search.trim()) {
       queryParams.append('search', params.search.trim());
+    }
+    
+    if (params?.videoType) {
+      queryParams.append('videoType', params.videoType);
     }
     
     const queryString = queryParams.toString();
