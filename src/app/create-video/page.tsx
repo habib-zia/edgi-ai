@@ -94,10 +94,10 @@ export default function CreateVideoPage() {
               Create Video
             </Link>
             <Link
-              href="/create-video/listing"
+              href="/tour-video"
               className="inline-flex items-center md:max-w-[167px] max-w-full w-full justify-center gap-2 px-6 py-[9.4px] bg-[#5046E5] text-white rounded-full md:text-[20px] text-[18px] hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5] transition-all duration-300 font-semibold whitespace-nowrap"
             >
-              Video Listing
+              Tour Video
             </Link>
           </div>
 

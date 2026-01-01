@@ -482,9 +482,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       case 'talkingHead':
         return 'Talking Head'
       case 'listingVideo':
-        return 'Listing Video'
+        return 'Video Listing'
       case 'tourVideo':
-        return 'Tour Video'
+        return 'Music Video'
       case 'all':
         return 'All Videos'
       default:

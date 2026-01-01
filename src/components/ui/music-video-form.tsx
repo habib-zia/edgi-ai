@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X } from 'lucide-react'
+import Link from 'next/link'
 import { IoMdArrowDropdown } from 'react-icons/io'
 import Image from 'next/image'
 import { useNotificationStore } from '@/components/ui/global-notification'
@@ -18,6 +19,7 @@ import { useSubscription } from '@/hooks/useSubscription'
 import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
+import { FaArrowLeft } from 'react-icons/fa'
 
 interface ImageFile {
   file: File
@@ -548,7 +550,11 @@ export default function MusicVideoForm() {
         className="space-y-8"
       >
       {/* Property Details Section */}
-      <div className="bg-white p-6 md:p-8">
+      <div className="bg-white p-2">
+      <Link href="/tour-video" className="group inline-flex items-center gap-2 text-[#5046E5] hover:text-[#5046E5] transition-colors duration-300 w-fit mb-7">
+          <FaArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
+          Tour Video
+        </Link>
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#282828] mb-6">
           Fill the Property Details
         </h2>
@@ -890,7 +896,7 @@ export default function MusicVideoForm() {
       </div>
 
       {/* Images Section */}
-      <div className="bg-white p-6 md:p-8">
+      <div className="bg-white p-2">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#171717] mb-6">
           Upload Images
         </h2>

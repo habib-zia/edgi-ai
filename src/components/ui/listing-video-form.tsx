@@ -22,6 +22,8 @@ import { useSubscription } from '@/hooks/useSubscription'
 import UsageLimitToast from './usage-limit-toast'
 import PendingPaymentToast from './pending-payment-toast'
 import SubscriptionRequiredToast from './subscription-required-toast'
+import Link from 'next/link'
+import { FaArrowLeft } from 'react-icons/fa'
 
 // Exterior parts options
 const exteriorParts = [
@@ -1142,7 +1144,11 @@ export default function ListingVideoForm() {
         className="space-y-8"
       >
       {/* Property Details Section */}
-      <div className="bg-white p-2 md:p-8">
+      <div className="bg-white p-2">
+        <Link href="/tour-video" className="group inline-flex items-center gap-2 text-[#5046E5] hover:text-[#5046E5] transition-colors duration-300 w-fit mb-7">
+          <FaArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
+          Tour Video
+        </Link>
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#282828] mb-6">
           Fill the Property Details
         </h2>
@@ -1739,7 +1745,7 @@ export default function ListingVideoForm() {
       </div>
 
       {/* Image Count Notification */}
-      <div className="bg-white p-2 md:p-8">
+      <div className="bg-white p-2">
         <div className={`p-4 rounded-lg border-2 ${
           totalImages >= 10 
             ? 'bg-red-50 border-red-200 text-red-800' 
@@ -1785,7 +1791,7 @@ export default function ListingVideoForm() {
       </div>
 
       {/* Exterior Parts Section */}
-      <div className="bg-white p-2 md:p-8">
+      <div className="bg-white p-2">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#171717] mb-6">
           Fill the Exterior Parts Details
         </h2>
@@ -1916,7 +1922,7 @@ export default function ListingVideoForm() {
       </div>
 
       {/* Interior Parts Section */}
-      <div className="bg-white p-2 md:p-8">
+      <div className="bg-white p-2">
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#171717] mb-6">
           Fill the Interior Parts Details
         </h2>

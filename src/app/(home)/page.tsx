@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, Suspense, useCallback, useRef } from "react";
+import { useEffect, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { IoMdArrowDropdown } from "react-icons/io";
 import { FaMusic, FaVideo } from "react-icons/fa";
 import { SLIDER_ITEMS, REVIEW_SLIDER_ITEMS } from "@/lib/constants";
 import { Slider } from "@/components/ui/slider";
@@ -61,12 +60,6 @@ function HomePageContent() {
   const { checkVideoUsageLimit } = useSubscription();
   const { isAvatarProcessing, isVideoAvatarProcessing } = useUnifiedSocketContext();
   const isAnyAvatarProcessing = isAvatarProcessing || isVideoAvatarProcessing;
-  
-  // Video Tour dropdown state
-  const [isVideoTourDropdownOpen, setIsVideoTourDropdownOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const videoTourDropdownRef = useRef<HTMLDivElement>(null);
-  const videoTourButtonRef = useRef<HTMLButtonElement>(null);
 
 
     // Modal handler functions
@@ -130,52 +123,6 @@ function HomePageContent() {
   useEffect(() => {
     checkForPosts();
   }, [checkForPosts]);
-
-  // Detect mobile device
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640 || 'ontouchstart' in window);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Close Video Tour dropdown when clicking outside (for mobile)
-  useEffect(() => {
-    if (!isMobile) return; // Only handle click-outside on mobile
-    
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        videoTourDropdownRef.current &&
-        !videoTourDropdownRef.current.contains(event.target as Node) &&
-        videoTourButtonRef.current &&
-        !videoTourButtonRef.current.contains(event.target as Node)
-      ) {
-        setIsVideoTourDropdownOpen(false);
-      }
-    };
-
-    if (isVideoTourDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isVideoTourDropdownOpen, isMobile]);
-
-  // Handle escape key for Video Tour dropdown
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isVideoTourDropdownOpen) {
-        setIsVideoTourDropdownOpen(false);
-        videoTourButtonRef.current?.focus();
-      }
-    };
-
-    if (isVideoTourDropdownOpen) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }
-  }, [isVideoTourDropdownOpen]);
 
   const handleGetStartedClick = (e: React.MouseEvent) => {
     if (isAuthenticated)
@@ -253,69 +200,12 @@ function HomePageContent() {
                   Talking Head Video
                 </Link>
                 
-                {/* Video Tour Dropdown */}
-                <div 
-                  className="relative z-[100]" 
-                  ref={videoTourDropdownRef}
-                  onMouseEnter={() => !isMobile && setIsVideoTourDropdownOpen(true)}
-                  onMouseLeave={() => !isMobile && setIsVideoTourDropdownOpen(false)}
+                <Link 
+                  href="/tour-video"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
                 >
-                  <button
-                    ref={videoTourButtonRef}
-                    onClick={() => isMobile && setIsVideoTourDropdownOpen(!isVideoTourDropdownOpen)}
-                    className="inline-flex cursor-pointer items-center justify-center gap-2 px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46] w-full"
-                    aria-expanded={isVideoTourDropdownOpen}
-                    aria-haspopup="true"
-                  >
-                    Video Tour
-                    <IoMdArrowDropdown 
-                      className={`w-5 h-5 transition-transform duration-300 ${isVideoTourDropdownOpen ? 'rotate-180' : ''}`} 
-                    />
-                  </button>
-                  
-                  {/* Creative Dropdown Menu */}
-                  {isVideoTourDropdownOpen && (
-                    <div 
-                      className="absolute z-[9999] mt-0 left-0 sm:left-auto sm:-right-10 bg-white rounded-2xl border border-gray-100 w-full sm:w-auto overflow-hidden min-w-[240px]"
-                      role="menu"
-                      aria-label="Video Tour menu"
-                      style={{
-                        boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 10px 20px -5px rgba(0, 0, 0, 0.1)',
-                        zIndex: 9999
-                      }}
-                    >
-                      {/* Decorative header */}
-                      <div className="bg-gradient-to-r from-[#e64a46] to-[#5046E5] h-1"></div>
-                      
-                      <div className="p-3 space-y-1">
-                        <Link 
-                          href="/create-video/music-video"
-                          onClick={() => setIsVideoTourDropdownOpen(false)}
-                          className="group flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 hover:bg-gradient-to-r hover:from-[#e64a46]/5 hover:to-[#f87171]/5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#e64a46]/20"
-                          role="menuitem"
-                        >
-                          <div className="text-[#111827] font-semibold text-base group-hover:text-[#e64a46] transition-colors">
-                            Music Video
-                          </div>
-                        </Link>
-                        
-                        {/* Visual separator */}
-                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mx-4 my-2"></div>
-                        
-                        <Link 
-                          href="/create-video/listing"
-                          onClick={() => setIsVideoTourDropdownOpen(false)}
-                          className="group flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 hover:bg-gradient-to-r hover:from-[#e64a46]/5 hover:to-[#f87171]/5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#e64a46]/20"
-                          role="menuitem"
-                        >
-                          <div className="text-[#111827] font-semibold text-base group-hover:text-[#5046E5] transition-colors">
-                            Video Listing
-                          </div>
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  Tour Video
+                </Link>
               </div>
 
               {/* Four action buttons with purple background - Centered bottom row */}
