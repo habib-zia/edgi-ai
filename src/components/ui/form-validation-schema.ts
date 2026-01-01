@@ -83,7 +83,9 @@ export const listingVideoSchema = z.object({
     .regex(/^\d+$/, 'Restroom count must be a number'),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
-  mainSellingPoints: z.string().optional(),
+  mainSellingPoints: z.string()
+    .min(2, 'Main selling points are required')
+    .max(500, 'Main selling points must be less than 500 characters'),
   preset: z.string().optional(),
   preferredTone: z.string()
     .min(2, 'Preferred tone must be at least 2 characters')
@@ -113,7 +115,9 @@ export const musicVideoSchema = z.object({
     .regex(/^\d+$/, 'Restroom count must be a number'),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
-  mainSellingPoints: z.string().optional(),
+  mainSellingPoints: z.string()
+    .min(2, 'Main selling points are required')
+    .max(500, 'Main selling points must be less than 500 characters'),
   city: z.string()
     .min(2, 'City must be at least 2 characters')
     .max(50, 'City must be less than 50 characters'),

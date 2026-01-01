@@ -551,9 +551,9 @@ export default function MusicVideoForm() {
       >
       {/* Property Details Section */}
       <div className="bg-white p-2">
-      <Link href="/tour-video" className="group inline-flex items-center gap-2 text-[#5046E5] hover:text-[#5046E5] transition-colors duration-300 w-fit mb-7">
+      <Link href="/create-video/video-listing" className="group inline-flex items-center gap-2 text-[#5046E5] hover:text-[#5046E5] transition-colors duration-300 w-fit mb-7">
           <FaArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
-          Tour Video
+          Video Listing
         </Link>
         <h2 className="text-2xl md:text-[32px] font-semibold text-[#282828] mb-6">
           Fill the Property Details
@@ -832,7 +832,7 @@ export default function MusicVideoForm() {
           {/* Main Selling Points */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Main Selling Points
+              Main Selling Points <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -843,8 +843,13 @@ export default function MusicVideoForm() {
                   e.preventDefault()
                 }
               }}
-              className="w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.mainSellingPoints ? 'ring-2 ring-red-500' : ''
+              }`}
             />
+            {errors.mainSellingPoints && (
+              <p className="text-red-500 text-sm mt-1">{errors.mainSellingPoints.message}</p>
+            )}
           </div>
 
           {/* City */}
