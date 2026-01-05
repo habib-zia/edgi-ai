@@ -4,7 +4,7 @@ export interface Voice {
   voice_id?: string // ElevenLabs voice_id
   name: string
   artist?: string
-  type: 'low' | 'medium' | 'high' | 'custom'
+  type: 'low' | 'medium' | 'high' | 'custom' | 'trending'
   previewUrl?: string
   preview_url?: string // Alternative field name
   thumbnailUrl?: string
@@ -16,5 +16,5 @@ export interface Voice {
   userId?: string
 }
 
-export type VoiceType = 'low' | 'medium' | 'high' | 'custom'
+export type VoiceType = 'low' | 'medium' | 'high' | 'custom' | 'trending'
 

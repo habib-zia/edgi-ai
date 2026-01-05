@@ -13,6 +13,8 @@ interface VoiceTypeSelectorProps {
   highLabel?: string
   customLabel?: string
   hasCustomVoices?: boolean
+  hasTrending?: boolean
+  trendingLabel?: string
 }
 
 export default function VoiceTypeSelector({ 
@@ -25,18 +27,20 @@ export default function VoiceTypeSelector({
   mediumLabel = 'Medium Voice',
   highLabel = 'High Voice',
   customLabel = 'Custom',
-  hasCustomVoices = false
+  hasCustomVoices = false,
+  hasTrending = false,
+  trendingLabel = 'Trending Music'
 }: VoiceTypeSelectorProps) {
   return (
-    <div className="lg:w-[280px] w-full bg-white px-6 flex flex-col">
-      <div className="mb-5">
+    <div className="lg:w-[280px] w-full bg-white px-6 flex flex-col min-h-0">
+      <div className="mb-5 flex-shrink-0">
         <h3 className="text-[20px] font-semibold text-[#5F5F5F] mb-3">{title}</h3>
         <p className="text-base leading-[20px] text-[#5F5F5F]">
         {description}
         </p>
       </div>
       
-      <div className="space-y-1 flex-1 lg:flex-col flex-row flex-wrap">
+      <div className="space-y-1 flex-1 lg:flex-col flex-row flex-wrap overflow-y-auto min-h-0">
         <button
           type="button"
           onClick={() => !disabled && onTypeChange('low')}
@@ -135,6 +139,32 @@ export default function VoiceTypeSelector({
             </div>
             <span className={`text-[16px] ${currentType === 'custom' ? 'font-semibold text-[#11101066]' : 'font-normal text-[#11101066]'}`}>
               {customLabel}
+            </span>
+          </button>
+        )}
+
+        {hasTrending && (
+          <button
+            type="button"
+            onClick={() => !disabled && onTypeChange('trending')}
+            disabled={disabled}
+            className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
+              disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+            } ${
+              currentType === 'trending'
+                ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
+                : 'bg-transparent hover:bg-white/50'
+            }`}
+          >
+            <div className={`lg:w-[60px] lg:h-[65px] w-[45px] h-[45px] rounded-[4px] flex items-center justify-center ${
+              currentType === 'trending' ? 'bg-[#EBE9FE]' : 'bg-[#5046E51A]'
+            }`}>
+              <svg width="27" height="24" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13.5 0C6.044 0 0 5.373 0 12C0 18.627 6.044 24 13.5 24C20.956 24 27 18.627 27 12C27 5.373 20.956 0 13.5 0ZM13.5 22.5C7.003 22.5 1.8 17.73 1.8 12C1.8 6.27 7.003 1.5 13.5 1.5C19.997 1.5 25.2 6.27 25.2 12C25.2 17.73 19.997 22.5 13.5 22.5ZM12.15 6.75V17.25H14.85V6.75H12.15ZM18.9 9.75V17.25H21.6V9.75H18.9ZM5.4 12.75V17.25H8.1V12.75H5.4Z" fill="#5046E5"/>
+              </svg>
+            </div>
+            <span className={`text-[16px] ${currentType === 'trending' ? 'font-semibold text-[#11101066]' : 'font-normal text-[#11101066]'}`}>
+              {trendingLabel}
             </span>
           </button>
         )}

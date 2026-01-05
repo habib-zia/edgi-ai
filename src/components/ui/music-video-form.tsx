@@ -216,7 +216,7 @@ export default function MusicVideoForm() {
   }
 
   const handleMusicTypeChange = (type: VoiceType) => {
-    setCurrentMusicType(type as 'low' | 'medium' | 'high' | 'custom' | null)
+    setCurrentMusicType(type)
   }
 
   const handleCustomMusicUpload = (music: Voice) => {
@@ -226,6 +226,52 @@ export default function MusicVideoForm() {
       if (exists) return prev
       return [...prev, music]
     })
+  }
+
+  // Fetch trending music - for now using existing API and showing random music
+  const handleTrendingMusicFetch = async (): Promise<Voice[]> => {
+    try {
+      setMusicLoading(true)
+      setMusicError(null)
+      
+      // Fetch music using existing API
+      const response = await apiService.getMusicTracks(undefined, null)
+      
+      if (response.success && response.data) {
+        const musicData = Array.isArray(response.data) ? response.data : (response.data.tracks || response.data.music || [])
+        
+        // Transform and shuffle to get random music
+        const transformedMusic: Voice[] = musicData.map((music: any) => {
+          const previewUrl = music.s3PreviewUrl || music.s3_preview_url || music.preview_url || music.previewUrl || music.preview || undefined
+          
+          return {
+            id: music.trackId || music.track_id || music.id || music._id || '',
+            _id: music._id || '',
+            name: music.name || '',
+            artist: music.metadata?.artist || music.artist || undefined,
+            type: 'trending' as const,
+            previewUrl: previewUrl,
+            preview_url: previewUrl,
+            thumbnailUrl: music.thumbnail_url || music.thumbnailUrl || music.thumbnail || undefined,
+            s3FullTrackUrl: music.s3FullTrackUrl || music.s3_full_track_url || music.fullTrackUrl || undefined
+          }
+        })
+        
+        // Shuffle array to get random order
+        const shuffled = [...transformedMusic].sort(() => Math.random() - 0.5)
+        
+        // Return first 20 random tracks (or all if less than 20)
+        return shuffled.slice(0, 20)
+      }
+      
+      return []
+    } catch (error) {
+      console.error('Error fetching trending music:', error)
+      setMusicError(error instanceof Error ? error.message : 'Failed to load trending music')
+      return []
+    } finally {
+      setMusicLoading(false)
+    }
   }
 
   const handleDropdownToggle = (field: string) => {
@@ -648,7 +694,7 @@ export default function MusicVideoForm() {
               musicLoading={musicLoading}
               musicError={musicError}
               preset={null}
-              initialMusicType={currentMusicType as 'low' | 'medium' | 'high' | null}
+              initialMusicType={currentMusicType as 'low' | 'medium' | 'high' | 'trending' | null}
               onToggle={handleDropdownToggle}
               onSelect={handleDropdownSelect}
               onMusicClick={handleMusicClick}
@@ -659,6 +705,9 @@ export default function MusicVideoForm() {
               onDragLeave={handleMusicDragLeave}
               onDrop={handleMusicDrop}
               onCustomMusicUpload={handleCustomMusicUpload}
+              hasTrending={true}
+              trendingLabel="Trending Music"
+              onTrendingMusicFetch={handleTrendingMusicFetch}
             />
             {errors.music && (
               <p className="text-red-500 text-sm mt-1">{errors.music.message}</p>
