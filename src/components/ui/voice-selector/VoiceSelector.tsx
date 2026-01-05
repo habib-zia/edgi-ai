@@ -41,11 +41,14 @@ interface VoiceSelectorProps {
   typeSelectorHighLabel?: string
   typeSelectorCustomLabel?: string
   hasCustomVoices?: boolean
+  hasTrending?: boolean
+  trendingLabel?: string
   listTitle?: string
   listLoadingText?: string
   listEmptyText?: string
   onVoiceTypeChange?: (type: VoiceType) => void
   onCustomMusicUpload?: (music: Voice) => void
+  onTrendingMusicFetch?: () => Promise<Voice[]>
 }
 
 export default function VoiceSelector({
@@ -78,16 +81,19 @@ export default function VoiceSelector({
   typeSelectorHighLabel,
   typeSelectorCustomLabel,
   hasCustomVoices = false,
+  hasTrending = false,
+  trendingLabel = 'Trending Music',
   listTitle,
   listLoadingText,
   listEmptyText,
   onVoiceTypeChange,
-  onCustomMusicUpload
+  onCustomMusicUpload,
+  onTrendingMusicFetch
 }: VoiceSelectorProps) {
   // Initialize voiceType based on initialVoiceType (from user-settings) or preset, default to 'low'
   const getInitialVoiceType = (): VoiceType => {
     // Priority: initialVoiceType (user-settings) > preset > default
-    if (initialVoiceType && (initialVoiceType === 'low' || initialVoiceType === 'medium' || initialVoiceType === 'high' || initialVoiceType === 'custom')) {
+    if (initialVoiceType && (initialVoiceType === 'low' || initialVoiceType === 'medium' || initialVoiceType === 'high' || initialVoiceType === 'custom' || initialVoiceType === 'trending')) {
       return initialVoiceType
     }
     if (preset) {
@@ -113,6 +119,10 @@ export default function VoiceSelector({
   // Check if custom music exists
   const hasCustomMusic = voices.filter(v => v.type === 'custom').length > 0
   
+  // Trending music state
+  const [trendingMusic, setTrendingMusic] = useState<Voice[]>([])
+  const [isLoadingTrending, setIsLoadingTrending] = useState(false)
+  
   const { playingVoiceId, voiceProgress, handlePlayPreview, stopAllAudio } = useAudioPlayer()
 
   // Get preset from parent if available
@@ -124,7 +134,7 @@ export default function VoiceSelector({
   // Update voiceType when initialVoiceType or preset changes
   // Priority: initialVoiceType (user-settings) > preset
   useEffect(() => {
-    if (initialVoiceType && (initialVoiceType === 'low' || initialVoiceType === 'medium' || initialVoiceType === 'high' || initialVoiceType === 'custom')) {
+    if (initialVoiceType && (initialVoiceType === 'low' || initialVoiceType === 'medium' || initialVoiceType === 'high' || initialVoiceType === 'custom' || initialVoiceType === 'trending')) {
       // Use user-settings voice type (don't override with preset)
       setVoiceType(initialVoiceType)
     } else if (preset) {
@@ -137,7 +147,7 @@ export default function VoiceSelector({
     }
   }, [preset, initialVoiceType])
 
-  const handleVoiceTypeChange = (type: VoiceType) => {
+  const handleVoiceTypeChange = async (type: VoiceType) => {
     console.log('🎤 VoiceSelector - handleVoiceTypeChange called with type:', type)
     console.log('🎤 VoiceSelector - Current voiceType:', voiceType, 'Current selectedVoice:', selectedVoice?.name, 'selectedVoiceType:', selectedVoice?.type)
     
@@ -146,6 +156,20 @@ export default function VoiceSelector({
     try {
       stopAllAudio()
     } catch {
+    }
+    
+    // If trending is selected and we have a fetch function, fetch trending music
+    if (type === 'trending' && onTrendingMusicFetch && trendingMusic.length === 0) {
+      setIsLoadingTrending(true)
+      try {
+        const fetchedMusic = await onTrendingMusicFetch()
+        setTrendingMusic(fetchedMusic)
+      } catch (error) {
+        console.error('Failed to fetch trending music:', error)
+        showNotification('Failed to load trending music', 'error')
+      } finally {
+        setIsLoadingTrending(false)
+      }
     }
     
     startTransition(() => {
@@ -457,6 +481,8 @@ export default function VoiceSelector({
               highLabel={typeSelectorHighLabel}
               customLabel={typeSelectorCustomLabel}
               hasCustomVoices={hasCustomVoices}
+              hasTrending={hasTrending}
+              trendingLabel={trendingLabel}
             />
 
             {isMusicSelector && voiceType === 'custom' ? (
@@ -562,6 +588,26 @@ export default function VoiceSelector({
                   </div>
                 )}
               </div>
+            ) : voiceType === 'trending' ? (
+              <VoiceList
+                voices={trendingMusic}  // Show trending music
+                voiceType="trending"  // Used for filtering in VoiceList
+                voicesLoading={isLoadingTrending}
+                voicesError={null}
+                selectedVoiceId={selectedVoiceId}
+                playingVoiceId={playingVoiceId}
+                voiceProgress={voiceProgress}
+                onVoiceSelect={handleVoiceSelection}
+                onVoicePlay={handlePlayPreview}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={handleDrop}
+                title={listTitle || 'Trending Music'}
+                loadingText={listLoadingText || 'Loading trending music...'}
+                emptyText={listEmptyText || 'No trending music available'}
+              />
             ) : (
               <VoiceList
                 voices={voices}  // Already filtered by parent component

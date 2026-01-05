@@ -18,7 +18,7 @@ interface MusicSelectorWrapperProps {
   musicLoading: boolean
   musicError: string | null
   preset?: string | null
-  initialMusicType?: 'low' | 'medium' | 'high' | 'custom' | null // Override preset-based initialization
+  initialMusicType?: 'low' | 'medium' | 'high' | 'custom' | 'trending' | null // Override preset-based initialization
   onToggle: (field: any) => void
   onSelect: (field: any, value: string) => void
   onMusicClick: (music: Voice) => void
@@ -29,6 +29,9 @@ interface MusicSelectorWrapperProps {
   onDragLeave: (e: React.DragEvent) => void
   onDrop: (e: React.DragEvent) => void
   onCustomMusicUpload?: (music: Voice) => void
+  hasTrending?: boolean
+  trendingLabel?: string
+  onTrendingMusicFetch?: () => Promise<Voice[]>
 }
 
 export default function MusicSelectorWrapper({
@@ -54,7 +57,10 @@ export default function MusicSelectorWrapper({
   onDragOver,
   onDragLeave,
   onDrop,
-  onCustomMusicUpload
+  onCustomMusicUpload,
+  hasTrending = false,
+  trendingLabel = 'Trending Music',
+  onTrendingMusicFetch
 }: MusicSelectorWrapperProps) {
   const currentValue = watch(field) || ''
   const isOpen = openDropdown === field
@@ -99,10 +105,13 @@ export default function MusicSelectorWrapper({
       typeSelectorHighLabel="High Music"
       typeSelectorCustomLabel="Custom Music"
       hasCustomVoices={true}
+      hasTrending={hasTrending}
+      trendingLabel={trendingLabel}
       listTitle="Recommended Music"
       listLoadingText="Loading music..."
       listEmptyText="No music available"
       onCustomMusicUpload={onCustomMusicUpload}
+      onTrendingMusicFetch={onTrendingMusicFetch}
     />
   )
 }
