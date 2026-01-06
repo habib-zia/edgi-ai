@@ -682,12 +682,12 @@ export default function ListingVideoForm() {
     }
 
     // Check for unsupported file types first
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/avg', 'image/avif', 'image/webp']
+    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     const invalidFiles = Array.from(files).filter(file => !validImageTypes.includes(file.type.toLowerCase()))
     
     if (invalidFiles.length > 0) {
       showNotification(
-        "This file type isn't supported.\nTry uploading a JPG, PNG, AVIF, or WebP image.",
+        "This file type isn't supported.\nTry uploading a JPG, PNG, or WebP image.",
         'error'
       )
       return
@@ -717,7 +717,7 @@ export default function ListingVideoForm() {
     
     if (imageFiles.length === 0) {
       showNotification(
-        "This file type isn't supported.\nTry uploading a JPG, PNG, AVIF, or WebP image.",
+        "This file type isn't supported.\nTry uploading a JPG, PNG, or WebP image.",
         'error'
       )
       return
@@ -1831,7 +1831,7 @@ export default function ListingVideoForm() {
                   <input
                     type="file"
                     multiple
-                    accept="image/jpeg,image/jpg,image/png,image/avg,image/avif,image/webp"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
                     onChange={(e) => {
                       handleImageUpload(part, e.target.files, true)
                       // Reset input value to allow selecting the same file again
@@ -1856,7 +1856,7 @@ export default function ListingVideoForm() {
                         Upload {part} Image
                       </p>
                         <p className="text-xs text-gray-500 mb-3">
-                          Supported formats: JPG, PNG, AVG, AVIF, or WebP
+                          Supported formats: JPG, PNG, or WebP
                         </p>
                       <button
                         type="button"
@@ -1996,7 +1996,7 @@ export default function ListingVideoForm() {
                     <input
                       type="file"
                       multiple
-                      accept="image/jpeg,image/jpg,image/png,image/avg,image/avif,image/webp"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
                       onChange={(e) => {
                         handleImageUpload(part, e.target.files, false)
                         // Reset input value to allow selecting the same file again
@@ -2034,7 +2034,7 @@ export default function ListingVideoForm() {
                               Drag and drop Images
                             </p>
                         <p className="text-xs text-gray-400 mb-3">
-                          JPG, PNG, AVG, AVIF or WebP
+                          JPG, PNG, or WebP
                         </p>
                             <button
                               type="button"

@@ -59,6 +59,7 @@ export const API_CONFIG = {
     // Music endpoints
     MUSIC: {
       UPLOAD_CUSTOM: '/api/music/upload-custom',
+      TRENDING: '/api/music/trending',
     },
     USER_SETTINGS: '/api/user-settings/user-settings',
     // Trends endpoints

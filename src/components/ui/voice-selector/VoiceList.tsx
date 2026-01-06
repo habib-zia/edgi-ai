@@ -47,9 +47,9 @@ export default function VoiceList({
   const filteredVoices = voiceType === 'trending' 
     ? voices 
     : voices.filter(voice => {
-        const matches = voice.type === voiceType
-        return matches
-      })
+    const matches = voice.type === voiceType
+    return matches
+  })
 
 
   const handleDragOverInner = (e: React.DragEvent) => {
