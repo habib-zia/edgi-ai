@@ -900,6 +900,19 @@ class ApiService {
     }
   }
 
+  async getTrendingMusic(): Promise<ApiResponse<any>> {
+    try {
+      const response = await this.request<any>(API_CONFIG.ENDPOINTS.MUSIC.TRENDING, {
+        method: 'GET',
+      }, true)
+      return response
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get trending music'
+      this.showNotification(errorMessage, 'error')
+      return { success: false, message: errorMessage, error: errorMessage }
+    }
+  }
+
   async textToSpeech(data: {
     voice_id: string
     hook: string

@@ -228,40 +228,37 @@ export default function MusicVideoForm() {
     })
   }
 
-  // Fetch trending music - for now using existing API and showing random music
+  // Fetch trending music from backend API
   const handleTrendingMusicFetch = async (): Promise<Voice[]> => {
     try {
       setMusicLoading(true)
       setMusicError(null)
       
-      // Fetch music using existing API
-      const response = await apiService.getMusicTracks(undefined, null)
+      // Fetch trending music from backend
+      const response = await apiService.getTrendingMusic()
       
       if (response.success && response.data) {
-        const musicData = Array.isArray(response.data) ? response.data : (response.data.tracks || response.data.music || [])
+        // Response format: { success: true, data: [{ musicUrl, musicName, artistName }, ...] }
+        const musicData = Array.isArray(response.data) ? response.data : []
         
-        // Transform and shuffle to get random music
-        const transformedMusic: Voice[] = musicData.map((music: any) => {
-          const previewUrl = music.s3PreviewUrl || music.s3_preview_url || music.preview_url || music.previewUrl || music.preview || undefined
+        // Transform to Voice format
+        const transformedMusic: Voice[] = musicData.map((music: any, index: number) => {
+          // Generate a unique ID from musicUrl or use index as fallback
+          const musicId = music.musicUrl ? `trending-${music.musicUrl.split('/').pop() || index}` : `trending-${index}`
           
           return {
-            id: music.trackId || music.track_id || music.id || music._id || '',
-            _id: music._id || '',
-            name: music.name || '',
-            artist: music.metadata?.artist || music.artist || undefined,
+            id: musicId,
+            _id: musicId,
+            name: music.musicName || 'Unknown Track',
+            artist: music.artistName || undefined,
             type: 'trending' as const,
-            previewUrl: previewUrl,
-            preview_url: previewUrl,
-            thumbnailUrl: music.thumbnail_url || music.thumbnailUrl || music.thumbnail || undefined,
-            s3FullTrackUrl: music.s3FullTrackUrl || music.s3_full_track_url || music.fullTrackUrl || undefined
+            previewUrl: music.musicUrl, // Use musicUrl as preview
+            preview_url: music.musicUrl,
+            s3FullTrackUrl: music.musicUrl, // Full track URL
           }
         })
         
-        // Shuffle array to get random order
-        const shuffled = [...transformedMusic].sort(() => Math.random() - 0.5)
-        
-        // Return first 20 random tracks (or all if less than 20)
-        return shuffled.slice(0, 20)
+        return transformedMusic
       }
       
       return []
@@ -288,10 +285,10 @@ export default function MusicVideoForm() {
 
     const file = files[0]
     // Validate file type
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/avg', 'image/avif', 'image/webp']
+    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!validImageTypes.includes(file.type.toLowerCase())) {
       showNotification(
-        "This file type isn't supported.\nTry uploading a JPG, PNG, AVIF, or WebP image.",
+        "This file type isn't supported.\nTry uploading a JPG, PNG, or WebP image.",
         'error'
       )
       return
@@ -318,12 +315,12 @@ export default function MusicVideoForm() {
     if (!files || files.length === 0) return
 
     // Check for unsupported file types first
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/avg', 'image/avif', 'image/webp']
+    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     const invalidFiles = Array.from(files).filter(file => !validImageTypes.includes(file.type.toLowerCase()))
     
     if (invalidFiles.length > 0) {
       showNotification(
-        "This file type isn't supported.\nTry uploading a JPG, PNG, AVIF, or WebP image.",
+        "This file type isn't supported.\nTry uploading a JPG, PNG, or WebP image.",
         'error'
       )
       return
@@ -974,7 +971,7 @@ export default function MusicVideoForm() {
             >
               <input
                 type="file"
-                accept="image/jpeg,image/jpg,image/png,image/avg,image/avif,image/webp"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleStartImageChange}
                 className="hidden"
                 id="startImage"
@@ -1008,7 +1005,7 @@ export default function MusicVideoForm() {
                     Upload Start Image
                   </p>
                   <p className="text-xs text-gray-400 mb-3">
-                    Supported formats: JPG, PNG, AVG, AVIF, or WebP
+                    Supported formats: JPG, PNG, or WebP
                   </p>
                   <button
                     type="button"
@@ -1044,7 +1041,7 @@ export default function MusicVideoForm() {
               <input
                 type="file"
                 multiple
-                accept="image/jpeg,image/jpg,image/png,image/avg,image/avif,image/webp"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleRestImagesChange}
                 className="hidden"
                 id="restImages"
@@ -1091,7 +1088,7 @@ export default function MusicVideoForm() {
                     Upload Additional Images
                   </p>
                   <p className="text-xs text-gray-400 mb-3">
-                    Supported formats: JPG, PNG, AVG, AVIF, or WebP
+                    Supported formats: JPG, PNG, or WebP
                   </p>
                   <button
                     type="button"
