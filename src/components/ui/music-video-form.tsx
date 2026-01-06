@@ -234,8 +234,11 @@ export default function MusicVideoForm() {
       setMusicLoading(true)
       setMusicError(null)
       
-      // Fetch trending music from backend
-      const response = await apiService.getTrendingMusic()
+      // Get city from form
+      const city = watch("city")?.trim()
+      
+      // Fetch trending music from backend with city parameter
+      const response = await apiService.getTrendingMusic(city)
       
       if (response.success && response.data) {
         // Response format: { success: true, data: [{ musicUrl, musicName, artistName }, ...] }
@@ -673,41 +676,26 @@ export default function MusicVideoForm() {
             )}
           </div>
 
-          {/* Music */}
+          {/* Address */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Music <span className="text-red-500">*</span>
+              Address <span className="text-red-500">*</span>
             </label>
-            <MusicSelectorWrapper
-              field={"music" as any}
-              placeholder="Select Music"
-              watch={watch as any}
-              register={register as any}
-              errors={errors as any}
-              trigger={trigger as any}
-              openDropdown={openDropdown}
-              selectedMusic={selectedMusic}
-              musicList={[...(allMusic.length > 0 ? allMusic : musicList), ...customMusic]}
-              musicLoading={musicLoading}
-              musicError={musicError}
-              preset={null}
-              initialMusicType={currentMusicType as 'low' | 'medium' | 'high' | 'trending' | null}
-              onToggle={handleDropdownToggle}
-              onSelect={handleDropdownSelect}
-              onMusicClick={handleMusicClick}
-              onMusicTypeChange={handleMusicTypeChange}
-              onDragStart={handleMusicDragStart}
-              onDragEnd={handleMusicDragEnd}
-              onDragOver={handleMusicDragOver}
-              onDragLeave={handleMusicDragLeave}
-              onDrop={handleMusicDrop}
-              onCustomMusicUpload={handleCustomMusicUpload}
-              hasTrending={true}
-              trendingLabel="Trending Music"
-              onTrendingMusicFetch={handleTrendingMusicFetch}
+            <input
+              type="text"
+              {...register("address", { required: true })}
+              placeholder="e.g. 123 Main St, LA"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.address ? 'ring-2 ring-red-500' : ''
+              }`}
             />
-            {errors.music && (
-              <p className="text-red-500 text-sm mt-1">{errors.music.message}</p>
+            {errors.address && (
+              <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
             )}
           </div>
 
@@ -921,26 +909,41 @@ export default function MusicVideoForm() {
             )}
           </div>
 
-          {/* Address */}
+          {/* Music */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Address <span className="text-red-500">*</span>
+              Music <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              {...register("address", { required: true })}
-              placeholder="e.g. 123 Main St, LA"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                }
-              }}
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.address ? 'ring-2 ring-red-500' : ''
-              }`}
+            <MusicSelectorWrapper
+              field={"music" as any}
+              placeholder="Select Music"
+              watch={watch as any}
+              register={register as any}
+              errors={errors as any}
+              trigger={trigger as any}
+              openDropdown={openDropdown}
+              selectedMusic={selectedMusic}
+              musicList={[...(allMusic.length > 0 ? allMusic : musicList), ...customMusic]}
+              musicLoading={musicLoading}
+              musicError={musicError}
+              preset={null}
+              initialMusicType={currentMusicType as 'low' | 'medium' | 'high' | 'trending' | null}
+              onToggle={handleDropdownToggle}
+              onSelect={handleDropdownSelect}
+              onMusicClick={handleMusicClick}
+              onMusicTypeChange={handleMusicTypeChange}
+              onDragStart={handleMusicDragStart}
+              onDragEnd={handleMusicDragEnd}
+              onDragOver={handleMusicDragOver}
+              onDragLeave={handleMusicDragLeave}
+              onDrop={handleMusicDrop}
+              onCustomMusicUpload={handleCustomMusicUpload}
+              hasTrending={!!watch("city")?.trim()}
+              trendingLabel="Trending Music"
+              onTrendingMusicFetch={handleTrendingMusicFetch}
             />
-            {errors.address && (
-              <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
+            {errors.music && (
+              <p className="text-red-500 text-sm mt-1">{errors.music.message}</p>
             )}
           </div>
         </div>

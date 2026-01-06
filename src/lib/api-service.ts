@@ -900,9 +900,17 @@ class ApiService {
     }
   }
 
-  async getTrendingMusic(): Promise<ApiResponse<any>> {
+  async getTrendingMusic(city?: string): Promise<ApiResponse<any>> {
     try {
-      const response = await this.request<any>(API_CONFIG.ENDPOINTS.MUSIC.TRENDING, {
+      // Build URL with city parameter if provided
+      let url = API_CONFIG.ENDPOINTS.MUSIC.TRENDING
+      if (city && city.trim()) {
+        const params = new URLSearchParams()
+        params.append('city', city.trim())
+        url = `${url}?${params.toString()}`
+      }
+      
+      const response = await this.request<any>(url, {
         method: 'GET',
       }, true)
       return response
