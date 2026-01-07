@@ -34,7 +34,7 @@ interface CreateVideoModalProps {
     music_url?: string
   } | null;
   // Listing video mode props
-  mode?: 'talking-head' | 'listing' | 'music-video'
+  mode?: 'talking-head' | 'listing' | 'music-video' | 'narrated'
   script?: string
   onConfirmListing?: () => Promise<void>
   onConfirmMusicVideo?: () => Promise<void>
@@ -150,9 +150,9 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
         setCurrentStep('loading')
         // Mark as new submission to prevent socket updates from overriding
         isNewSubmissionRef.current = true
-        // For music-video mode with fresh submission, set the redirect flag
+        // For music-video and narrated mode with fresh submission, set the redirect flag
         // This allows the countdown to run only after explicit form submission
-        if (mode === 'music-video' && isFreshSubmission) {
+        if ((mode === 'music-video' || mode === 'narrated') && isFreshSubmission) {
           setVideoGenerationreDirected(true)
         }
       }
@@ -202,9 +202,9 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
       return
     }
 
-    // For music-video mode: only respond to socket updates if we have a legitimate submission
+    // For music-video and narrated mode: only respond to socket updates if we have a legitimate submission
     // This prevents socket updates from triggering loading state when modal is just reopened
-    if (mode === 'music-video') {
+    if (mode === 'music-video' || mode === 'narrated') {
       // Check if we have a recent submission in localStorage
       const hasRecentSubmission = (() => {
         try {
@@ -322,8 +322,8 @@ export default function CreateVideoModal({ isOpen, onClose, videoTitle, startAtC
                 // Close the modal first
                 onClose()
                 setTimeout(() => {
-                  // For listing and music videos, redirect to gallery (create-video page)
-                  const targetPath = (mode === 'listing' || mode === 'music-video') ? '/create-video' : '/create-video'
+                  // For listing, music-video, and narrated videos, redirect to gallery (create-video page)
+                  const targetPath = (mode === 'listing' || mode === 'music-video' || mode === 'narrated') ? '/create-video' : '/create-video'
                   // Require videoGenerationreDirected flag for ALL modes (including music-video)
                   const shouldRedirect = window.location.pathname !== targetPath && videoGenerationreDirected
                   

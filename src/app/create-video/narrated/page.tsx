@@ -1,6 +1,6 @@
 "use client";
 
-import CreateVideoForm from "@/components/ui/create-video-form";
+import NarratedVideoForm from "@/components/ui/narrated-video-form";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import Link from "next/link";
 
@@ -28,7 +28,7 @@ export default function NarratedVideoPage() {
           </div>
 
           <div className="pt-4">
-            <CreateVideoForm isSingleSelection={true} hideSchedulePost={true} />
+            <NarratedVideoForm />
           </div>
         </div>
       </div>

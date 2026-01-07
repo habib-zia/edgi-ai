@@ -130,3 +130,32 @@ export const musicVideoSchema = z.object({
 
 // Type inference from schema
 export type MusicVideoFormData = z.infer<typeof musicVideoSchema>
+
+// Form validation schema for NarratedVideoForm
+export const narratedVideoSchema = z.object({
+  title: z.string()
+    .min(2, 'Title must be at least 2 characters')
+    .max(100, 'Title must be less than 100 characters'),
+  avatar: z.string().min(1, 'Please select an avatar'),
+  gender: z.string().min(1, 'Please select a gender'),
+  voice: z.string().min(1, 'Please select a voice'),
+  music: z.string().min(1, 'Please select music'),
+  city: z.string()
+    .min(2, 'City must be at least 2 characters')
+    .max(50, 'City must be less than 50 characters')
+    .regex(/^[a-zA-Z\s]+$/, 'City can only contain letters and spaces'),
+  videoTopic: z.string()
+    .min(1, 'Please enter a valid topic or key points.')
+    .max(100, 'Topic must be less than 100 characters'),
+  topicKeyPoints: z.string()
+    .min(2, 'Key points are required')
+    .max(500, 'Key points must be less than 500 characters'),
+  style: z.string().min(1, 'Please select a style'),
+  preset: z.string().optional(),
+  socialHandles: z.string()
+    .min(1, 'Social handles are required')
+    .max(200, 'Social handles must be less than 200 characters'),
+})
+
+// Type inference from schema
+export type NarratedVideoFormData = z.infer<typeof narratedVideoSchema>

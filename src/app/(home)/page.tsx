@@ -206,6 +206,13 @@ function HomePageContent() {
                 >
                   Video Listing
                 </Link>
+
+                <Link 
+                  href="/create-video/narrated"
+                  className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
+                >
+             Narrated Video
+                </Link>
               </div>
 
               {/* Four action buttons with purple background - Centered bottom row */}
@@ -220,7 +227,7 @@ function HomePageContent() {
                   }`}
                 >
                   {isAnyAvatarProcessing ? 'Processing...' : 'Custom Avatar'}
-                </button>
+                </button> 
                 <Link href="/create-video" className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#5046E5] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#5046E5] border-2 border-[#5046E5]">
                   Gallery
                 </Link>
