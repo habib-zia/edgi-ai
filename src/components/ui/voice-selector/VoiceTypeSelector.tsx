@@ -41,6 +41,58 @@ export default function VoiceTypeSelector({
       </div>
       
       <div className="space-y-1 flex-1 lg:flex-col flex-row flex-wrap overflow-y-auto min-h-0">
+        {hasTrending && (
+          <button
+            type="button"
+            onClick={() => !disabled && onTypeChange('trending')}
+            disabled={disabled}
+            className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
+              disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+            } ${
+              currentType === 'trending'
+                ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
+                : 'bg-transparent hover:bg-white/50'
+            }`}
+          >
+            <div className={`lg:w-[60px] lg:h-[65px] w-[45px] h-[45px] rounded-[4px] flex items-center justify-center ${
+              currentType === 'trending' ? 'bg-[#EBE9FE]' : 'bg-[#5046E51A]'
+            }`}>
+              <svg width="27" height="24" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13.5 0C6.044 0 0 5.373 0 12C0 18.627 6.044 24 13.5 24C20.956 24 27 18.627 27 12C27 5.373 20.956 0 13.5 0ZM13.5 22.5C7.003 22.5 1.8 17.73 1.8 12C1.8 6.27 7.003 1.5 13.5 1.5C19.997 1.5 25.2 6.27 25.2 12C25.2 17.73 19.997 22.5 13.5 22.5ZM12.15 6.75V17.25H14.85V6.75H12.15ZM18.9 9.75V17.25H21.6V9.75H18.9ZM5.4 12.75V17.25H8.1V12.75H5.4Z" fill="#5046E5"/>
+              </svg>
+            </div>
+            <span className={`text-[16px] ${currentType === 'trending' ? 'font-semibold text-[#11101066]' : 'font-normal text-[#11101066]'}`}>
+              {trendingLabel}
+            </span>
+          </button>
+        )}
+
+        {hasCustomVoices && (
+          <button
+            type="button"
+            onClick={() => !disabled && onTypeChange('custom')}
+            disabled={disabled}
+            className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
+              disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+            } ${
+              currentType === 'custom'
+                ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
+                : 'bg-transparent hover:bg-white/50'
+            }`}
+          >
+            <div className={`lg:w-[60px] lg:h-[65px] w-[45px] h-[45px] rounded-[4px] flex items-center justify-center ${
+              currentType === 'custom' ? 'bg-[#EBE9FE]' : 'bg-[#5046E51A]'
+            }`}>
+              <svg width="27" height="24" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.5795 3.33027L10.4091 7.4998H5.625C5.00344 7.4998 4.5 8.00324 4.5 8.6248V15.3748C4.5 15.9959 5.00344 16.4998 5.625 16.4998H10.4091L14.5795 20.6693C15.2841 21.3739 16.5 20.8789 16.5 19.8739V4.12574C16.5 3.1198 15.2831 2.62668 14.5795 3.33027ZM20.3545 8.39652C19.8117 8.09981 19.1269 8.29527 18.8259 8.83949C18.5264 9.38371 18.7247 10.0676 19.2689 10.3681C19.8741 10.7004 20.25 11.3262 20.25 11.9998C20.25 12.6739 19.8741 13.2992 19.2694 13.6315C18.7252 13.932 18.5269 14.6159 18.8264 15.1601C19.1278 15.7067 19.8131 15.9007 20.355 15.6031C21.6783 14.8742 22.5005 13.4937 22.5005 11.9993C22.5005 10.505 21.6783 9.12496 20.3545 8.39652Z" fill="#5046E5"/>
+              </svg>
+            </div>
+            <span className={`text-[16px] ${currentType === 'custom' ? 'font-semibold text-[#11101066]' : 'font-normal text-[#11101066]'}`}>
+              {customLabel}
+            </span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => !disabled && onTypeChange('low')}
@@ -116,58 +168,6 @@ export default function VoiceTypeSelector({
             {highLabel}
           </span>
         </button>
-
-        {hasCustomVoices && (
-          <button
-            type="button"
-            onClick={() => !disabled && onTypeChange('custom')}
-            disabled={disabled}
-            className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
-              disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-            } ${
-              currentType === 'custom'
-                ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
-                : 'bg-transparent hover:bg-white/50'
-            }`}
-          >
-            <div className={`lg:w-[60px] lg:h-[65px] w-[45px] h-[45px] rounded-[4px] flex items-center justify-center ${
-              currentType === 'custom' ? 'bg-[#EBE9FE]' : 'bg-[#5046E51A]'
-            }`}>
-              <svg width="27" height="24" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14.5795 3.33027L10.4091 7.4998H5.625C5.00344 7.4998 4.5 8.00324 4.5 8.6248V15.3748C4.5 15.9959 5.00344 16.4998 5.625 16.4998H10.4091L14.5795 20.6693C15.2841 21.3739 16.5 20.8789 16.5 19.8739V4.12574C16.5 3.1198 15.2831 2.62668 14.5795 3.33027ZM20.3545 8.39652C19.8117 8.09981 19.1269 8.29527 18.8259 8.83949C18.5264 9.38371 18.7247 10.0676 19.2689 10.3681C19.8741 10.7004 20.25 11.3262 20.25 11.9998C20.25 12.6739 19.8741 13.2992 19.2694 13.6315C18.7252 13.932 18.5269 14.6159 18.8264 15.1601C19.1278 15.7067 19.8131 15.9007 20.355 15.6031C21.6783 14.8742 22.5005 13.4937 22.5005 11.9993C22.5005 10.505 21.6783 9.12496 20.3545 8.39652Z" fill="#5046E5"/>
-              </svg>
-            </div>
-            <span className={`text-[16px] ${currentType === 'custom' ? 'font-semibold text-[#11101066]' : 'font-normal text-[#11101066]'}`}>
-              {customLabel}
-            </span>
-          </button>
-        )}
-
-        {hasTrending && (
-          <button
-            type="button"
-            onClick={() => !disabled && onTypeChange('trending')}
-            disabled={disabled}
-            className={`w-full flex items-center gap-4 px-2 py-2 rounded-[4px] transition-all duration-200 ${
-              disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
-            } ${
-              currentType === 'trending'
-                ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
-                : 'bg-transparent hover:bg-white/50'
-            }`}
-          >
-            <div className={`lg:w-[60px] lg:h-[65px] w-[45px] h-[45px] rounded-[4px] flex items-center justify-center ${
-              currentType === 'trending' ? 'bg-[#EBE9FE]' : 'bg-[#5046E51A]'
-            }`}>
-              <svg width="27" height="24" viewBox="0 0 27 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13.5 0C6.044 0 0 5.373 0 12C0 18.627 6.044 24 13.5 24C20.956 24 27 18.627 27 12C27 5.373 20.956 0 13.5 0ZM13.5 22.5C7.003 22.5 1.8 17.73 1.8 12C1.8 6.27 7.003 1.5 13.5 1.5C19.997 1.5 25.2 6.27 25.2 12C25.2 17.73 19.997 22.5 13.5 22.5ZM12.15 6.75V17.25H14.85V6.75H12.15ZM18.9 9.75V17.25H21.6V9.75H18.9ZM5.4 12.75V17.25H8.1V12.75H5.4Z" fill="#5046E5"/>
-              </svg>
-            </div>
-            <span className={`text-[16px] ${currentType === 'trending' ? 'font-semibold text-[#11101066]' : 'font-normal text-[#11101066]'}`}>
-              {trendingLabel}
-            </span>
-          </button>
-        )}
       </div>
     </div>
   )

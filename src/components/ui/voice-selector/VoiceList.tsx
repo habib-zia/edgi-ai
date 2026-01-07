@@ -2,6 +2,8 @@
 
 import { Voice, VoiceType } from './types'
 import VoiceItem from './VoiceItem'
+import { RotateCcw } from 'lucide-react'
+import { useState } from 'react'
 
 interface VoiceListProps {
   voices: Voice[]
@@ -21,6 +23,8 @@ interface VoiceListProps {
   title?: string
   loadingText?: string
   emptyText?: string
+  showRefreshButton?: boolean
+  onRefresh?: () => Promise<void>
 }
 
 export default function VoiceList({
@@ -40,8 +44,12 @@ export default function VoiceList({
   onDrop,
   title = 'Recommended Voice',
   loadingText = 'Loading voices...',
-  emptyText
+  emptyText,
+  showRefreshButton = false,
+  onRefresh
 }: VoiceListProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
   // Filter voices by the selected voiceType
   // For trending, show all voices passed (they're already filtered)
   const filteredVoices = voiceType === 'trending' 
@@ -50,6 +58,19 @@ export default function VoiceList({
     const matches = voice.type === voiceType
     return matches
   })
+
+  const handleRefresh = async () => {
+    if (onRefresh && !isRefreshing) {
+      setIsRefreshing(true)
+      try {
+        await onRefresh()
+      } catch (error) {
+        console.error('Error refreshing:', error)
+      } finally {
+        setIsRefreshing(false)
+      }
+    }
+  }
 
 
   const handleDragOverInner = (e: React.DragEvent) => {
@@ -111,7 +132,22 @@ export default function VoiceList({
       onDragLeave={handleDragLeaveInner}
       onDrop={handleDropInner}
     >
-      <h4 className="text-[20px] font-semibold text-[#5F5F5F] mb-5 lg:mt-0 mt-6">{title}</h4>
+      {title && (
+        <div className="flex items-center justify-between mb-5 lg:mt-0 mt-6 px-3">
+          <h4 className="text-[20px] font-semibold text-[#5F5F5F]">{title}</h4>
+          {showRefreshButton && onRefresh && (
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing || voicesLoading}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#5046E5] bg-[#5046E51A] rounded-[6px] hover:bg-[#5046E525] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RotateCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {voicesLoading ? (
         <div className="flex flex-col justify-center items-center py-20">
@@ -128,7 +164,7 @@ export default function VoiceList({
           <p className="text-[#A0AEC0] text-base">{emptyText || `No ${voiceType} voices available`}</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 px-3">
           {filteredVoices.map((voice) => (
             <VoiceItem
               key={voice.id}

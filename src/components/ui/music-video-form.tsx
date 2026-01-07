@@ -938,9 +938,10 @@ export default function MusicVideoForm() {
               onDragLeave={handleMusicDragLeave}
               onDrop={handleMusicDrop}
               onCustomMusicUpload={handleCustomMusicUpload}
-              hasTrending={!!watch("city")?.trim()}
+              hasTrending={true}
               trendingLabel="Trending Music"
               onTrendingMusicFetch={handleTrendingMusicFetch}
+              cityName={watch("city")?.trim() || undefined}
             />
             {errors.music && (
               <p className="text-red-500 text-sm mt-1">{errors.music.message}</p>
