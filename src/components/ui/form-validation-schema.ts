@@ -131,8 +131,8 @@ export const musicVideoSchema = z.object({
 // Type inference from schema
 export type MusicVideoFormData = z.infer<typeof musicVideoSchema>
 
-// Form validation schema for NarratedVideoForm
-export const narratedVideoSchema = z.object({
+// Form validation schema for AnimatedVideoForm
+export const animatedVideoSchema = z.object({
   title: z.string()
     .min(2, 'Title must be at least 2 characters')
     .max(100, 'Title must be less than 100 characters'),
@@ -158,4 +158,4 @@ export const narratedVideoSchema = z.object({
 })
 
 // Type inference from schema
-export type NarratedVideoFormData = z.infer<typeof narratedVideoSchema>
+export type AnimatedVideoFormData = z.infer<typeof animatedVideoSchema>

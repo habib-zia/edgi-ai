@@ -579,7 +579,7 @@ class ApiService {
     limit?: number;
     sort?: 'newest' | 'oldest';
     search?: string;
-    videoType?: 'talkingHead' | 'listingVideo' | 'tourVideo' | 'narratedVideo';
+    videoType?: 'talkingHead' | 'listingVideo' | 'tourVideo' | 'animatedVideo';
   }): Promise<ApiResponse<{
     videos: any[];
     pagination?: {
@@ -794,29 +794,29 @@ class ApiService {
     }
   }
 
-  async createNarratedVideo(payload: any): Promise<ApiResponse<any>> {
+  async createAnimatedVideo(payload: any): Promise<ApiResponse<any>> {
     try {
       const headers = getAuthenticatedHeaders();
       
-      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.VIDEO.CREATE_NARRATED_VIDEO), {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.VIDEO.CREATE_ANIMATED_VIDEO), {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to create narrated video' }));
-        throw new Error(errorData.message || 'Failed to create narrated video');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create animated video' }));
+        throw new Error(errorData.message || 'Failed to create animated video');
       }
 
       const data = await response.json();
       return {
         success: true,
         data,
-        message: data.message || 'Narrated video created successfully'
+        message: data.message || 'Animated video created successfully'
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create narrated video';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create animated video';
       this.showNotification(errorMessage, 'error');
       return { success: false, message: errorMessage, error: errorMessage };
     }

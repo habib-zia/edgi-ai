@@ -13,7 +13,7 @@ import VoiceSelectorWrapper from './voice-selector-wrapper'
 import MusicSelectorWrapper from './music-selector-wrapper'
 import { Voice, VoiceType } from './voice-selector/types'
 import { useVoicesAndMusic } from '@/hooks/useVoicesAndMusic'
-import { narratedVideoSchema, NarratedVideoFormData } from './form-validation-schema'
+import { animatedVideoSchema, AnimatedVideoFormData } from './form-validation-schema'
 import { useAppSelector } from '@/store/hooks'
 import SubmitButton from './submit-button'
 import CreateVideoModal from './create-video-modal'
@@ -64,7 +64,7 @@ const styleOptions = [
   { value: 'disney', label: 'Disney' },
 ]
 
-export default function NarratedVideoForm() {
+export default function AnimatedVideoForm() {
   const { showNotification } = useNotificationStore()
   const { latestAvatarUpdate } = useUnifiedSocketContext()
   
@@ -75,8 +75,8 @@ export default function NarratedVideoForm() {
     watch,
     setValue,
     trigger,
-  } = useForm<NarratedVideoFormData>({
-    resolver: zodResolver(narratedVideoSchema),
+  } = useForm<AnimatedVideoFormData>({
+    resolver: zodResolver(animatedVideoSchema),
     mode: 'onSubmit',
     defaultValues: {
       title: '',
@@ -615,7 +615,7 @@ export default function NarratedVideoForm() {
     setFormManuallyTouched(true)
   }
 
-  const onSubmit = async (data: NarratedVideoFormData) => {
+  const onSubmit = async (data: AnimatedVideoFormData) => {
     if (!userEmail) {
       showNotification('User email not found. Please sign in again.', 'error')
       return
@@ -696,18 +696,18 @@ export default function NarratedVideoForm() {
         timestamp: new Date().toISOString(),
       }
 
-      const result = await apiService.createNarratedVideo(payload)
+      const result = await apiService.createAnimatedVideo(payload)
 
       if (!result.success) {
-        throw new Error(result.message || 'Failed to create narrated video')
+        throw new Error(result.message || 'Failed to create animated video')
       }
 
       // Store a key in localStorage to indicate video generation has started
       localStorage.setItem('videoGenerationStarted', JSON.stringify({
         timestamp: Date.now(),
-        videoTitle: data.title || 'Narrated Video'
+          videoTitle: data.title || 'Animated Video'
       }))
-      console.log('🎬 Narrated video generation API called - localStorage key set')
+      console.log('🎬 Animated video generation API called - localStorage key set')
 
       // Mark as fresh submission and open modal in loading state
       setIsFreshSubmission(true)
@@ -715,9 +715,9 @@ export default function NarratedVideoForm() {
       setWebhookResponse(result.data)
       setIsModalOpen(true)
     } catch (error: any) {
-      console.error('Error submitting narrated form:', error)
+      console.error('Error submitting animated form:', error)
       localStorage.removeItem('videoGenerationStarted')
-      showNotification(error.message || 'Failed to create narrated video', 'error')
+      showNotification(error.message || 'Failed to create animated video', 'error')
     }
   }
 
@@ -1134,9 +1134,9 @@ export default function NarratedVideoForm() {
           setIsFreshSubmission(false)
           setWebhookResponse(null)
         }}
-        videoTitle={watch('title') || 'Narrated Video'}
+        videoTitle={watch('title') || 'Animated Video'}
         webhookResponse={webhookResponse}
-        mode="narrated"
+        mode="animated"
         startAtLoading={shouldStartLoading}
         isFreshSubmission={isFreshSubmission}
       />
