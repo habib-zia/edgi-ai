@@ -32,6 +32,7 @@ interface MusicSelectorWrapperProps {
   hasTrending?: boolean
   trendingLabel?: string
   onTrendingMusicFetch?: () => Promise<Voice[]>
+  cityName?: string
 }
 
 export default function MusicSelectorWrapper({
@@ -60,7 +61,8 @@ export default function MusicSelectorWrapper({
   onCustomMusicUpload,
   hasTrending = false,
   trendingLabel = 'Trending Music',
-  onTrendingMusicFetch
+  onTrendingMusicFetch,
+  cityName
 }: MusicSelectorWrapperProps) {
   const currentValue = watch(field) || ''
   const isOpen = openDropdown === field
@@ -112,6 +114,7 @@ export default function MusicSelectorWrapper({
       listEmptyText="No music available"
       onCustomMusicUpload={onCustomMusicUpload}
       onTrendingMusicFetch={onTrendingMusicFetch}
+      cityName={cityName}
     />
   )
 }

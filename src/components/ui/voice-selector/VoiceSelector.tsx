@@ -9,7 +9,7 @@ import VoiceTypeSelector from './VoiceTypeSelector'
 import VoiceList from './VoiceList'
 import { apiService } from '@/lib/api-service'
 import { useNotificationStore } from '@/components/ui/global-notification'
-import { Upload } from 'lucide-react'
+import { Upload, RotateCcw } from 'lucide-react'
 
 interface VoiceSelectorProps {
   field: string
@@ -49,6 +49,8 @@ interface VoiceSelectorProps {
   onVoiceTypeChange?: (type: VoiceType) => void
   onCustomMusicUpload?: (music: Voice) => void
   onTrendingMusicFetch?: () => Promise<Voice[]>
+  cityName?: string
+  onTrendingRefresh?: () => Promise<void>
 }
 
 export default function VoiceSelector({
@@ -88,7 +90,9 @@ export default function VoiceSelector({
   listEmptyText,
   onVoiceTypeChange,
   onCustomMusicUpload,
-  onTrendingMusicFetch
+  onTrendingMusicFetch,
+  cityName,
+  onTrendingRefresh
 }: VoiceSelectorProps) {
   // Initialize voiceType based on initialVoiceType (from user-settings) or preset, default to 'low'
   const getInitialVoiceType = (): VoiceType => {
@@ -122,6 +126,8 @@ export default function VoiceSelector({
   // Trending music state
   const [trendingMusic, setTrendingMusic] = useState<Voice[]>([])
   const [isLoadingTrending, setIsLoadingTrending] = useState(false)
+  const [previousCityName, setPreviousCityName] = useState<string | undefined>(cityName)
+  const [cityChanged, setCityChanged] = useState(false)
   
   const { playingVoiceId, voiceProgress, handlePlayPreview, stopAllAudio } = useAudioPlayer()
 
@@ -147,6 +153,25 @@ export default function VoiceSelector({
     }
   }, [preset, initialVoiceType])
 
+  // Track city changes and clear trending music when city changes
+  useEffect(() => {
+    if (cityName !== previousCityName) {
+      if (previousCityName && cityName && cityName.trim()) {
+        // City changed from one value to another
+        setTrendingMusic([])
+        setCityChanged(true)
+      } else if (previousCityName && (!cityName || !cityName.trim())) {
+        // City was cleared
+        setTrendingMusic([])
+        setCityChanged(false)
+      } else if (!previousCityName && cityName && cityName.trim()) {
+        // City was entered for the first time
+        setCityChanged(false)
+      }
+      setPreviousCityName(cityName)
+    }
+  }, [cityName, previousCityName])
+
   const handleVoiceTypeChange = async (type: VoiceType) => {
     console.log('🎤 VoiceSelector - handleVoiceTypeChange called with type:', type)
     console.log('🎤 VoiceSelector - Current voiceType:', voiceType, 'Current selectedVoice:', selectedVoice?.name, 'selectedVoiceType:', selectedVoice?.type)
@@ -158,12 +183,13 @@ export default function VoiceSelector({
     } catch {
     }
     
-    // If trending is selected and we have a fetch function, fetch trending music
-    if (type === 'trending' && onTrendingMusicFetch && trendingMusic.length === 0) {
+    // Auto-fetch trending music when trending tab is clicked for the first time (if city is available and not changed)
+    if (type === 'trending' && onTrendingMusicFetch && cityName && cityName.trim() && trendingMusic.length === 0 && !cityChanged) {
       setIsLoadingTrending(true)
       try {
         const fetchedMusic = await onTrendingMusicFetch()
         setTrendingMusic(fetchedMusic)
+        setCityChanged(false)
       } catch (error) {
         console.error('Failed to fetch trending music:', error)
         showNotification('Failed to load trending music', 'error')
@@ -589,45 +615,120 @@ export default function VoiceSelector({
                 )}
               </div>
             ) : voiceType === 'trending' ? (
-              <VoiceList
-                voices={trendingMusic}  // Show trending music
-                voiceType="trending"  // Used for filtering in VoiceList
-                voicesLoading={isLoadingTrending}
-                voicesError={null}
-                selectedVoiceId={selectedVoiceId}
-                playingVoiceId={playingVoiceId}
-                voiceProgress={voiceProgress}
-                onVoiceSelect={handleVoiceSelection}
-                onVoicePlay={handlePlayPreview}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={handleDrop}
-                title={listTitle || 'Trending Music'}
-                loadingText={listLoadingText || 'Loading trending music...'}
-                emptyText={listEmptyText || 'No trending music available'}
-              />
+              <div className="flex-1 bg-white px-0 overflow-y-auto min-h-0">
+                {!cityName || !cityName.trim() ? (
+                  <div className="flex flex-col items-center justify-center py-12 px-4">
+                    <p className="text-sm text-[#5F5F5F] text-center">
+                      Please select entered city first
+                    </p>
+                  </div>
+                ) : cityChanged ? (
+                  <div className="flex flex-col items-center justify-center py-12 px-4">
+                    <p className="text-sm text-[#5F5F5F] text-center mb-4">
+                      Please refresh to fetch trends for {cityName}
+                    </p>
+                    {onTrendingMusicFetch && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (onTrendingMusicFetch) {
+                            setIsLoadingTrending(true)
+                            try {
+                              const fetchedMusic = await onTrendingMusicFetch()
+                              setTrendingMusic(fetchedMusic)
+                              setCityChanged(false)
+                            } catch (error) {
+                              console.error('Failed to refresh trending music:', error)
+                              showNotification('Failed to refresh trending music', 'error')
+                            } finally {
+                              setIsLoadingTrending(false)
+                            }
+                          }
+                        }}
+                        disabled={isLoadingTrending}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#5046E5] rounded-[6px] hover:bg-[#4338CA] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <RotateCcw className={`w-4 h-4 ${isLoadingTrending ? 'animate-spin' : ''}`} />
+                        <span>{isLoadingTrending ? 'Refreshing...' : 'Refresh'}</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="px-3 pt-6">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base text-[#5F5F5F] font-medium">Current City:</span>
+                        <span className="text-base text-[#5046E5] font-semibold">{cityName}</span>
+                      </div>
+                      {onTrendingMusicFetch && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (onTrendingMusicFetch) {
+                              setIsLoadingTrending(true)
+                              try {
+                                const fetchedMusic = await onTrendingMusicFetch()
+                                setTrendingMusic(fetchedMusic)
+                                setCityChanged(false)
+                              } catch (error) {
+                                console.error('Failed to refresh trending music:', error)
+                                showNotification('Failed to refresh trending music', 'error')
+                              } finally {
+                                setIsLoadingTrending(false)
+                              }
+                            }
+                          }}
+                          disabled={isLoadingTrending}
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#5046E5] bg-[#5046E51A] rounded-[6px] hover:bg-[#5046E525] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <RotateCcw className={`w-4 h-4 ${isLoadingTrending ? 'animate-spin' : ''}`} />
+                          <span>{isLoadingTrending ? 'Refreshing...' : 'Refresh'}</span>
+                        </button>
+                      )}
+                    </div>
+                    <VoiceList
+                      voices={trendingMusic}  // Show trending music
+                      voiceType="trending"  // Used for filtering in VoiceList
+                      voicesLoading={isLoadingTrending}
+                      voicesError={null}
+                      selectedVoiceId={selectedVoiceId}
+                      playingVoiceId={playingVoiceId}
+                      voiceProgress={voiceProgress}
+                      onVoiceSelect={handleVoiceSelection}
+                      onVoicePlay={handlePlayPreview}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={onDragOver}
+                      onDragLeave={onDragLeave}
+                      onDrop={handleDrop}
+                      title=""
+                      loadingText={listLoadingText || 'Loading trending music...'}
+                      emptyText={listEmptyText || 'No trending music available'}
+                      showRefreshButton={false}
+                    />
+                  </div>
+                )}
+              </div>
             ) : (
               <VoiceList
-                voices={voices}  // Already filtered by parent component
-                voiceType={voiceType}  // Used for filtering in VoiceList
-                voicesLoading={voicesLoading}
-                voicesError={voicesError}
-                selectedVoiceId={selectedVoiceId}
-                playingVoiceId={playingVoiceId}
-                voiceProgress={voiceProgress}
-                onVoiceSelect={handleVoiceSelection}
-                onVoicePlay={handlePlayPreview}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={handleDrop}
-                title={listTitle}
-                loadingText={listLoadingText}
-                emptyText={listEmptyText}
-              />
+                  voices={voices}  // Already filtered by parent component
+                  voiceType={voiceType}  // Used for filtering in VoiceList
+                  voicesLoading={voicesLoading}
+                  voicesError={voicesError}
+                  selectedVoiceId={selectedVoiceId}
+                  playingVoiceId={playingVoiceId}
+                  voiceProgress={voiceProgress}
+                  onVoiceSelect={handleVoiceSelection}
+                  onVoicePlay={handlePlayPreview}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={handleDrop}
+                  title={listTitle}
+                  loadingText={listLoadingText}
+                  emptyText={listEmptyText}
+                />
             )}
           </div>
         </div>
