@@ -1,10 +1,10 @@
 "use client";
 
-import NarratedVideoForm from "@/components/ui/narrated-video-form";
+import AnimatedVideoForm from "@/components/ui/animated-video-form";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import Link from "next/link";
 
-export default function NarratedVideoPage() {
+export default function AnimatedVideoPage() {
   return (
     <ProtectedRoute>
       <div className="bg-white">
@@ -28,7 +28,7 @@ export default function NarratedVideoPage() {
           </div>
 
           <div className="pt-4">
-            <NarratedVideoForm />
+            <AnimatedVideoForm />
           </div>
         </div>
       </div>

@@ -501,7 +501,7 @@ export default function CreateVideoForm({ className, isSingleSelection = false, 
       return // Don't allow selection of pending avatars
     }
     
-    // Handle single selection mode (like listing and narrated forms)
+    // Handle single selection mode (like listing and animated forms)
     if (isSingleSelection) {
       // Check if this avatar is already selected (only check title slot for single selection)
       const isSelected = selectedAvatars.title?.avatar_id === avatar.avatar_id;

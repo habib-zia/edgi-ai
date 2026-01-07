@@ -208,10 +208,10 @@ function HomePageContent() {
                 </Link>
 
                 <Link 
-                  href="/create-video/narrated"
+                  href="/create-video/animated"
                   className="inline-flex cursor-pointer items-center justify-center px-[26.5px] py-[13.2px] text-base font-semibold bg-[#e64a46] text-white rounded-full transition-all !duration-300 hover:bg-transparent hover:text-[#e64a46] border-2 border-[#e64a46]"
                 >
-             Narrated Video
+             Animated Video
                 </Link>
               </div>
 
