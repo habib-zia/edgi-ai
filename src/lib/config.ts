@@ -53,6 +53,7 @@ export const API_CONFIG = {
       NOTE: '/api/video',
       CREATE_LISTING: '/api/listing-create-video',
       CREATE_MUSIC_VIDEO: '/api/tour-video',
+      CREATE_NARRATED_VIDEO: '/api/narrated-video',
       
       // CREATE_VIDEO: '/api/video/create',
     },

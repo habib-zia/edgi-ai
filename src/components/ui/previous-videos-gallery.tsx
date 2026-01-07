@@ -14,7 +14,7 @@ import { useUnifiedSocketContext } from '@/components/providers/UnifiedSocketPro
 import { useNotificationStore } from './global-notification';
 
 type SortOrder = 'newest' | 'oldest'
-type VideoTypeFilter = 'talkingHead' | 'listingVideo' | 'tourVideo' | 'all'
+type VideoTypeFilter = 'talkingHead' | 'listingVideo' | 'tourVideo' | 'narratedVideo' | 'all'
 
 type VideoCard = {
   id: string
@@ -484,7 +484,9 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
       case 'listingVideo':
         return 'Video Listing'
       case 'tourVideo':
-        return 'Music Video'
+        return 'Tour Video'
+      case 'narratedVideo':
+        return 'Narrated Video'
       case 'all':
         return 'All Videos'
       default:
@@ -610,10 +612,18 @@ export default function PreviousVideosGallery({ className }: PreviousVideosGalle
                 <button
                   type="button"
                   onClick={() => handleVideoTypeFilterChange('tourVideo')}
-                  className={`w-full px-4 py-3 text-left cursor-pointer hover:bg-[#F5F5F5] transition-colors duration-200 rounded-b-[8px] text-[18px] font-semibold ${videoTypeFilter === 'tourVideo' ? 'bg-[#F5F5F5] text-[#5046E5]' : 'text-[#282828]'
+                  className={`w-full px-4 py-3 text-left cursor-pointer hover:bg-[#F5F5F5] transition-colors duration-200 text-[18px] font-semibold ${videoTypeFilter === 'tourVideo' ? 'bg-[#F5F5F5] text-[#5046E5]' : 'text-[#282828]'
                     }`}
                 >
-                  Music Video
+                  Tour Video
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVideoTypeFilterChange('narratedVideo')}
+                  className={`w-full px-4 py-3 text-left cursor-pointer hover:bg-[#F5F5F5] transition-colors duration-200 rounded-b-[8px] text-[18px] font-semibold ${videoTypeFilter === 'narratedVideo' ? 'bg-[#F5F5F5] text-[#5046E5]' : 'text-[#282828]'
+                    }`}
+                >
+                  Narrated Video
                 </button>
               </div>
             )}
