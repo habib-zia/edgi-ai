@@ -1498,6 +1498,52 @@ export default function ListingVideoForm() {
             </div>
           )}
 
+          {/* Preferred Tone */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              Preferred Tone <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("preferredTone", { required: true })}
+              placeholder="e.g. Professional, friendly, etc."
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.preferredTone ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.preferredTone && (
+              <p className="text-red-500 text-sm mt-1">{errors.preferredTone.message}</p>
+            )}
+          </div>
+
+          {/* City */}
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register("city", { required: true })}
+              placeholder="e.g. Los Angeles"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.city ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.city && (
+              <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
+            )}
+          </div>
+
           {/* Use Music? - Shows after gender is selected */}
           {watch("gender") && (
             <div className="relative" data-dropdown="useMusic">
@@ -1587,52 +1633,6 @@ export default function ListingVideoForm() {
               )}
             </div>
           )}
-
-          {/* Preferred Tone */}
-          <div>
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Preferred Tone <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("preferredTone", { required: true })}
-              placeholder="e.g. Professional, friendly, etc."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                }
-              }}
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.preferredTone ? 'ring-2 ring-red-500' : ''
-              }`}
-            />
-            {errors.preferredTone && (
-              <p className="text-red-500 text-sm mt-1">{errors.preferredTone.message}</p>
-            )}
-          </div>
-
-          {/* City */}
-          <div>
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              City <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              {...register("city", { required: true })}
-              placeholder="e.g. Los Angeles"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                }
-              }}
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.city ? 'ring-2 ring-red-500' : ''
-              }`}
-            />
-            {errors.city && (
-              <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
-            )}
-          </div>
 
           {/* Address */}
           <div>
