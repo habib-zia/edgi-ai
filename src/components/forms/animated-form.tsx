@@ -621,6 +621,13 @@ export default function AnimatedVideoForm() {
       return
     }
 
+    // Trigger music field validation to show red outline if invalid
+    const musicValid = await trigger('music')
+    if (!musicValid || !data.music) {
+      // Validation will show the error state automatically
+      return
+    }
+
     // Check video usage limit
     try {
       const usageCheck = await checkVideoUsageLimit()
@@ -662,9 +669,8 @@ export default function AnimatedVideoForm() {
       return
     }
 
-    // Validate music is selected
+    // Music validation is already handled above via trigger('music')
     if (!selectedMusic) {
-      showNotification("Please select music", "error")
       return
     }
 

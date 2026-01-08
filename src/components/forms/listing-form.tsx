@@ -679,7 +679,10 @@ export default function ListingVideoForm() {
   }
 
   const handleInteriorNumberChange = (part: string, value: string) => {
-    const numValue = parseInt(value) || 0
+    // Remove any non-numeric characters (whole numbers only, no decimals)
+    const cleaned = value.replace(/[^0-9]/g, '')
+    
+    const numValue = parseInt(cleaned) || 0
     const currentImages = interiorPartsData[part].images.length
     
     if (numValue > 0 && currentImages > numValue) {
@@ -693,7 +696,7 @@ export default function ListingVideoForm() {
       ...prev,
       [part]: {
         ...prev[part],
-        number: value,
+        number: cleaned,
       },
     }))
   }
@@ -802,7 +805,7 @@ export default function ListingVideoForm() {
 
       if (currentPartImages >= maxImages) {
         showNotification(
-          `Interior part "${part}" can only have ${maxImages} image(s) as specified. Please remove existing images first.`,
+          `Interior part "${part}" already has ${currentPartImages} image(s), which is the maximum allowed (${maxImages}). Please remove existing images first or increase the number in the input field.`,
           "error"
         )
         return
@@ -810,8 +813,9 @@ export default function ListingVideoForm() {
 
       const remaining = maxImages - currentPartImages
       if (imageFiles.length > remaining) {
+        const currentCount = currentPartImages
         showNotification(
-          `Interior part "${part}" can only have ${maxImages} image(s). Only ${remaining} more image(s) can be uploaded.`,
+          `Interior part "${part}" can only have ${maxImages} image(s) total. You currently have ${currentCount} image(s), so you can only upload ${remaining} more image(s). Please reduce the number of images you're trying to upload.`,
           "warning"
         )
         imageFiles.splice(remaining)
@@ -948,10 +952,29 @@ export default function ListingVideoForm() {
       return
     }
 
-    // Check for validation errors
-    const hasErrors = Object.keys(errors).length > 0
-    if (hasErrors) {
-      showNotification('Please fill all required fields below', 'error')
+    // Check for validation errors and trigger validation for all fields
+    const isValid = await trigger()
+    if (!isValid) {
+      // Find first error field and scroll to it
+      const firstErrorField = Object.keys(errors)[0]
+      if (firstErrorField) {
+        const errorElement = document.querySelector(`[name="${firstErrorField}"]`) || 
+                            document.querySelector(`[id="${firstErrorField}"]`)
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          ;(errorElement as HTMLElement).focus()
+        }
+      }
+      showNotification('Please fill all required fields correctly', 'error')
+      return
+    }
+
+    // Validate that at least one image is uploaded
+    if (totalImages === 0) {
+      showNotification(
+        "Please upload at least one image. Select a part (exterior or interior) and upload images to continue.",
+        "error"
+      )
       return
     }
 
@@ -983,9 +1006,13 @@ export default function ListingVideoForm() {
     }
     
     // Validate music is selected only if useMusic is "yes"
-    if (data.gender && useMusic === 'yes' && !selectedMusic) {
-      showNotification("Please select music", "error")
+    // Trigger music field validation to show red outline if invalid
+    if (data.gender && useMusic === 'yes') {
+      const musicValid = await trigger('music')
+      if (!musicValid || !data.music || !selectedMusic) {
+        // Validation will show the error state automatically
       return
+      }
     }
 
     setIsGeneratingScript(true)
@@ -1016,6 +1043,16 @@ export default function ListingVideoForm() {
           })
         }
       })
+
+      // Validate that we have at least one image before proceeding
+      if (imagesArray.length === 0) {
+        showNotification(
+          "Please upload at least one image. Select a part (exterior or interior), check it, and upload images to continue.",
+          "error"
+        )
+        setIsGeneratingScript(false)
+        return
+      }
 
       // Build payload for first API (property-images) as FormData with binaries
       // Match required format:
@@ -1066,7 +1103,7 @@ export default function ListingVideoForm() {
 
       const scriptResponse = await apiService.generateListingScript(scriptFormData)
       if (!scriptResponse.success || !scriptResponse.data) {
-        showNotification(scriptResponse.message || 'Failed to generate listing script', 'error')
+        showNotification('Oops! We encountered an issue while generating your script. Please try submitting again in a moment.', 'error')
         setIsGeneratingScript(false)
         return
       }
@@ -1079,7 +1116,7 @@ export default function ListingVideoForm() {
         .map((item: any) => item?.text || (typeof item === 'string' ? item : ''))
         .filter((text: string) => text && text.trim().length > 0)
       if (extracted.length === 0) {
-        showNotification('No script returned from generator. Please try again.', 'error')
+        showNotification('Oops! We couldn\'t generate your script at this time. Please try submitting again in a moment.', 'error')
         setIsGeneratingScript(false)
         return
       }
@@ -1101,7 +1138,8 @@ export default function ListingVideoForm() {
       setIsScriptModalOpen(true)
     } catch (error: any) {
       console.error('Error submitting listing form:', error)
-      showNotification(error.message || 'Failed to create listing video', 'error')
+      // Show user-friendly message for script generation errors
+      showNotification('Oops! Something went wrong while generating your script. Please try again in a moment.', 'error')
     } finally {
       setIsGeneratingScript(false)
     }
@@ -1159,10 +1197,15 @@ export default function ListingVideoForm() {
     const response = await apiService.createListingVideo(payload)
 
     if (response.success) {
-      showNotification('Listing video created successfully!', 'success')
+      showNotification('Your listing video is being created. You will be notified when it\'s ready!', 'success')
       // Modal will handle closing and redirect
     } else {
-      throw new Error(response.message || 'Failed to create listing video')
+      // Improve error messages for better user experience
+      let errorMessage = response.message || 'Failed to create listing video'
+      if (errorMessage.toLowerCase().includes('at least one image') || errorMessage.toLowerCase().includes('image file is required')) {
+        errorMessage = 'Please upload at least one image. Select a part (exterior or interior) and upload images to continue.'
+      }
+      throw new Error(errorMessage)
     }
   }
 
@@ -1561,10 +1604,28 @@ export default function ListingVideoForm() {
             </label>
             <input
               type="text"
-              {...register("price", { required: true })}
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("price", { required: true })
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters except decimal point
+                    const cleaned = value.replace(/[^0-9.]/g, '')
+                    // Ensure only one decimal point
+                    const parts = cleaned.split('.')
+                    const finalValue = parts.length > 2 
+                      ? parts[0] + '.' + parts.slice(1).join('')
+                      : cleaned
+                    e.target.value = finalValue
+                    registerOnChange(e)
+                    setValue('price', finalValue, { shouldValidate: true })
+                  }
+                }
+              })()}
               placeholder="e.g., 2000, 2000.50"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="decimal"
+              autoComplete="off"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -1580,6 +1641,24 @@ export default function ListingVideoForm() {
                 if (!/[0-9.]/.test(char)) {
                   e.preventDefault()
                 }
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                const numericOnly = pastedText.replace(/[^0-9.]/g, '')
+                // Only allow one decimal point
+                const parts = numericOnly.split('.')
+                const cleaned = parts.length > 2 
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : numericOnly
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + cleaned + currentValue.slice(end)
+                input.value = newValue
+                setValue('price', newValue, { shouldValidate: true })
+                trigger('price')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.price ? 'ring-2 ring-red-500' : ''
@@ -1639,78 +1718,150 @@ export default function ListingVideoForm() {
 
           {/* Size - Shows after unit is selected */}
           {watch("sizeUnit") && (
-            <div>
-              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
                 Size {watch("sizeUnit") === "square_feet" ? "(Sq. Ft)" : "(Acre)"} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                {...register("size", { required: true })}
+            </label>
+            <input
+              type="text"
+                {...(() => {
+                  const { onChange: registerOnChange, ...registerProps } = register("size", { required: true })
+                  return {
+                    ...registerProps,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value
+                      // Remove any non-numeric characters except decimal point
+                      const cleaned = value.replace(/[^0-9.]/g, '')
+                      // Ensure only one decimal point
+                      const parts = cleaned.split('.')
+                      const finalValue = parts.length > 2 
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned
+                      e.target.value = finalValue
+                      registerOnChange(e)
+                      setValue('size', finalValue, { shouldValidate: true })
+                    }
+                  }
+                })()}
                 placeholder={watch("sizeUnit") === "square_feet" ? "e.g., 1500" : "e.g., 0.5"}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                onKeyPress={(e) => {
-                  const char = e.key
-                  const currentValue = (e.target as HTMLInputElement).value
-                  if (char === '.' && currentValue.includes('.')) {
-                    e.preventDefault()
-                    return
-                  }
-                  if (!/[0-9.]/.test(char)) {
-                    e.preventDefault()
-                  }
+                inputMode="decimal"
+                autoComplete="off"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                if (char === '.' && currentValue.includes('.')) {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9.]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+                onPaste={(e) => {
+                  e.preventDefault()
+                  const pastedText = e.clipboardData.getData('text')
+                  const numericOnly = pastedText.replace(/[^0-9.]/g, '')
+                  // Only allow one decimal point
+                  const parts = numericOnly.split('.')
+                  const cleaned = parts.length > 2 
+                    ? parts[0] + '.' + parts.slice(1).join('')
+                    : numericOnly
+                  const input = e.target as HTMLInputElement
+                  const start = input.selectionStart || 0
+                  const end = input.selectionEnd || 0
+                  const currentValue = input.value
+                  const newValue = currentValue.slice(0, start) + cleaned + currentValue.slice(end)
+                  input.value = newValue
+                  setValue('size', newValue, { shouldValidate: true })
+                  trigger('size')
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                  }
-                }}
-                className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                  errors.size ? 'ring-2 ring-red-500' : ''
-                }`}
-              />
-              {errors.size && (
-                <p className="text-red-500 text-sm mt-1">{errors.size.message}</p>
-              )}
-            </div>
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.size ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.size && (
+              <p className="text-red-500 text-sm mt-1">{errors.size.message}</p>
+            )}
+          </div>
           )}
 
           {/* Lot Size - Shows after unit is selected */}
           {watch("sizeUnit") && (
-            <div>
-              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+          <div>
+            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
                 Lot Size {watch("sizeUnit") === "square_feet" ? "(Sq. Ft)" : "(Acre)"}
-              </label>
-              <input
-                type="text"
-                {...register("lotSize")}
+            </label>
+            <input
+              type="text"
+                {...(() => {
+                  const { onChange: registerOnChange, ...registerProps } = register("lotSize")
+                  return {
+                    ...registerProps,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value
+                      // Remove any non-numeric characters except decimal point
+                      const cleaned = value.replace(/[^0-9.]/g, '')
+                      // Ensure only one decimal point
+                      const parts = cleaned.split('.')
+                      const finalValue = parts.length > 2 
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : cleaned
+                      e.target.value = finalValue
+                      registerOnChange(e)
+                      setValue('lotSize', finalValue, { shouldValidate: true })
+                    }
+                  }
+                })()}
                 placeholder={watch("sizeUnit") === "square_feet" ? "e.g., 2000" : "e.g., 1.0"}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                onKeyPress={(e) => {
-                  const char = e.key
-                  const currentValue = (e.target as HTMLInputElement).value
-                  if (char === '.' && currentValue.includes('.')) {
-                    e.preventDefault()
-                    return
-                  }
-                  if (!/[0-9.]/.test(char)) {
-                    e.preventDefault()
-                  }
+                inputMode="decimal"
+                autoComplete="off"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                if (char === '.' && currentValue.includes('.')) {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9.]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                }
+              }}
+                onPaste={(e) => {
+                  e.preventDefault()
+                  const pastedText = e.clipboardData.getData('text')
+                  const numericOnly = pastedText.replace(/[^0-9.]/g, '')
+                  // Only allow one decimal point
+                  const parts = numericOnly.split('.')
+                  const cleaned = parts.length > 2 
+                    ? parts[0] + '.' + parts.slice(1).join('')
+                    : numericOnly
+                  const input = e.target as HTMLInputElement
+                  const start = input.selectionStart || 0
+                  const end = input.selectionEnd || 0
+                  const currentValue = input.value
+                  const newValue = currentValue.slice(0, start) + cleaned + currentValue.slice(end)
+                  input.value = newValue
+                  setValue('lotSize', newValue, { shouldValidate: true })
+                  trigger('lotSize')
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                  }
-                }}
-                className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                  errors.lotSize ? 'ring-2 ring-red-500' : ''
-                }`}
-              />
-              {errors.lotSize && (
-                <p className="text-red-500 text-sm mt-1">{errors.lotSize.message}</p>
-              )}
-            </div>
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                errors.lotSize ? 'ring-2 ring-red-500' : ''
+              }`}
+            />
+            {errors.lotSize && (
+              <p className="text-red-500 text-sm mt-1">{errors.lotSize.message}</p>
+            )}
+          </div>
           )}
 
           {/* Bedroom Count */}
@@ -1720,12 +1871,35 @@ export default function ListingVideoForm() {
             </label>
             <input
               type="text"
-              {...register("bedroomCount", { required: true })}
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("bedroomCount", { required: true })
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters (whole numbers only, no decimals)
+                    let cleaned = value.replace(/[^0-9]/g, '')
+                    // Prevent entering just "0" - if user types 0 and field is empty or only 0, clear it
+                    if (cleaned === '0') {
+                      cleaned = ''
+                    }
+                    e.target.value = cleaned
+                    registerOnChange(e)
+                    setValue('bedroomCount', cleaned, { shouldValidate: true })
+                  }
+                }
+              })()}
               placeholder="e.g., 1, 2, 3"
               inputMode="numeric"
-              pattern="[0-9]*"
+              autoComplete="off"
               onKeyPress={(e) => {
                 const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                // Prevent typing "0" when field is empty
+                if (char === '0' && currentValue === '') {
+                  e.preventDefault()
+                  return
+                }
                 if (!/[0-9]/.test(char)) {
                   e.preventDefault()
                 }
@@ -1734,6 +1908,23 @@ export default function ListingVideoForm() {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                let numericOnly = pastedText.replace(/[^0-9]/g, '')
+                // Prevent pasting just "0"
+                if (numericOnly === '0') {
+                  numericOnly = ''
+                }
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + numericOnly + currentValue.slice(end)
+                input.value = newValue
+                setValue('bedroomCount', newValue, { shouldValidate: true })
+                trigger('bedroomCount')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.bedroomCount ? 'ring-2 ring-red-500' : ''
@@ -1751,12 +1942,35 @@ export default function ListingVideoForm() {
             </label>
             <input
               type="text"
-              {...register("masterBedroomCount")}
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("masterBedroomCount")
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters (whole numbers only, no decimals)
+                    let cleaned = value.replace(/[^0-9]/g, '')
+                    // Prevent entering just "0" - if user types 0 and field is empty or only 0, clear it
+                    if (cleaned === '0') {
+                      cleaned = ''
+                    }
+                    e.target.value = cleaned
+                    registerOnChange(e)
+                    setValue('masterBedroomCount', cleaned, { shouldValidate: true })
+                  }
+                }
+              })()}
               placeholder="e.g., 1, 2, 3"
               inputMode="numeric"
-              pattern="[0-9]*"
+              autoComplete="off"
               onKeyPress={(e) => {
                 const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                // Prevent typing "0" when field is empty
+                if (char === '0' && currentValue === '') {
+                  e.preventDefault()
+                  return
+                }
                 if (!/[0-9]/.test(char)) {
                   e.preventDefault()
                 }
@@ -1765,6 +1979,23 @@ export default function ListingVideoForm() {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                let numericOnly = pastedText.replace(/[^0-9]/g, '')
+                // Prevent pasting just "0"
+                if (numericOnly === '0') {
+                  numericOnly = ''
+                }
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + numericOnly + currentValue.slice(end)
+                input.value = newValue
+                setValue('masterBedroomCount', newValue, { shouldValidate: true })
+                trigger('masterBedroomCount')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.masterBedroomCount ? 'ring-2 ring-red-500' : ''
@@ -1782,12 +2013,35 @@ export default function ListingVideoForm() {
             </label>
             <input
               type="text"
-              {...register("bathroomCount", { required: true })}
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("bathroomCount", { required: true })
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters (whole numbers only, no decimals)
+                    let cleaned = value.replace(/[^0-9]/g, '')
+                    // Prevent entering just "0" - if user types 0 and field is empty or only 0, clear it
+                    if (cleaned === '0') {
+                      cleaned = ''
+                    }
+                    e.target.value = cleaned
+                    registerOnChange(e)
+                    setValue('bathroomCount', cleaned, { shouldValidate: true })
+                  }
+                }
+              })()}
               placeholder="e.g., 1, 2, 3"
               inputMode="numeric"
-              pattern="[0-9]*"
+              autoComplete="off"
               onKeyPress={(e) => {
                 const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                // Prevent typing "0" when field is empty
+                if (char === '0' && currentValue === '') {
+                  e.preventDefault()
+                  return
+                }
                 if (!/[0-9]/.test(char)) {
                   e.preventDefault()
                 }
@@ -1796,6 +2050,23 @@ export default function ListingVideoForm() {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                let numericOnly = pastedText.replace(/[^0-9]/g, '')
+                // Prevent pasting just "0"
+                if (numericOnly === '0') {
+                  numericOnly = ''
+                }
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + numericOnly + currentValue.slice(end)
+                input.value = newValue
+                setValue('bathroomCount', newValue, { shouldValidate: true })
+                trigger('bathroomCount')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.bathroomCount ? 'ring-2 ring-red-500' : ''
@@ -2061,12 +2332,26 @@ export default function ListingVideoForm() {
                       handleInteriorNumberChange(part, e.target.value)
                     }
                     placeholder="Specify number of images"
-                    className="w-full px-4 py-3 bg-white border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    onKeyPress={(e) => {
+                      const char = e.key
+                      if (!/[0-9]/.test(char)) {
+                        e.preventDefault()
+                      }
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
                       }
                     }}
+                    onPaste={(e) => {
+                      e.preventDefault()
+                      const pastedText = e.clipboardData.getData('text')
+                      const numericOnly = pastedText.replace(/[^0-9]/g, '')
+                      handleInteriorNumberChange(part, numericOnly)
+                    }}
+                    className="w-full px-4 py-3 bg-white border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300"
                   />
 
                   <div
