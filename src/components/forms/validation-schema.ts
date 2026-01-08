@@ -59,6 +59,7 @@ export const listingVideoSchema = z.object({
   propertyType: z.string().min(1, 'Please select a property type'),
   avatar: z.string().min(1, 'Please select an avatar'),
   gender: z.string().min(1, 'Please select a gender'),
+  preset: z.string().min(1, 'Please select a preset'),
   voice: z.string().min(1, 'Please select a voice'),
   music: z.string().optional(),
   city: z.string()
@@ -91,7 +92,6 @@ export const listingVideoSchema = z.object({
   mainSellingPoints: z.string()
     .min(2, 'Main selling points are required')
     .max(500, 'Main selling points must be less than 500 characters'),
-  preset: z.string().optional(),
   preferredTone: z.string()
     .min(2, 'Preferred tone must be at least 2 characters')
     .max(100, 'Preferred tone must be less than 100 characters'),

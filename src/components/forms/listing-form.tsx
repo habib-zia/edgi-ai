@@ -46,7 +46,7 @@ const exteriorParts = [
 // Interior parts options
 const interiorParts = [
   "Living room",
-  "Bedroom",
+  "Primary Bedroom",
   "Master Bedroom",
   "Kitchen",
   "Dining room",
@@ -89,6 +89,12 @@ const extendedAvatarOptions = [
 const genderOptions = [
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },
+]
+
+const presetOptions = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
 ]
 
 // Property Type options
@@ -155,6 +161,7 @@ export default function ListingVideoForm() {
       propertyType: '',
       avatar: '',
       gender: '',
+      preset: '',
       voice: '',
       music: '',
       city: '',
@@ -169,7 +176,6 @@ export default function ListingVideoForm() {
       bathroomCount: '',
       socialHandles: '',
       mainSellingPoints: '',
-      preset: '',
       preferredTone: '',
     },
   })
@@ -194,6 +200,7 @@ export default function ListingVideoForm() {
   const [subscriptionRequiredMessage, setSubscriptionRequiredMessage] = useState('')
 
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
+  const [isPresetDropdownOpen, setIsPresetDropdownOpen] = useState(false)
   const [isPropertyTypeDropdownOpen, setIsPropertyTypeDropdownOpen] = useState(false)
   const [isUseMusicDropdownOpen, setIsUseMusicDropdownOpen] = useState(false)
   const [isSizeUnitDropdownOpen, setIsSizeUnitDropdownOpen] = useState(false)
@@ -632,6 +639,9 @@ export default function ListingVideoForm() {
       if (isGenderDropdownOpen && !target.closest('[data-dropdown="gender"]')) {
         setIsGenderDropdownOpen(false)
       }
+      if (isPresetDropdownOpen && !target.closest('[data-dropdown="preset"]')) {
+        setIsPresetDropdownOpen(false)
+      }
       if (isPropertyTypeDropdownOpen && !target.closest('[data-dropdown="propertyType"]')) {
         setIsPropertyTypeDropdownOpen(false)
       }
@@ -656,7 +666,7 @@ export default function ListingVideoForm() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [isGenderDropdownOpen, isPropertyTypeDropdownOpen, isUseMusicDropdownOpen, isSizeUnitDropdownOpen, openDropdown])
+  }, [isGenderDropdownOpen, isPresetDropdownOpen, isPropertyTypeDropdownOpen, isUseMusicDropdownOpen, isSizeUnitDropdownOpen, openDropdown])
 
   const handleExteriorPartToggle = (part: string) => {
     setExteriorPartsData((prev) => ({
@@ -1182,6 +1192,7 @@ export default function ListingVideoForm() {
         music: useMusic === 'yes' ? (selectedMusic?.s3FullTrackUrl || '') : null,
         videoCaption: true,
         voiceId: selectedVoice?.id || pendingFormData.voice || '',
+        preset: pendingFormData.preset || '',
         title: pendingFormData.title || '',
         // Convert unit value to display format: square_feet -> "square feet", acre -> "acres"
         unit: pendingFormData.sizeUnit === 'square_feet' ? 'square feet' : pendingFormData.sizeUnit === 'acre' ? 'acres' : pendingFormData.sizeUnit || '',
@@ -1401,6 +1412,55 @@ export default function ListingVideoForm() {
               </div>
             )}
           </div>
+
+          {/* Preset - Shows after gender is selected */}
+          {watch("gender") && (
+            <div className="relative" data-dropdown="preset">
+              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+                Preset <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsPresetDropdownOpen(!isPresetDropdownOpen)}
+                className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800 ${
+                  errors.preset ? 'ring-2 ring-red-500' : ''
+                }`}
+              >
+                <span>
+                  {watch("preset")
+                    ? presetOptions.find((opt) => opt.value === watch("preset"))?.label || "Select Preset"
+                    : "Select Preset"}
+                </span>
+                <IoMdArrowDropdown
+                  className={`w-4 h-4 transition-transform duration-300 ${
+                    isPresetDropdownOpen ? "rotate-180" : ""
+                  }`}
+                  style={{ color: 'inherit' }}
+                />
+              </button>
+              {errors.preset && (
+                <p className="text-red-500 text-sm mt-1">{errors.preset.message}</p>
+              )}
+              {isPresetDropdownOpen && (
+                <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
+                  {presetOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setValue("preset", option.value)
+                        setIsPresetDropdownOpen(false)
+                        trigger("preset")
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Voice - Shows after gender is selected */}
           {watch("gender") && (
@@ -1864,10 +1924,10 @@ export default function ListingVideoForm() {
           </div>
           )}
 
-          {/* Bedroom Count */}
+          {/* Primary Bedroom Count */}
           <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Bedroom Count <span className="text-red-500">*</span>
+              Primary Bedroom Count <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -2160,7 +2220,7 @@ export default function ListingVideoForm() {
               </li>
               <li className="flex items-end gap-2">
                 <span className="text-[#5046E5] mt-1">•</span>
-                <span><strong>Interior parts:</strong> Enter a number first, then upload that many images (e.g., enter "3" to upload 3 bedroom photos)</span>
+                <span><strong>Interior parts:</strong> Enter a number first, then upload that many images (e.g., enter "3" to upload 3 primary bedroom photos)</span>
               </li>
               <li className="flex items-end gap-2">
                 <span className="text-[#5046E5] mt-1">•</span>
