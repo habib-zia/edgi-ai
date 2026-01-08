@@ -5,7 +5,7 @@ export { ProcessSteps } from "./process-steps";
 export { default as Footer } from "./footer";
 export { default as ContactForm } from "./contact-form";
 export { default as PricingSection } from "./pricing-section";
-export { default as CreateVideoForm } from "./create-video-form";
+export { default as CreateVideoForm } from "../forms/talking-head-form";
 export { default as ProfileDropdown } from "./profile-dropdown";
 export { default as CustomDropdown } from "./custom-dropdown";
 export { default as ProfileInfoSection } from "./profile-info-section";

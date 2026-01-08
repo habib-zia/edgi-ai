@@ -3,7 +3,7 @@
 import { UseFormWatch, UseFormRegister, FieldErrors, UseFormTrigger } from 'react-hook-form'
 import VoiceSelector from './voice-selector/VoiceSelector'
 import { Voice, VoiceType } from './voice-selector/types'
-import { CreateVideoFormData } from './form-validation-schema'
+import { CreateVideoFormData } from '../forms/validation-schema'
 
 interface MusicSelectorWrapperProps {
   field: keyof CreateVideoFormData

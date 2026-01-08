@@ -2,7 +2,7 @@
 
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import Link from "next/link";
-import MusicVideoForm from "@/components/ui/music-video-form";
+import MusicVideoForm from "@/components/forms/tour-form";
 
 export default function MusicVideoPage() {
   return (

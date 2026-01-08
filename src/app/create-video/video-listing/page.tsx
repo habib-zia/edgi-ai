@@ -2,7 +2,7 @@
 
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import Link from "next/link";
-import ListingVideoForm from "@/components/ui/listing-video-form";
+import ListingVideoForm from "@/components/forms/listing-form";
 
 export default function VideoListingPage() {
   return (
