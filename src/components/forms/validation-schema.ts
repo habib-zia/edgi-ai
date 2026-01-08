@@ -69,6 +69,8 @@ export const listingVideoSchema = z.object({
     .max(200, 'Address must be less than 200 characters'),
   price: z.string()
     .min(1, 'Price is required'),
+  sizeUnit: z.string()
+    .min(1, 'Please select a unit type'),
   size: z.string()
     .min(1, 'Size is required')
     .regex(/^\d+(\.\d+)?$/, 'Size must be a number'),
@@ -76,6 +78,7 @@ export const listingVideoSchema = z.object({
   bedroomCount: z.string()
     .min(1, 'Bedroom count is required')
     .regex(/^\d+$/, 'Bedroom count must be a number'),
+  masterBedroomCount: z.string().optional().refine((val) => !val || /^\d+$/.test(val), { message: 'Master bedroom count must be a number' }),
   // livingRoomCount: z.string()
   //   .min(1, 'Living room count is required'),
   bathroomCount: z.string()

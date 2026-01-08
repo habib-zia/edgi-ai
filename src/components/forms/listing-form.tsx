@@ -47,6 +47,7 @@ const exteriorParts = [
 const interiorParts = [
   "Living room",
   "Bedroom",
+  "Master Bedroom",
   "Kitchen",
   "Dining room",
   "Restroom",
@@ -113,6 +114,12 @@ const cityOptions = [
   { value: "San Jose", label: "San Jose" },
 ]
 
+// Size unit options
+const sizeUnitOptions = [
+  { value: "square_feet", label: "Square Feet" },
+  { value: "acre", label: "Acre" },
+]
+
 interface ImageFile {
   file: File
   preview: string
@@ -153,9 +160,11 @@ export default function ListingVideoForm() {
       city: '',
       address: '',
       price: '',
+      sizeUnit: '',
       size: '',
       lotSize: '',
       bedroomCount: '',
+      masterBedroomCount: '',
       // livingRoomCount: '',
       bathroomCount: '',
       socialHandles: '',
@@ -187,6 +196,7 @@ export default function ListingVideoForm() {
   const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false)
   const [isPropertyTypeDropdownOpen, setIsPropertyTypeDropdownOpen] = useState(false)
   const [isUseMusicDropdownOpen, setIsUseMusicDropdownOpen] = useState(false)
+  const [isSizeUnitDropdownOpen, setIsSizeUnitDropdownOpen] = useState(false)
   const [useMusic, setUseMusic] = useState<'yes' | 'no' | null>(null)
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false)
   const [isGeneratingScript, setIsGeneratingScript] = useState(false)
@@ -588,6 +598,20 @@ export default function ListingVideoForm() {
     prevGenderRef.current = currentGender
   }, [gender, setValue])
 
+  // Reset size and lotSize when sizeUnit changes
+  const sizeUnit = watch('sizeUnit')
+  const prevSizeUnitRef = useRef<string | null>(null)
+  
+  useEffect(() => {
+    if (sizeUnit && sizeUnit !== prevSizeUnitRef.current && prevSizeUnitRef.current !== null) {
+      // Only clear if unit actually changed (not on initial selection)
+      setValue('size', '', { shouldValidate: false, shouldDirty: false })
+      setValue('lotSize', '', { shouldValidate: false, shouldDirty: false })
+    }
+    
+    prevSizeUnitRef.current = sizeUnit
+  }, [sizeUnit, setValue])
+
   const handleDropdownToggle = (field: string) => {
     setOpenDropdown(openDropdown === field ? null : field)
   }
@@ -614,6 +638,9 @@ export default function ListingVideoForm() {
       if (isUseMusicDropdownOpen && !target.closest('[data-dropdown="useMusic"]')) {
         setIsUseMusicDropdownOpen(false)
       }
+      if (isSizeUnitDropdownOpen && !target.closest('[data-dropdown="sizeUnit"]')) {
+        setIsSizeUnitDropdownOpen(false)
+      }
       
       if (openDropdown === 'avatar') {
         const isInsideButton = target.closest('.avatar-dropdown-button')
@@ -629,7 +656,7 @@ export default function ListingVideoForm() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [isGenderDropdownOpen, isPropertyTypeDropdownOpen, isUseMusicDropdownOpen, openDropdown])
+  }, [isGenderDropdownOpen, isPropertyTypeDropdownOpen, isUseMusicDropdownOpen, isSizeUnitDropdownOpen, openDropdown])
 
   const handleExteriorPartToggle = (part: string) => {
     setExteriorPartsData((prev) => ({
@@ -738,24 +765,24 @@ export default function ListingVideoForm() {
       ? exteriorPartsData[part]?.images.length || 0
       : interiorPartsData[part]?.images.length || 0
 
-    if (currentTotal + imageFiles.length > 10) {
-      const allowed = 10 - currentTotal
+    if (currentTotal + imageFiles.length > 15) {
+      const allowed = 15 - currentTotal
       if (allowed <= 0) {
         showNotification(
-          "Maximum limit reached! You can only upload 10 images total across all parts.",
+          "Maximum limit reached! You can only upload 15 images total across all parts.",
           "error"
         )
         return
       }
       showNotification(
-        `You can only upload ${allowed} more image(s). Maximum limit is 10 images total.`,
+        `You can only upload ${allowed} more image(s). Maximum limit is 15 images total.`,
         "warning"
       )
       imageFiles.splice(allowed)
     }
 
     if (isExterior) {
-      // Allow multiple images for exterior parts, only limited by total 10-image limit
+      // Allow multiple images for exterior parts, only limited by total 15-image limit
       setExteriorPartsData((prev) => ({
         ...prev,
         [part]: {
@@ -808,9 +835,9 @@ export default function ListingVideoForm() {
         : interiorTotal + imageFiles.length
       const newTotal = newExteriorTotal + newInteriorTotal
       
-      if (newTotal >= 10) {
+      if (newTotal >= 15) {
         showNotification(
-          "Maximum limit reached! You have uploaded 10 images total.",
+          "Maximum limit reached! You have uploaded 15 images total.",
           "info"
         )
       }
@@ -929,9 +956,9 @@ export default function ListingVideoForm() {
     }
 
     // Validate image limit before submission
-    if (totalImages > 10) {
+    if (totalImages > 15) {
       showNotification(
-        `Cannot submit: You have ${totalImages} images. Please remove ${totalImages - 10} image(s) to meet the 10-image limit.`,
+        `Cannot submit: You have ${totalImages} images. Please remove ${totalImages - 15} image(s) to meet the 15-image limit.`,
         "error"
       )
       return
@@ -1006,9 +1033,22 @@ export default function ListingVideoForm() {
       scriptFormData.append('city', data.city || '')
       scriptFormData.append('address', data.address || '')
       scriptFormData.append('price', data.price || '')
-      scriptFormData.append('size', data.size || '')
-      scriptFormData.append('lotSize', data.lotSize || '')
+      // Convert unit value to display format: square_feet -> "square feet", acre -> "acres"
+      const unitValue = data.sizeUnit === 'square_feet' ? 'square feet' : data.sizeUnit === 'acre' ? 'acres' : data.sizeUnit || ''
+      scriptFormData.append('unit', unitValue)
+      // Convert size to number
+      const sizeNumber = data.size ? parseFloat(data.size) : 0
+      scriptFormData.append('size', sizeNumber.toString())
+      // Convert lotSize to number (optional field)
+      if (data.lotSize && data.lotSize.trim() !== '') {
+        const lotSizeNumber = parseFloat(data.lotSize)
+        scriptFormData.append('lotSize', lotSizeNumber.toString())
+      }
       scriptFormData.append('bedroomCount', data.bedroomCount || '')
+      // masterBedroomCount is optional - only append if provided
+      if (data.masterBedroomCount && data.masterBedroomCount.trim() !== '') {
+        scriptFormData.append('masterBedroomCount', data.masterBedroomCount)
+      }
       // scriptFormData.append('livingRoomCount', data.livingRoomCount || '')
       scriptFormData.append('bathroomCount', data.bathroomCount || '')
       // Parse comma-separated mainSellingPoints into array and append each item separately
@@ -1105,8 +1145,14 @@ export default function ListingVideoForm() {
         videoCaption: true,
         voiceId: selectedVoice?.id || pendingFormData.voice || '',
         title: pendingFormData.title || '',
-        size: pendingFormData.size || '',
-        lotSize: pendingFormData.lotSize || '',
+        // Convert unit value to display format: square_feet -> "square feet", acre -> "acres"
+        unit: pendingFormData.sizeUnit === 'square_feet' ? 'square feet' : pendingFormData.sizeUnit === 'acre' ? 'acres' : pendingFormData.sizeUnit || '',
+        // Convert size to number
+        size: pendingFormData.size ? parseFloat(pendingFormData.size) : 0,
+        // Convert lotSize to number (optional field - send null if empty)
+        lotSize: pendingFormData.lotSize && pendingFormData.lotSize.trim() !== '' 
+          ? parseFloat(pendingFormData.lotSize) 
+          : null,
         preferredTone: pendingFormData.preferredTone || ''
       }
 
@@ -1544,77 +1590,128 @@ export default function ListingVideoForm() {
             )}
           </div>
 
-          {/* Size */}
-          <div>
+          {/* Size Unit - Dropdown to select unit type */}
+          <div className="relative" data-dropdown="sizeUnit">
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Size (Sq. Ft) <span className="text-red-500">*</span>
+              Size & Lot Unit <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              {...register("size", { required: true })}
-              placeholder="e.g., 1500 sq ft, 2000 sq ft"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              onKeyPress={(e) => {
-                const char = e.key
-                const currentValue = (e.target as HTMLInputElement).value
-                if (char === '.' && currentValue.includes('.')) {
-                  e.preventDefault()
-                  return
-                }
-                if (!/[0-9.]/.test(char)) {
-                  e.preventDefault()
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                }
-              }}
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.size ? 'ring-2 ring-red-500' : ''
+            <button
+              type="button"
+              onClick={() => setIsSizeUnitDropdownOpen(!isSizeUnitDropdownOpen)}
+              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-left transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white flex items-center justify-between cursor-pointer text-gray-800 ${
+                errors.sizeUnit ? 'ring-2 ring-red-500' : ''
               }`}
-            />
-            {errors.size && (
-              <p className="text-red-500 text-sm mt-1">{errors.size.message}</p>
+            >
+              <span>
+                {watch("sizeUnit")
+                  ? sizeUnitOptions.find((opt) => opt.value === watch("sizeUnit"))?.label || "Select Unit"
+                  : "Select Unit"}
+              </span>
+              <IoMdArrowDropdown
+                className={`w-4 h-4 transition-transform duration-300 ${
+                  isSizeUnitDropdownOpen ? "rotate-180" : ""
+                }`}
+                style={{ color: 'inherit' }}
+              />
+            </button>
+            {errors.sizeUnit && (
+              <p className="text-red-500 text-sm mt-1">{errors.sizeUnit.message}</p>
+            )}
+            {isSizeUnitDropdownOpen && (
+              <div className="absolute z-[9999] top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto">
+                {sizeUnitOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setValue("sizeUnit", option.value)
+                      setIsSizeUnitDropdownOpen(false)
+                      trigger("sizeUnit")
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-[#F5F5F5] transition-colors duration-200 text-[#282828] cursor-pointer"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Lot Size (Sq. Ft) */}
-          <div>
-            <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-            Lot Size (Sq. Ft)
-            </label>
-            <input
-              type="text"
-              {...register("lotSize")}
-              placeholder="e.g., 1500 sq ft, 2000 sq ft"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              onKeyPress={(e) => {
-                const char = e.key
-                const currentValue = (e.target as HTMLInputElement).value
-                if (char === '.' && currentValue.includes('.')) {
-                  e.preventDefault()
-                  return
-                }
-                if (!/[0-9.]/.test(char)) {
-                  e.preventDefault()
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                }
-              }}
-              className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.lotSize ? 'ring-2 ring-red-500' : ''
-              }`}
-            />
-            {errors.lotSize && (
-              <p className="text-red-500 text-sm mt-1">{errors.lotSize.message}</p>
-            )}
-          </div>
+          {/* Size - Shows after unit is selected */}
+          {watch("sizeUnit") && (
+            <div>
+              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+                Size {watch("sizeUnit") === "square_feet" ? "(Sq. Ft)" : "(Acre)"} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                {...register("size", { required: true })}
+                placeholder={watch("sizeUnit") === "square_feet" ? "e.g., 1500" : "e.g., 0.5"}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onKeyPress={(e) => {
+                  const char = e.key
+                  const currentValue = (e.target as HTMLInputElement).value
+                  if (char === '.' && currentValue.includes('.')) {
+                    e.preventDefault()
+                    return
+                  }
+                  if (!/[0-9.]/.test(char)) {
+                    e.preventDefault()
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                  }
+                }}
+                className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                  errors.size ? 'ring-2 ring-red-500' : ''
+                }`}
+              />
+              {errors.size && (
+                <p className="text-red-500 text-sm mt-1">{errors.size.message}</p>
+              )}
+            </div>
+          )}
+
+          {/* Lot Size - Shows after unit is selected */}
+          {watch("sizeUnit") && (
+            <div>
+              <label className="block text-base font-normal text-[#5F5F5F] mb-1">
+                Lot Size {watch("sizeUnit") === "square_feet" ? "(Sq. Ft)" : "(Acre)"}
+              </label>
+              <input
+                type="text"
+                {...register("lotSize")}
+                placeholder={watch("sizeUnit") === "square_feet" ? "e.g., 2000" : "e.g., 1.0"}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onKeyPress={(e) => {
+                  const char = e.key
+                  const currentValue = (e.target as HTMLInputElement).value
+                  if (char === '.' && currentValue.includes('.')) {
+                    e.preventDefault()
+                    return
+                  }
+                  if (!/[0-9.]/.test(char)) {
+                    e.preventDefault()
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                  }
+                }}
+                className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
+                  errors.lotSize ? 'ring-2 ring-red-500' : ''
+                }`}
+              />
+              {errors.lotSize && (
+                <p className="text-red-500 text-sm mt-1">{errors.lotSize.message}</p>
+              )}
+            </div>
+          )}
 
           {/* Bedroom Count */}
           <div>
@@ -1647,28 +1744,36 @@ export default function ListingVideoForm() {
             )}
           </div>
 
-          {/* Living Room Count */}
-          {/* <div>
+          {/* Master Bedroom Count */}
+          <div>
             <label className="block text-base font-normal text-[#5F5F5F] mb-1">
-              Living Room Count <span className="text-red-500">*</span>
+              Master Bedroom Count
             </label>
             <input
               type="text"
-              {...register("livingRoomCount", { required: true })}
-              placeholder="e.g., 1, 2"
+              {...register("masterBedroomCount")}
+              placeholder="e.g., 1, 2, 3"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyPress={(e) => {
+                const char = e.key
+                if (!/[0-9]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
-                errors.livingRoomCount ? 'ring-2 ring-red-500' : ''
+                errors.masterBedroomCount ? 'ring-2 ring-red-500' : ''
               }`}
             />
-            {errors.livingRoomCount && (
-              <p className="text-red-500 text-sm mt-1">{errors.livingRoomCount.message}</p>
+            {errors.masterBedroomCount && (
+              <p className="text-red-500 text-sm mt-1">{errors.masterBedroomCount.message}</p>
             )}
-          </div> */}
+          </div>
 
           {/* Restroom Count */}
           <div>
@@ -1752,26 +1857,26 @@ export default function ListingVideoForm() {
       {/* Image Count Notification */}
       <div className="bg-white p-2">
         <div className={`p-4 rounded-lg border-2 ${
-          totalImages >= 10 
+          totalImages >= 15 
             ? 'bg-red-50 border-red-200 text-red-800' 
-            : totalImages >= 7
+            : totalImages >= 12
             ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
             : 'bg-blue-50 border-blue-200 text-blue-800'
         }`}>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <span className="font-semibold">Your Images:</span>
-              <span className={`font-bold ${totalImages >= 10 ? 'text-red-600' : totalImages >= 7 ? 'text-yellow-600' : 'text-blue-600'}`}>
-                {totalImages} of 10 selected
+              <span className={`font-bold ${totalImages >= 15 ? 'text-red-600' : totalImages >= 12 ? 'text-yellow-600' : 'text-blue-600'}`}>
+                {totalImages} of 15 selected
               </span>
             </div>
             <div className="text-sm">
-              {totalImages >= 10 ? (
+              {totalImages >= 15 ? (
                 <span className="text-red-600 font-medium">Maximum limit reached</span>
-              ) : totalImages >= 7 ? (
+              ) : totalImages >= 12 ? (
                 <span className="text-yellow-600 font-medium">Approaching limit</span>
               ) : (
-                <span className="text-blue-600">{10 - totalImages} more images allowed</span>
+                <span className="text-blue-600">{15 - totalImages} more images allowed</span>
               )}
             </div>
           </div>
@@ -1788,7 +1893,7 @@ export default function ListingVideoForm() {
               </li>
               <li className="flex items-end gap-2">
                 <span className="text-[#5046E5] mt-1">•</span>
-                <span><strong>Total limit:</strong> You can upload up to 10 images across all parts combined</span>
+                <span><strong>Total limit:</strong> You can upload up to 15 images across all parts combined</span>
               </li>
             </ul>
           </div>
@@ -1872,7 +1977,7 @@ export default function ListingVideoForm() {
                   ) : (
                     <div className="w-full">
                       {(() => {
-                        const canAddMore = totalImages < 10
+                        const canAddMore = totalImages < 15
                         
                         return (
                           <>
@@ -2113,16 +2218,16 @@ export default function ListingVideoForm() {
 
       {/* Submit Button */}
       <div className="pt-6">
-        {totalImages > 10 && (
+        {totalImages > 15 && (
           <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
             <p className="text-red-800 font-medium text-center">
-              ⚠️ Cannot submit: You have {totalImages} images. Please remove {totalImages - 10} image(s) to meet the 10-image limit.
+              ⚠️ Cannot submit: You have {totalImages} images. Please remove {totalImages - 15} image(s) to meet the 15-image limit.
             </p>
           </div>
         )}
         <SubmitButton
           isLoading={isGeneratingScript}
-          disabled={totalImages > 10}
+          disabled={totalImages > 15}
           loadingText="Processing... This may take 30-50 seconds"
           buttonText="Submit"
         />
