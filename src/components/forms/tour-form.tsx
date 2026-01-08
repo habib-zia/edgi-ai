@@ -424,6 +424,13 @@ export default function MusicVideoForm() {
       return
     }
 
+    // Trigger music field validation to show red outline if invalid
+    const musicValid = await trigger('music')
+    if (!musicValid || !data.music) {
+      // Validation will show the error state automatically
+      return
+    }
+
     // Check video usage limit and payment status before proceeding
     try {
       const usageCheck = await checkVideoUsageLimit()
@@ -463,8 +470,8 @@ export default function MusicVideoForm() {
       return
     }
 
+    // Music validation is already handled above via trigger('music')
     if (!selectedMusic) {
-      showNotification('Please select music', 'error')
       return
     }
 
@@ -706,10 +713,28 @@ export default function MusicVideoForm() {
             </label>
             <input
               type="text"
-              {...register("price", { required: true })}
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("price", { required: true })
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters except decimal point
+                    const cleaned = value.replace(/[^0-9.]/g, '')
+                    // Ensure only one decimal point
+                    const parts = cleaned.split('.')
+                    const finalValue = parts.length > 2 
+                      ? parts[0] + '.' + parts.slice(1).join('')
+                      : cleaned
+                    e.target.value = finalValue
+                    registerOnChange(e)
+                    setValue('price', finalValue, { shouldValidate: true })
+                  }
+                }
+              })()}
               placeholder="e.g., 2000, 2000.50"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="decimal"
+              autoComplete="off"
               onKeyPress={(e) => {
                 const char = e.key
                 const currentValue = (e.target as HTMLInputElement).value
@@ -725,6 +750,24 @@ export default function MusicVideoForm() {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                const numericOnly = pastedText.replace(/[^0-9.]/g, '')
+                // Only allow one decimal point
+                const parts = numericOnly.split('.')
+                const cleaned = parts.length > 2 
+                  ? parts[0] + '.' + parts.slice(1).join('')
+                  : numericOnly
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + cleaned + currentValue.slice(end)
+                input.value = newValue
+                setValue('price', newValue, { shouldValidate: true })
+                trigger('price')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.price ? 'ring-2 ring-red-500' : ''
@@ -742,24 +785,58 @@ export default function MusicVideoForm() {
             </label>
             <input
               type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              {...register("size", { 
-                required: true,
-                pattern: {
-                  value: /^\d+$/,
-                  message: 'Size must be a number'
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("size", { 
+                  required: true,
+                  pattern: {
+                    value: /^\d+$/,
+                    message: 'Size must be a number'
+                  }
+                })
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters (whole numbers only, no decimals)
+                    const cleaned = value.replace(/[^0-9]/g, '')
+                    e.target.value = cleaned
+                    registerOnChange(e)
+                    setValue('size', cleaned, { shouldValidate: true })
+                  }
                 }
-              })}
+              })()}
               placeholder="e.g., 1500 sq ft, 2000 sq ft"
+              inputMode="numeric"
+              autoComplete="off"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                // Prevent typing "0" when field is empty
+                if (char === '0' && currentValue === '') {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
-                // Allow: backspace, delete, tab, escape, enter, decimal point, and numbers
-                if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-                  e.preventDefault()
-                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                const numericOnly = pastedText.replace(/[^0-9]/g, '')
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + numericOnly + currentValue.slice(end)
+                input.value = newValue
+                setValue('size', newValue, { shouldValidate: true })
+                trigger('size')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.size ? 'ring-2 ring-red-500' : ''
@@ -777,24 +854,66 @@ export default function MusicVideoForm() {
             </label>
             <input
               type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              {...register("bedroomCount", { 
-                required: true,
-                pattern: {
-                  value: /^\d+$/,
-                  message: 'Bedroom count must be a number'
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("bedroomCount", { 
+                  required: true,
+                  pattern: {
+                    value: /^\d+$/,
+                    message: 'Bedroom count must be a number'
+                  }
+                })
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters (whole numbers only, no decimals)
+                    let cleaned = value.replace(/[^0-9]/g, '')
+                    // Prevent entering just "0" - if user types 0 and field is empty or only 0, clear it
+                    if (cleaned === '0') {
+                      cleaned = ''
+                    }
+                    e.target.value = cleaned
+                    registerOnChange(e)
+                    setValue('bedroomCount', cleaned, { shouldValidate: true })
+                  }
                 }
-              })}
+              })()}
               placeholder="e.g., 1, 2, 3"
+              inputMode="numeric"
+              autoComplete="off"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                // Prevent typing "0" when field is empty
+                if (char === '0' && currentValue === '') {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
-                // Allow: backspace, delete, tab, escape, enter, and numbers
-                if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-                  e.preventDefault()
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                let numericOnly = pastedText.replace(/[^0-9]/g, '')
+                // Prevent pasting just "0"
+                if (numericOnly === '0') {
+                  numericOnly = ''
                 }
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + numericOnly + currentValue.slice(end)
+                input.value = newValue
+                setValue('bedroomCount', newValue, { shouldValidate: true })
+                trigger('bedroomCount')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.bedroomCount ? 'ring-2 ring-red-500' : ''
@@ -812,24 +931,66 @@ export default function MusicVideoForm() {
             </label>
             <input
               type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              {...register("washroomCount", { 
-                required: true,
-                pattern: {
-                  value: /^\d+$/,
-                  message: 'Restroom count must be a number'
+              {...(() => {
+                const { onChange: registerOnChange, ...registerProps } = register("washroomCount", { 
+                  required: true,
+                  pattern: {
+                    value: /^\d+$/,
+                    message: 'Restroom count must be a number'
+                  }
+                })
+                return {
+                  ...registerProps,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value
+                    // Remove any non-numeric characters (whole numbers only, no decimals)
+                    let cleaned = value.replace(/[^0-9]/g, '')
+                    // Prevent entering just "0" - if user types 0 and field is empty or only 0, clear it
+                    if (cleaned === '0') {
+                      cleaned = ''
+                    }
+                    e.target.value = cleaned
+                    registerOnChange(e)
+                    setValue('washroomCount', cleaned, { shouldValidate: true })
+                  }
                 }
-              })}
+              })()}
               placeholder="e.g., 1, 2, 3"
+              inputMode="numeric"
+              autoComplete="off"
+              onKeyPress={(e) => {
+                const char = e.key
+                const currentValue = (e.target as HTMLInputElement).value
+                // Prevent typing "0" when field is empty
+                if (char === '0' && currentValue === '') {
+                  e.preventDefault()
+                  return
+                }
+                if (!/[0-9]/.test(char)) {
+                  e.preventDefault()
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                 }
-                // Allow: backspace, delete, tab, escape, enter, and numbers
-                if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-                  e.preventDefault()
+              }}
+              onPaste={(e) => {
+                e.preventDefault()
+                const pastedText = e.clipboardData.getData('text')
+                let numericOnly = pastedText.replace(/[^0-9]/g, '')
+                // Prevent pasting just "0"
+                if (numericOnly === '0') {
+                  numericOnly = ''
                 }
+                const input = e.target as HTMLInputElement
+                const start = input.selectionStart || 0
+                const end = input.selectionEnd || 0
+                const currentValue = input.value
+                const newValue = currentValue.slice(0, start) + numericOnly + currentValue.slice(end)
+                input.value = newValue
+                setValue('washroomCount', newValue, { shouldValidate: true })
+                trigger('washroomCount')
               }}
               className={`w-full px-4 py-3 bg-[#F5F5F5] border-0 rounded-[8px] text-[18px] font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5046E5] focus:bg-white transition-all duration-300 ${
                 errors.washroomCount ? 'ring-2 ring-red-500' : ''

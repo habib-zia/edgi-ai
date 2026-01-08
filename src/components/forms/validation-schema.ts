@@ -77,13 +77,15 @@ export const listingVideoSchema = z.object({
   lotSize: z.string().optional().refine((val) => !val || /^\d+(\.\d+)?$/.test(val), { message: 'Lot size must be a number' }),
   bedroomCount: z.string()
     .min(1, 'Bedroom count is required')
-    .regex(/^\d+$/, 'Bedroom count must be a number'),
-  masterBedroomCount: z.string().optional().refine((val) => !val || /^\d+$/.test(val), { message: 'Master bedroom count must be a number' }),
+    .regex(/^\d+$/, 'Bedroom count must be a number')
+    .refine((val) => val !== '0', { message: 'Bedroom count must be at least 1' }),
+  masterBedroomCount: z.string().optional().refine((val) => !val || (/^\d+$/.test(val) && val !== '0'), { message: 'Master bedroom count must be at least 1 if provided' }),
   // livingRoomCount: z.string()
   //   .min(1, 'Living room count is required'),
   bathroomCount: z.string()
     .min(1, 'Restroom count is required')
-    .regex(/^\d+$/, 'Restroom count must be a number'),
+    .regex(/^\d+$/, 'Restroom count must be a number')
+    .refine((val) => val !== '0', { message: 'Restroom count must be at least 1' }),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
   mainSellingPoints: z.string()
@@ -106,16 +108,19 @@ export const musicVideoSchema = z.object({
   propertyType: z.string()
     .min(1, 'Property type is required'),
   price: z.string()
-    .min(1, 'Price is required'),
+    .min(1, 'Price is required')
+    .regex(/^\d+(\.\d+)?$/, 'Price must be a valid number (e.g., 2000 or 2000.50)'),
   size: z.string()
     .min(1, 'Size is required')
     .regex(/^\d+$/, 'Size must be a number'),
   bedroomCount: z.string()
     .min(1, 'Bedroom count is required')
-    .regex(/^\d+$/, 'Bedroom count must be a number'),
+    .regex(/^\d+$/, 'Bedroom count must be a number')
+    .refine((val) => val !== '0', { message: 'Bedroom count must be at least 1' }),
   washroomCount: z.string()
     .min(1, 'Restroom count is required')
-    .regex(/^\d+$/, 'Restroom count must be a number'),
+    .regex(/^\d+$/, 'Restroom count must be a number')
+    .refine((val) => val !== '0', { message: 'Restroom count must be at least 1' }),
   socialHandles: z.string()
     .min(1, 'Social handles is required'),
   mainSellingPoints: z.string()
