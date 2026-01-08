@@ -1,6 +1,6 @@
 "use client";
 
-import CreateVideoForm from "@/components/ui/create-video-form";
+import CreateVideoForm from "@/components/forms/talking-head-form";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";

@@ -1,6 +1,6 @@
 "use client";
 
-import AnimatedVideoForm from "@/components/ui/animated-video-form";
+import AnimatedVideoForm from "@/components/forms/animated-form";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import Link from "next/link";
 
